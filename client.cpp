@@ -239,7 +239,7 @@ int main(int argc, char *argv[]) {
     std::thread first (read_background);
 
 
-    // in this case we wait 5 seconds before writing to our 
+    // in this case we wait 5 seconds before writing to our address
     msleep(5000);
     PCSX2Ipc* test = new PCSX2Ipc();
     test->Write8(0x00347D34, 0xFF);
