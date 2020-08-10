@@ -1,17 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <netdb.h>
-#include <netinet/in.h>
-
 #include <string.h>
 #include <tuple>
 #include <sys/types.h>
+#include <stdio.h>
+#include <thread>
+#include <unistd.h>
+
+#ifdef __linux__
+
+#include <netdb.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <thread>
+#endif
+#ifdef _WIN32
+#include <windows.h>
+#define PORT 28011
+#endif
 
 #define to64b(arr) (((uint64_t)(((uint8_t *)(arr))[7]) <<  0)+\
         ((uint64_t)(((uint8_t *)(arr))[6]) <<  8)+\
@@ -32,12 +38,7 @@
 
 #define to8b(arr) (((uint8_t)(((uint8_t *)(arr))[0]) <<  0))
 
-#ifdef __linux__
-#include <unistd.h>
-#endif
-#ifdef _WIN32 
-#include <windows.h>
-#endif
+
 
 void msleep(int sleepMs)
 {
@@ -73,6 +74,27 @@ class PCSX2Ipc {
         Status result = Unknown;
 
         int SendCommand(std::tuple<int, char*> command, std::tuple<int, char*> ret) {
+#ifdef _WIN32
+            SOCKET sock;
+            struct sockaddr_in server;
+
+            sock = socket(AF_INET, SOCK_STREAM, 0);
+            if (sock < 0) {
+                return -1;
+            }
+
+            //Prepare the sockaddr_in structure
+            server.sin_family = AF_INET;
+            // localhost only
+            server.sin_addr.s_addr = inet_addr("127.0.0.1");
+            server.sin_port = htons(PORT);
+
+            if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0) {
+                close(sock);
+                return -1;
+            }
+
+#else
             int sock;
             struct sockaddr_un server;
 
@@ -84,16 +106,26 @@ class PCSX2Ipc {
             server.sun_family = AF_UNIX;
             strcpy(server.sun_path, SOCKET_NAME);
 
-
             if (connect(sock, (struct sockaddr *) &server, sizeof(struct sockaddr_un)) < 0) {
                 close(sock);
                 return -1;
             }
+
+#endif
+
+#ifdef _WIN32
+            if (send(sock, std::get<1>(command), std::get<0>(command),0) < 0) {
+#else
             if (write(sock, std::get<1>(command), std::get<0>(command)) < 0) {
+#endif
                 return -1;
             }
 
+#ifdef _WIN32
+            if (recv(sock, std::get<1>(ret), std::get<0>(ret), 0) < 0) {
+#else
             if (read(sock, std::get<1>(ret), std::get<0>(ret)) < 0) {
+#endif
                 return -1;
             }
             close(sock);
@@ -118,7 +150,7 @@ class PCSX2Ipc {
             char* res_array = (char*)malloc(2*sizeof(char));
             if (SendCommand(std::make_tuple(5,cmd), std::make_tuple(2,res_array)) < 0) {
                 result = Fail;
-            } else { result = Success; } 
+            } else { result = Success; }
             return to8b(&res_array[1]);
         }
 
@@ -128,7 +160,7 @@ class PCSX2Ipc {
             char* res_array = (char*)malloc(3*sizeof(char));
             if (SendCommand(std::make_tuple(5,cmd), std::make_tuple(3,res_array)) < 0) {
                 result = Fail;
-            } else { result = Success; } 
+            } else { result = Success; }
             return to16b(&res_array[1]);
         }
 
@@ -159,7 +191,7 @@ class PCSX2Ipc {
             cmd[5] = (char)value;
             if (SendCommand(std::make_tuple(6,cmd), std::make_tuple(1,res_array)) < 0) {
                 result = Fail;
-            } else { result = Success; } 
+            } else { result = Success; }
         }
 
         void Write16(uint32_t address, uint16_t value) {
@@ -170,7 +202,7 @@ class PCSX2Ipc {
             cmd[6] = (unsigned char) value;
             if (SendCommand(std::make_tuple(7,cmd), std::make_tuple(1,res_array)) < 0) {
                 result = Fail;
-            } else { result = Success; } 
+            } else { result = Success; }
         }
 
         void Write32(uint32_t address, uint32_t value) {
@@ -183,7 +215,7 @@ class PCSX2Ipc {
             cmd[8] = (unsigned char) value;
             if (SendCommand(std::make_tuple(9,cmd), std::make_tuple(1,res_array)) < 0) {
                 result = Fail;
-            } else { result = Success; } 
+            } else { result = Success; }
         }
 
         void Write64(uint32_t address, uint64_t value) {
@@ -200,7 +232,7 @@ class PCSX2Ipc {
             cmd[12] = (unsigned char) value;
             if (SendCommand(std::make_tuple(13,cmd), std::make_tuple(1,res_array)) < 0) {
                 result = Fail;
-            } else { result = Success; } 
+            } else { result = Success; }
         }
 
 };
@@ -209,7 +241,7 @@ class PCSX2Ipc {
 // how timer can work
 void read_background() {
     while(true) {
-        // you can go slower but go higher at your own risk 
+        // you can go slower but go higher at your own risk
         msleep(100);
 
         // we instantiate a new PCSX2Ipc object, it is a good idea to create a new
@@ -225,7 +257,7 @@ void read_background() {
         // if the operation failed
         if (test->result != test->Success) {
             printf("ERROR!!!!!\n");
-        } 
+        }
         else {
             // otherwise we print the result
             printf("PCSX2Ipc::Read32(0x00347D34) :  %u\n", value);
@@ -235,6 +267,11 @@ void read_background() {
 }
 
 int main(int argc, char *argv[]) {
+
+#ifdef _WIN32
+    WSADATA wsa;
+    WSAStartup(MAKEWORD(2, 2), &wsa);
+#endif
     // we create a new thread
     std::thread first (read_background);
 
@@ -248,5 +285,9 @@ int main(int argc, char *argv[]) {
     // we wait for the thread to finish. in our case it is an infinite loop
     // (while true) so it will never do so.
     first.join();
+
+#ifdef _WIN32
+    WSACleanup();
+#endif
     return 0;
 }
