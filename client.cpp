@@ -53,7 +53,7 @@ void msleep(int sleepMs)
 
 class PCSX2Ipc {
     public:
-        const char* SOCKET_NAME = "/tmp/pcsx2";
+        const char* SOCKET_NAME = "/tmp/pcsx2.sock";
 
         enum IPCCommand {
             MsgRead8 = 0,
