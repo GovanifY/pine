@@ -1,0 +1,1984 @@
+From 5162a716fd3517064f56a8ad129ea92133ba3407 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Fri, 7 Aug 2020 02:39:01 +0200
+Subject: [PATCH 01/12] some quick and dirty poc
+
+---
+ cmake/BuildParameters.cmake |  6 +++---
+ pcsx2/Patch_Memory.cpp      | 17 ++++++++++++++++-
+ 2 files changed, 19 insertions(+), 4 deletions(-)
+
+diff --git a/cmake/BuildParameters.cmake b/cmake/BuildParameters.cmake
+index e1ca1ee92..02d039ec8 100644
+--- a/cmake/BuildParameters.cmake
++++ b/cmake/BuildParameters.cmake
+@@ -333,7 +333,7 @@ endif()
+ 
+ if (USE_CLANG)
+     # -Wno-deprecated-register: glib issue...
+-    set(DEFAULT_WARNINGS "${DEFAULT_WARNINGS}  -Wno-deprecated-register -Wno-c++14-extensions")
++    set(DEFAULT_WARNINGS "${DEFAULT_WARNINGS}  -Wno-deprecated-register -Wno-c++17-extensions")
+     set(DBG "-g -fno-omit-frame-pointer")
+ elseif (USE_ICC)
+     set(DBG "-g -fno-omit-frame-pointer")
+@@ -410,7 +410,7 @@ endif()
+ # Note: -DGTK_DISABLE_DEPRECATED can be used to test a build without gtk deprecated feature. It could be useful to port to a newer API
+ set(DEFAULT_GCC_FLAG "${ARCH_FLAG} ${COMMON_FLAG} ${DEFAULT_WARNINGS} ${AGGRESSIVE_WARNING} ${HARDENING_FLAG} ${DEBUG_FLAG} ${ASAN_FLAG} ${OPTIMIZATION_FLAG} ${LTO_FLAGS} ${PGO_FLAGS} ${PLUGIN_SUPPORT}")
+ # c++ only flags
+-set(DEFAULT_CPP_FLAG "${DEFAULT_GCC_FLAG} -std=c++11 -Wno-invalid-offsetof")
++set(DEFAULT_CPP_FLAG "${DEFAULT_GCC_FLAG} -std=c++17 -Wno-invalid-offsetof")
+ 
+ #-------------------------------------------------------------------------------
+ # Allow user to set some default flags
+@@ -490,4 +490,4 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+ 
+     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip,-dead_strip_dylibs")
+     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-dead_strip,-dead_strip_dylibs")
+-endif()
+\ No newline at end of file
++endif()
+diff --git a/pcsx2/Patch_Memory.cpp b/pcsx2/Patch_Memory.cpp
+index c335037a1..f7adb3ea3 100644
+--- a/pcsx2/Patch_Memory.cpp
++++ b/pcsx2/Patch_Memory.cpp
+@@ -20,6 +20,9 @@
+ #include "IopCommon.h"
+ #include "Patch.h"
+ #include <chrono>
++#include <filesystem>
++#include <fstream>
++namespace fs = std::filesystem;
+ 
+ u32 SkipCount = 0, IterationCount = 0;
+ u32 IterationIncrement = 0, ValueIncrement = 0;
+@@ -415,6 +418,8 @@ void handle_extended_t(IniPatch *p)
+                         }
+                     } break;
+ 
++
++
+                     case 0xE0000000: { // IF Statements (Multi)
+                         u8 mem8 = memRead8((u32)p->data & 0x0FFFFFFF);
+                         u16 mem16 = memRead16((u32)p->data & 0x0FFFFFFF);
+@@ -467,7 +472,17 @@ void handle_extended_t(IniPatch *p)
+                                         break;
+                                 }
+                             } break;
+-                                PrevCheatType = 0;
++                case 0xF0000000: { // IPC
++                    auto tmp_path = fs::temp_directory_path();
++                    u32 value = memRead32((u32)p->addr & 0x0FFFFFFF);
++                    tmp_path /= "pcsx2_ipc";
++
++                    std::ofstream ofs(tmp_path);
++                    ofs << std::hex << value; 
++                    ofs.close();
++                }break;
++
++                PrevCheatType = 0;
+                         }
+                     } break;
+                 }
+-- 
+2.25.4
+
+
+From c25d97525ab070e144081618b11ec88a700d7252 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Sat, 8 Aug 2020 08:43:41 +0200
+Subject: [PATCH 02/12] some simple unix socket example
+
+---
+ pcsx2/IPC.cpp                  | 69 ++++++++++++++++++++++++++++++++++
+ pcsx2/IPC.h                    |  8 ++++
+ pcsx2/System/SysCoreThread.cpp |  1 +
+ 3 files changed, 78 insertions(+)
+ create mode 100644 pcsx2/IPC.cpp
+ create mode 100644 pcsx2/IPC.h
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+new file mode 100644
+index 000000000..eb2aecdaf
+--- /dev/null
++++ b/pcsx2/IPC.cpp
+@@ -0,0 +1,69 @@
++#include <sys/types.h>
++#include <sys/socket.h>
++#include <sys/un.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include "Common.h"
++#include "IPC.h"
++
++
++namespace SocketIPC {
++
++void SocketThread() {
++    int sock, msgsock, rval;
++    struct sockaddr_un server;
++    char buf[1024];
++
++    sock = socket(AF_UNIX, SOCK_STREAM, 0);
++    if (sock < 0) {
++	    Console.WriteLn( Color_StrongBlue, "IPC: Cannot open socket! Shutting down...\n" );
++        return;
++    }
++    server.sun_family = AF_UNIX;
++    strcpy(server.sun_path, NAME);
++
++    // we unlink the socket so that when releasing this thread the socket gets
++    // freed even if we didn't close correctly the loop
++    unlink(NAME);
++    if (bind(sock, (struct sockaddr *) &server, sizeof(struct sockaddr_un))) {
++	    Console.WriteLn( Color_StrongBlue, "IPC: Error while binding to socket! Shutting down...\n" );
++        return;
++    }
++
++    // maximum queue of 5 commands before refusing
++    listen(sock, 5);
++    // TODO: start thread here
++    SocketThread();
++}
++
++void SocketThread() {
++    while(true) {
++        msgsock = accept(sock, 0, 0);
++        if (msgsock == -1) {
++	            Console.WriteLn( Color_StrongBlue, "IPC: Connection to socket broken! Shutting down...\n" );
++                return;
++            }
++        else do {
++            bzero(buf, sizeof(buf));
++            if ((rval = read(msgsock, buf, 1024)) < 0) {
++	            Console.WriteLn( Color_StrongBlue, "IPC: Connection to socket broken! Shutting down...\n" );
++                return;
++            }
++            else {
++                ParseCommand(buf);
++            }
++        } 
++        close(msgsock);
++    }
++    // catch signal here
++    close(sock);
++    unlink(NAME);
++
++}
++
++void ParseCommand(char *buf) {
++    // TODO: Actually parse different IPC events
++    printf("-->%s\n", buf);
++}
++
++} // namespace SocketIPC
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+new file mode 100644
+index 000000000..cfec69313
+--- /dev/null
++++ b/pcsx2/IPC.h
+@@ -0,0 +1,8 @@
++namespace SocketIPC {
++
++const char* NAME = "/tmp/pcsx2";
++
++void SocketThread();
++void ParseCommand();
++
++} // namespace SocketIPC
+diff --git a/pcsx2/System/SysCoreThread.cpp b/pcsx2/System/SysCoreThread.cpp
+index d69e5014a..fb6f390d3 100644
+--- a/pcsx2/System/SysCoreThread.cpp
++++ b/pcsx2/System/SysCoreThread.cpp
+@@ -236,6 +236,7 @@ void SysCoreThread::GameStartingInThread()
+ 	sApp.PostAppMethod(&Pcsx2App::resetDebugger);
+ 
+ 	ApplyLoadedPatches(PPT_ONCE_ON_LOAD);
++    // TODO: LOAD HERE SOCKET THREAD
+ #ifdef USE_SAVESLOT_UI_UPDATES
+ 	UI_UpdateSysControls();
+ #endif
+-- 
+2.25.4
+
+
+From 5680cd77d3a0bae14f298eda7fde880cc7698c38 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Sat, 8 Aug 2020 10:13:18 +0200
+Subject: [PATCH 03/12] SocketIPC implemented inside SysCoreThread,
+ initialization in constructor is probably useless, will have to check later.
+ threading to implement in IPC.cpp
+
+---
+ pcsx2/IPC.cpp                  | 15 ++++++++++++---
+ pcsx2/IPC.h                    | 28 ++++++++++++++++++++++++----
+ pcsx2/System/SysCoreThread.cpp |  9 ++++++++-
+ pcsx2/System/SysThreads.h      |  3 +++
+ 4 files changed, 47 insertions(+), 8 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index eb2aecdaf..472b0d632 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -7,9 +7,12 @@
+ #include "IPC.h"
+ 
+ 
+-namespace SocketIPC {
++class SocketIPC {
+ 
+-void SocketThread() {
++void SocketIPC() {
++}
++
++void Start() {
+     int sock, msgsock, rval;
+     struct sockaddr_un server;
+     char buf[1024];
+@@ -60,10 +63,16 @@ void SocketThread() {
+     unlink(NAME);
+ 
+ }
++void Stop() {
++    // stop thread here
++}
++void ~SocketIPC() {
++    Stop();
++}
+ 
+ void ParseCommand(char *buf) {
+     // TODO: Actually parse different IPC events
+     printf("-->%s\n", buf);
+ }
+ 
+-} // namespace SocketIPC
++} // class SocketIPC
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index cfec69313..b8c93d2ac 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -1,8 +1,28 @@
+-namespace SocketIPC {
++class SocketIPC {
+ 
+-const char* NAME = "/tmp/pcsx2";
++    private:
++void m_thread = NULL;
++const char* SOCKET_NAME = "/tmp/pcsx2";
+ 
++/* Internal function, thread used to relay IPC commands. */
+ void SocketThread();
+-void ParseCommand();
+ 
+-} // namespace SocketIPC
++/* Internal function, Parses an IPC command.
++ * buf: buffer containing the IPC command.
++ * return value: buffer containing the result of the command. */
++char* ParseCommand(char* buf);
++
++    public: 
++
++/* Initializers */
++void SocketIPC();
++void ~SocketIPC();
++
++/* Starts the event-based socket thread. Does nothing if already started. */
++void Start();
++
++/* Stops the event-based socket thread. Does nothing if already stopped. */
++void Stop();
++
++
++} // class SocketIPC
+diff --git a/pcsx2/System/SysCoreThread.cpp b/pcsx2/System/SysCoreThread.cpp
+index fb6f390d3..0760cf88e 100644
+--- a/pcsx2/System/SysCoreThread.cpp
++++ b/pcsx2/System/SysCoreThread.cpp
+@@ -51,6 +51,8 @@ SysCoreThread::SysCoreThread()
+ 	m_resetVirtualMachine	= true;
+ 
+ 	m_hasActiveMachine		= false;
++
++    m_socketIpc = SocketIPC();
+ }
+ 
+ SysCoreThread::~SysCoreThread()
+@@ -63,12 +65,14 @@ SysCoreThread::~SysCoreThread()
+ 
+ void SysCoreThread::Cancel( bool isBlocking )
+ {
++    m_socketIpc.Stop();
+ 	m_hasActiveMachine = false;
+ 	_parent::Cancel();
+ }
+ 
+ bool SysCoreThread::Cancel( const wxTimeSpan& span )
+ {
++    m_socketIpc.Stop();
+ 	m_hasActiveMachine = false;
+ 	return _parent::Cancel( span );
+ }
+@@ -176,6 +180,8 @@ void SysCoreThread::_reset_stuff_as_needed()
+ 	// because of changes to the TLB.  We don't actually support the TLB, however, so rec
+ 	// resets aren't in fact *needed* ... yet.  But might as well, no harm.  --air
+ 
++    m_socketIpc.Stop();
++
+ 	GetVmMemory().CommitAll();
+ 
+ 	if( m_resetVirtualMachine || m_resetRecompilers || m_resetProfilers )
+@@ -205,6 +211,7 @@ void SysCoreThread::_reset_stuff_as_needed()
+ 
+ 		m_resetVsyncTimers		= false;
+ 	}
++    m_socketIpc.Start();
+ }
+ 
+ void SysCoreThread::DoCpuReset()
+@@ -236,7 +243,7 @@ void SysCoreThread::GameStartingInThread()
+ 	sApp.PostAppMethod(&Pcsx2App::resetDebugger);
+ 
+ 	ApplyLoadedPatches(PPT_ONCE_ON_LOAD);
+-    // TODO: LOAD HERE SOCKET THREAD
++    m_socketIpc.Start();
+ #ifdef USE_SAVESLOT_UI_UPDATES
+ 	UI_UpdateSysControls();
+ #endif
+diff --git a/pcsx2/System/SysThreads.h b/pcsx2/System/SysThreads.h
+index 6ddf09fad..d94f5973f 100644
+--- a/pcsx2/System/SysThreads.h
++++ b/pcsx2/System/SysThreads.h
+@@ -170,6 +170,9 @@ protected:
+ 	bool			m_resetVsyncTimers;
+ 	bool			m_resetVirtualMachine;
+ 
++    // Stores the state of the socket IPC thread.
++    SocketIPC       m_socketIpc;
++
+ 	// Indicates if the system has an active virtual machine state.  Pretty much always
+ 	// true anytime between plugins being initialized and plugins being shutdown.  Gets
+ 	// set false when plugins are shutdown, the corethread is canceled, or when an error
+-- 
+2.25.4
+
+
+From 8b0c0e072ea34805f252e5dc4321d1881edee4ff Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Sat, 8 Aug 2020 20:26:34 +0200
+Subject: [PATCH 04/12] working socketipc implem
+
+---
+ pcsx2/CMakeLists.txt      |  2 ++
+ pcsx2/IPC.cpp             | 54 ++++++++++++++++++---------------------
+ pcsx2/IPC.h               | 29 ++++++++++++++++++---
+ pcsx2/System/SysThreads.h |  1 +
+ 4 files changed, 53 insertions(+), 33 deletions(-)
+
+diff --git a/pcsx2/CMakeLists.txt b/pcsx2/CMakeLists.txt
+index 5026ba954..46e9f48fa 100644
+--- a/pcsx2/CMakeLists.txt
++++ b/pcsx2/CMakeLists.txt
+@@ -75,6 +75,7 @@ set(pcsx2Sources
+ 	IopIrq.cpp
+ 	IopMem.cpp
+ 	IopSio2.cpp
++    IPC.cpp
+ 	Mdec.cpp
+ 	Memory.cpp
+ 	MMI.cpp
+@@ -147,6 +148,7 @@ set(pcsx2Headers
+ 	IopHw.h
+ 	IopMem.h
+ 	IopSio2.h
++    IPC.h
+ 	Mdec.h
+ 	MTVU.h
+ 	Memory.h
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 472b0d632..afb2b2c38 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -7,72 +7,68 @@
+ #include "IPC.h"
+ 
+ 
+-class SocketIPC {
+-
+-void SocketIPC() {
++SocketIPC::SocketIPC() {
+ }
+ 
+-void Start() {
+-    int sock, msgsock, rval;
++void SocketIPC::Start() {
+     struct sockaddr_un server;
+-    char buf[1024];
+ 
+-    sock = socket(AF_UNIX, SOCK_STREAM, 0);
+-    if (sock < 0) {
++    m_sock = socket(AF_UNIX, SOCK_STREAM, 0);
++    if (m_sock < 0) {
+ 	    Console.WriteLn( Color_StrongBlue, "IPC: Cannot open socket! Shutting down...\n" );
+         return;
+     }
+     server.sun_family = AF_UNIX;
+-    strcpy(server.sun_path, NAME);
++    strcpy(server.sun_path, SOCKET_NAME);
+ 
+     // we unlink the socket so that when releasing this thread the socket gets
+     // freed even if we didn't close correctly the loop
+-    unlink(NAME);
+-    if (bind(sock, (struct sockaddr *) &server, sizeof(struct sockaddr_un))) {
++    unlink(SOCKET_NAME);
++    if (bind(m_sock, (struct sockaddr *) &server, sizeof(struct sockaddr_un))) {
+ 	    Console.WriteLn( Color_StrongBlue, "IPC: Error while binding to socket! Shutting down...\n" );
+         return;
+     }
+ 
+     // maximum queue of 5 commands before refusing
+-    listen(sock, 5);
++    listen(m_sock, 5);
+     // TODO: start thread here
+     SocketThread();
+ }
+ 
+-void SocketThread() {
++void SocketIPC::SocketThread() {
++    char buf[1024];
++
+     while(true) {
+-        msgsock = accept(sock, 0, 0);
+-        if (msgsock == -1) {
++        m_msgsock = accept(m_sock, 0, 0);
++        if (m_msgsock == -1) {
+ 	            Console.WriteLn( Color_StrongBlue, "IPC: Connection to socket broken! Shutting down...\n" );
+                 return;
+             }
+-        else do {
++        else {
+             bzero(buf, sizeof(buf));
+-            if ((rval = read(msgsock, buf, 1024)) < 0) {
++            if (read(m_msgsock, buf, 1024) < 0) {
+ 	            Console.WriteLn( Color_StrongBlue, "IPC: Connection to socket broken! Shutting down...\n" );
+                 return;
+             }
+             else {
+                 ParseCommand(buf);
+             }
+-        } 
+-        close(msgsock);
++        }
+     }
+-    // catch signal here
+-    close(sock);
+-    unlink(NAME);
+-
+ }
+-void Stop() {
+-    // stop thread here
++void SocketIPC::Stop() {
++    // TODO: stop thread here
++    close(m_msgsock);
++    close(m_sock);
++    unlink(SOCKET_NAME);
++
+ }
+-void ~SocketIPC() {
++SocketIPC::~SocketIPC() {
+     Stop();
+ }
+ 
+-void ParseCommand(char *buf) {
++char* SocketIPC::ParseCommand(char *buf) {
+     // TODO: Actually parse different IPC events
+     printf("-->%s\n", buf);
++    return buf;
+ }
+-
+-} // class SocketIPC
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index b8c93d2ac..4859beedf 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -1,9 +1,30 @@
+ class SocketIPC {
+ 
+     private:
+-void m_thread = NULL;
++
++// absolute path of the socket. Stored in the temporary directory in linux since
++// /run requires superuser permission
+ const char* SOCKET_NAME = "/tmp/pcsx2";
+ 
++// currently running thread identifier
++int m_thread = 0;
++
++// socket handlers
++int m_sock, m_msgsock = 0;
++
++
++// possible command names
++enum IPCCommand {
++    MsgRead8 = 0,
++    MsgRead16 = 1,
++    MsgRead32 = 2,
++    MsgRead64 = 3,
++    MsgWrite8 = 4,
++    MsgWrite16 = 5,
++    MsgWrite32 = 6,
++    MsgWrite64 = 7
++};
++
+ /* Internal function, thread used to relay IPC commands. */
+ void SocketThread();
+ 
+@@ -15,8 +36,8 @@ char* ParseCommand(char* buf);
+     public: 
+ 
+ /* Initializers */
+-void SocketIPC();
+-void ~SocketIPC();
++SocketIPC();
++~SocketIPC();
+ 
+ /* Starts the event-based socket thread. Does nothing if already started. */
+ void Start();
+@@ -25,4 +46,4 @@ void Start();
+ void Stop();
+ 
+ 
+-} // class SocketIPC
++}; // class SocketIPC
+diff --git a/pcsx2/System/SysThreads.h b/pcsx2/System/SysThreads.h
+index d94f5973f..552d133cd 100644
+--- a/pcsx2/System/SysThreads.h
++++ b/pcsx2/System/SysThreads.h
+@@ -19,6 +19,7 @@
+ 
+ #include "Utilities/PersistentThread.h"
+ #include "x86emitter/tools.h"
++#include "../IPC.h"
+ 
+ 
+ using namespace Threading;
+-- 
+2.25.4
+
+
+From 725868191e9e72eef442b49bade4bc2a7a72fc8f Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Sun, 9 Aug 2020 04:42:59 +0200
+Subject: [PATCH 05/12] good to test
+
+---
+ pcsx2/IPC.cpp | 35 +++++++++++++++++++++++++++++++----
+ 1 file changed, 31 insertions(+), 4 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index afb2b2c38..4f239bfc7 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -15,7 +15,7 @@ void SocketIPC::Start() {
+ 
+     m_sock = socket(AF_UNIX, SOCK_STREAM, 0);
+     if (m_sock < 0) {
+-	    Console.WriteLn( Color_StrongBlue, "IPC: Cannot open socket! Shutting down...\n" );
++	    Console.WriteLn( Color_Red, "IPC: Cannot open socket! Shutting down...\n" );
+         return;
+     }
+     server.sun_family = AF_UNIX;
+@@ -25,7 +25,7 @@ void SocketIPC::Start() {
+     // freed even if we didn't close correctly the loop
+     unlink(SOCKET_NAME);
+     if (bind(m_sock, (struct sockaddr *) &server, sizeof(struct sockaddr_un))) {
+-	    Console.WriteLn( Color_StrongBlue, "IPC: Error while binding to socket! Shutting down...\n" );
++	    Console.WriteLn( Color_Red, "IPC: Error while binding to socket! Shutting down...\n" );
+         return;
+     }
+ 
+@@ -41,13 +41,13 @@ void SocketIPC::SocketThread() {
+     while(true) {
+         m_msgsock = accept(m_sock, 0, 0);
+         if (m_msgsock == -1) {
+-	            Console.WriteLn( Color_StrongBlue, "IPC: Connection to socket broken! Shutting down...\n" );
++	            Console.WriteLn( Color_Red, "IPC: Connection to socket broken! Shutting down...\n" );
+                 return;
+             }
+         else {
+             bzero(buf, sizeof(buf));
+             if (read(m_msgsock, buf, 1024) < 0) {
+-	            Console.WriteLn( Color_StrongBlue, "IPC: Connection to socket broken! Shutting down...\n" );
++	            Console.WriteLn( Color_Red, "IPC: Connection to socket broken! Shutting down...\n" );
+                 return;
+             }
+             else {
+@@ -70,5 +70,32 @@ SocketIPC::~SocketIPC() {
+ char* SocketIPC::ParseCommand(char *buf) {
+     // TODO: Actually parse different IPC events
+     printf("-->%s\n", buf);
++    int opcode = (int)buf[0];
++    switch (opcode) {
++        case MsgRead8: 
++            printf("read 8!"); 
++            break;
++        case MsgRead16: 
++            printf("read 16!"); 
++            break;
++        case MsgRead32: 
++            printf("read 32!"); 
++            break;
++        case MsgRead64: 
++            printf("read 64!"); 
++            break;
++        case MsgWrite8: 
++            printf("write 8!"); 
++            break;
++        case MsgWrite16: 
++            printf("write 16!"); 
++            break;
++        case MsgWrite32: 
++            printf("write 32!"); 
++            break;
++        case MsgWrite64: 
++            printf("write 64!"); 
++            break;
++    }
+     return buf;
+ }
+-- 
+2.25.4
+
+
+From 546352318d511ca98873b391ecdcae4715b8c237 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Sun, 9 Aug 2020 09:52:18 +0200
+Subject: [PATCH 06/12] SocketIPC: working implem
+
+---
+ pcsx2/IPC.cpp                  | 193 ++++++++++++++++++++++++---------
+ pcsx2/IPC.h                    |  11 +-
+ pcsx2/System/SysCoreThread.cpp |   2 -
+ 3 files changed, 153 insertions(+), 53 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 4f239bfc7..fddad1cbe 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -4,6 +4,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include "Common.h"
++#include "Memory.h"
+ #include "IPC.h"
+ 
+ 
+@@ -11,28 +12,31 @@ SocketIPC::SocketIPC() {
+ }
+ 
+ void SocketIPC::Start() {
+-    struct sockaddr_un server;
++    if(m_state == Stopped) {
++        struct sockaddr_un server;
+ 
+-    m_sock = socket(AF_UNIX, SOCK_STREAM, 0);
+-    if (m_sock < 0) {
+-	    Console.WriteLn( Color_Red, "IPC: Cannot open socket! Shutting down...\n" );
+-        return;
+-    }
+-    server.sun_family = AF_UNIX;
+-    strcpy(server.sun_path, SOCKET_NAME);
++        m_sock = socket(AF_UNIX, SOCK_STREAM, 0);
++        if (m_sock < 0) {
++            Console.WriteLn( Color_Red, "IPC: Cannot open socket! Shutting down...\n" );
++            return;
++        }
++        server.sun_family = AF_UNIX;
++        strcpy(server.sun_path, SOCKET_NAME);
+ 
+-    // we unlink the socket so that when releasing this thread the socket gets
+-    // freed even if we didn't close correctly the loop
+-    unlink(SOCKET_NAME);
+-    if (bind(m_sock, (struct sockaddr *) &server, sizeof(struct sockaddr_un))) {
+-	    Console.WriteLn( Color_Red, "IPC: Error while binding to socket! Shutting down...\n" );
+-        return;
+-    }
++        // we unlink the socket so that when releasing this thread the socket gets
++        // freed even if we didn't close correctly the loop
++        unlink(SOCKET_NAME);
++        if (bind(m_sock, (struct sockaddr *) &server, sizeof(struct sockaddr_un))) {
++            Console.WriteLn( Color_Red, "IPC: Error while binding to socket! Shutting down...\n" );
++            return;
++        }
+ 
+-    // maximum queue of 5 commands before refusing
+-    listen(m_sock, 5);
+-    // TODO: start thread here
+-    SocketThread();
++        // maximum queue of 5 commands before refusing
++        listen(m_sock, 5);
++        // TODO: start thread here
++        SocketThread();
++        m_state = Started;
++    }
+ }
+ 
+ void SocketIPC::SocketThread() {
+@@ -41,61 +45,150 @@ void SocketIPC::SocketThread() {
+     while(true) {
+         m_msgsock = accept(m_sock, 0, 0);
+         if (m_msgsock == -1) {
+-	            Console.WriteLn( Color_Red, "IPC: Connection to socket broken! Shutting down...\n" );
+-                return;
+-            }
++            Console.WriteLn( Color_Red, "IPC: Connection to socket broken! Shutting down...\n" );
++            return;
++        }
+         else {
+             bzero(buf, sizeof(buf));
+             if (read(m_msgsock, buf, 1024) < 0) {
+-	            Console.WriteLn( Color_Red, "IPC: Connection to socket broken! Shutting down...\n" );
++                Console.WriteLn( Color_Red, "IPC: Cannot receive event! Shutting down...\n" );
+                 return;
+             }
+             else {
+-                ParseCommand(buf);
++                auto res = ParseCommand(buf);
++                if (write(m_msgsock, std::get<1>(res), std::get<0>(res)) < 0) {
++                    Console.WriteLn( Color_Red, "IPC: Cannot send reply! Shutting down...\n" );
++                    return;
++                }
+             }
+         }
+     }
+ }
+ void SocketIPC::Stop() {
+-    // TODO: stop thread here
+-    close(m_msgsock);
+-    close(m_sock);
+-    unlink(SOCKET_NAME);
+-
++    if(m_state == Started) {
++        // TODO: stop thread here
++        close(m_msgsock);
++        close(m_sock);
++        unlink(SOCKET_NAME);
++        m_state = Stopped;
++    }
+ }
+ SocketIPC::~SocketIPC() {
+     Stop();
+ }
+ 
+-char* SocketIPC::ParseCommand(char *buf) {
+-    // TODO: Actually parse different IPC events
+-    printf("-->%s\n", buf);
+-    int opcode = (int)buf[0];
++// we might want to make some TMP magic here... 
++// nvm, we NEED it, 90% of this function is array initialization
++std::tuple<int, char*> SocketIPC::ParseCommand(char *buf) {
++    //         IPC Message event (1 byte)
++    //         |  Memory address (4 byte)
++    //         |  |           argument (VLE)
++    //         |  |           |
++    // format: XX YY YY YY YY ZZ ZZ ZZ ZZ
++    //        reply code: 00 = OK, 01 = NOT OK
++    //        |  return value (VLE)
++    //        |  | 
++    // reply: XX ZZ ZZ ZZ ZZ
++    IPCCommand opcode = (IPCCommand)buf[0];
++    u32 a = int((unsigned char)(buf[1]) << 24 |
++            (unsigned char)(buf[2]) << 16 |
++            (unsigned char)(buf[3]) << 8 |
++            (unsigned char)(buf[4]));
++    char *res_array;
++    std::tuple<int, char*> rval;
+     switch (opcode) {
+-        case MsgRead8: 
+-            printf("read 8!"); 
++        case MsgRead8: {
++            u8 res = memRead8(a);
++            res_array = (char*)malloc(2*sizeof(char));
++            res_array[0] =  0x00; 
++            res_array[1] = (unsigned char) res;
++            rval =  std::make_tuple(2,res_array);
+             break;
+-        case MsgRead16: 
+-            printf("read 16!"); 
++        }
++        case MsgRead16: {
++            u16 res = memRead16(a);
++            res_array = (char*)malloc(3*sizeof(char));
++            res_array[0] =  0x00; 
++            res_array[1] = (unsigned char) (res >> 8) & 0xff;
++            res_array[2] = (unsigned char) res;
++            rval = std::make_tuple(3,res_array);
+             break;
+-        case MsgRead32: 
+-            printf("read 32!"); 
++        }
++        case MsgRead32: {
++            u32 res = memRead32(a);
++            res_array = (char*)malloc(5*sizeof(char));
++            res_array[0] =  0x00; 
++            res_array[1] = (unsigned char) (res >> 24) & 0xff;
++            res_array[2] = (unsigned char) (res >> 16) & 0xff;
++            res_array[3] = (unsigned char) (res >> 8) & 0xff;
++            res_array[4] = (unsigned char) res;
++            rval = std::make_tuple(5,res_array);
+             break;
+-        case MsgRead64: 
+-            printf("read 64!"); 
++        }
++        case MsgRead64: {
++            u64 res;
++            memRead64(a, &res);
++            res_array = (char*)malloc(9*sizeof(char));
++            res_array[0] =  0x00; 
++            res_array[1] = (unsigned char) (res >> 56) & 0xff;
++            res_array[2] = (unsigned char) (res >> 48) & 0xff;
++            res_array[3] = (unsigned char) (res >> 40) & 0xff;
++            res_array[4] = (unsigned char) (res >> 32) & 0xff;
++            res_array[5] = (unsigned char) (res >> 24) & 0xff;
++            res_array[6] = (unsigned char) (res >> 16) & 0xff;
++            res_array[7] = (unsigned char) (res >> 8) & 0xff;
++            res_array[8] = (unsigned char) res;
++            rval = std::make_tuple(9,res_array);
++            break;
++        }
++        case MsgWrite8: {
++            u32 b = int((unsigned char)(buf[5]));
++            memWrite8(a, b);
++            res_array = (char*)malloc(1*sizeof(char));
++            res_array[0] =  0x00; 
++            rval = std::make_tuple(1,res_array);
+             break;
+-        case MsgWrite8: 
+-            printf("write 8!"); 
++        }
++        case MsgWrite16: {
++            u32 b = int((unsigned char)(buf[5]) << 8 |
++                        (unsigned char)(buf[6]));
++            memWrite16(a, b);
++            res_array = (char*)malloc(1*sizeof(char));
++            res_array[0] =  0x00; 
++            rval = std::make_tuple(1,res_array);
+             break;
+-        case MsgWrite16: 
+-            printf("write 16!"); 
++        }
++        case MsgWrite32: {
++            u32 b = int((unsigned char)(buf[5]) << 24 |
++                (unsigned char)(buf[6]) << 16 |
++                (unsigned char)(buf[7]) << 8 |
++                (unsigned char)(buf[8]));
++            memWrite32(a, b);
++            res_array = (char*)malloc(1*sizeof(char));
++            res_array[0] =  0x00; 
++            rval = std::make_tuple(1,res_array);
+             break;
+-        case MsgWrite32: 
+-            printf("write 32!"); 
++        }
++        case MsgWrite64: {
++            u64 b = int((unsigned char)(buf[5]) << 56 |
++                (unsigned char)(buf[6]) << 48 |
++                (unsigned char)(buf[7]) << 40 |
++                (unsigned char)(buf[8]) << 32 |
++                (unsigned char)(buf[9]) << 24 |
++                (unsigned char)(buf[10]) << 16 |
++                (unsigned char)(buf[11]) << 8 |
++                (unsigned char)(buf[12]));
++            res_array = (char*)malloc(1*sizeof(char));
++            res_array[0] =  0x01; 
++            rval = std::make_tuple(1,res_array);
+             break;
+-        case MsgWrite64: 
+-            printf("write 64!"); 
++        }
++        default: {
++            res_array = (char*)malloc(1*sizeof(char));
++            res_array[0] =  0x01; 
++            rval = std::make_tuple(1,res_array);
+             break;
++        }
+     }
+-    return buf;
++    return rval;
+ }
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index 4859beedf..ac26ab18e 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -25,13 +25,22 @@ enum IPCCommand {
+     MsgWrite64 = 7
+ };
+ 
++// possible states of the IPC
++enum State {
++    Started,
++    Stopped
++};
++
++// current state of the IPC
++State m_state = Stopped;
++
+ /* Internal function, thread used to relay IPC commands. */
+ void SocketThread();
+ 
+ /* Internal function, Parses an IPC command.
+  * buf: buffer containing the IPC command.
+  * return value: buffer containing the result of the command. */
+-char* ParseCommand(char* buf);
++std::tuple<int, char*> ParseCommand(char* buf);
+ 
+     public: 
+ 
+diff --git a/pcsx2/System/SysCoreThread.cpp b/pcsx2/System/SysCoreThread.cpp
+index 0760cf88e..d117f2769 100644
+--- a/pcsx2/System/SysCoreThread.cpp
++++ b/pcsx2/System/SysCoreThread.cpp
+@@ -51,8 +51,6 @@ SysCoreThread::SysCoreThread()
+ 	m_resetVirtualMachine	= true;
+ 
+ 	m_hasActiveMachine		= false;
+-
+-    m_socketIpc = SocketIPC();
+ }
+ 
+ SysCoreThread::~SysCoreThread()
+-- 
+2.25.4
+
+
+From c7085180983796d9aad33c8efa65d4e2011efed7 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Sun, 9 Aug 2020 10:30:45 +0200
+Subject: [PATCH 07/12] SocketIPC: correct implementation
+
+---
+ build.sh      |  2 +-
+ pcsx2/IPC.cpp | 26 ++++++++------------------
+ pcsx2/IPC.h   | 21 +++++++++++++++++++++
+ 3 files changed, 30 insertions(+), 19 deletions(-)
+
+diff --git a/build.sh b/build.sh
+index 0791cd965..91699f154 100755
+--- a/build.sh
++++ b/build.sh
+@@ -168,7 +168,7 @@ run_coverity()
+ }
+ 
+ # Main script
+-flags="-DCMAKE_BUILD_PO=FALSE"
++flags="-DCMAKE_BUILD_PO=FALSE -DCMAKE_INSTALL_PREFIX=/tmp/pcsx2_debug -DDISABLE_ADVANCE_SIMD=TRUE -DDISABLE_PCSX2_WRAPPER=TRUE -DDOC_DIR=/tmp/pcsx2_debug/share/doc/pcsx2 -DGAMEINDEX_DIR=/tmp/pcsx2_debug/share/pcsx2 -DGLSL_SHADER_DIR=/tmp/pcsx2_debug/share/pcsx2 -DwxWidgets_LIBRARIES=/nix/store/5jsn2w7cp2rrc1ks4y21xhr0pz61051b-wxwidgets-3.0.4/lib -DwxWidgets_INCLUDE_DIRS=/nix/store/5jsn2w7cp2rrc1ks4y21xhr0pz61051b-wxwidgets-3.0.4/include -DwxWidgets_CONFIG_EXECUTABLE=/nix/store/5jsn2w7cp2rrc1ks4y21xhr0pz61051b-wxwidgets-3.0.4/bin/wx-config -DPACKAGE_MODE=TRUE -DPLUGIN_DIR=/tmp/pcsx2_debug/lib/pcsx2 -DREBUILD_SHADER=TRUE -DXDG_STD=TRUE -DGTK2_GLIBCONFIG_INCLUDE_DIR=/nix/store/krlifqmwhzz3hf4kydr5gnrsn12q3x5h-glib-2.62.6/lib/glib-2.0/include -DGTK2_GDKCONFIG_INCLUDE_DIR=/nix/store/hl9cqdhk7jzwcr81wkcqy2krk9vn23gi-gtk+-2.24.32/lib/gtk-2.0/include -DGTK2_INCLUDE_DIRS=/nix/store/2dz1bzdiny2p2gsifx91azkafx2gqxyk-gtk+-2.24.32-dev/include/gtk-2.0 -DGTK3_API=FALSE"
+ 
+ cleanBuild=0
+ useClang=0
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index fddad1cbe..949fdf739 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -60,6 +60,10 @@ void SocketIPC::SocketThread() {
+                     Console.WriteLn( Color_Red, "IPC: Cannot send reply! Shutting down...\n" );
+                     return;
+                 }
++                printf("sent %d bytes, which are:\n", std::get<0>(res));
++                for(int i =0; i < std::get<0>(res); i++) {
++                    printf("%u\n", std::get<1>(res)[i]);
++                }
+             }
+         }
+     }
+@@ -142,42 +146,28 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char *buf) {
+             break;
+         }
+         case MsgWrite8: {
+-            u32 b = int((unsigned char)(buf[5]));
+-            memWrite8(a, b);
++            memWrite8(a, to8b(&buf[5]));
+             res_array = (char*)malloc(1*sizeof(char));
+             res_array[0] =  0x00; 
+             rval = std::make_tuple(1,res_array);
+             break;
+         }
+         case MsgWrite16: {
+-            u32 b = int((unsigned char)(buf[5]) << 8 |
+-                        (unsigned char)(buf[6]));
+-            memWrite16(a, b);
++            memWrite16(a, to16b(&buf[5]));
+             res_array = (char*)malloc(1*sizeof(char));
+             res_array[0] =  0x00; 
+             rval = std::make_tuple(1,res_array);
+             break;
+         }
+         case MsgWrite32: {
+-            u32 b = int((unsigned char)(buf[5]) << 24 |
+-                (unsigned char)(buf[6]) << 16 |
+-                (unsigned char)(buf[7]) << 8 |
+-                (unsigned char)(buf[8]));
+-            memWrite32(a, b);
++            memWrite32(a, to32b(&buf[5]));
+             res_array = (char*)malloc(1*sizeof(char));
+             res_array[0] =  0x00; 
+             rval = std::make_tuple(1,res_array);
+             break;
+         }
+         case MsgWrite64: {
+-            u64 b = int((unsigned char)(buf[5]) << 56 |
+-                (unsigned char)(buf[6]) << 48 |
+-                (unsigned char)(buf[7]) << 40 |
+-                (unsigned char)(buf[8]) << 32 |
+-                (unsigned char)(buf[9]) << 24 |
+-                (unsigned char)(buf[10]) << 16 |
+-                (unsigned char)(buf[11]) << 8 |
+-                (unsigned char)(buf[12]));
++            memWrite64(a, to64b(&buf[5]));
+             res_array = (char*)malloc(1*sizeof(char));
+             res_array[0] =  0x01; 
+             rval = std::make_tuple(1,res_array);
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index ac26ab18e..66d3d3a4f 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -1,3 +1,24 @@
++#define to64b(arr) (((uint64_t)(((uint8_t *)(arr))[7]) <<  0)+\
++                    ((uint64_t)(((uint8_t *)(arr))[6]) <<  8)+\
++                    ((uint64_t)(((uint8_t *)(arr))[5]) << 16)+\
++                    ((uint64_t)(((uint8_t *)(arr))[4]) << 24)+\
++                    ((uint64_t)(((uint8_t *)(arr))[3]) << 32)+\
++                    ((uint64_t)(((uint8_t *)(arr))[2]) << 40)+\
++                    ((uint64_t)(((uint8_t *)(arr))[1]) << 48)+\
++                    ((uint64_t)(((uint8_t *)(arr))[0]) << 56))
++
++#define to32b(arr) (((uint32_t)(((uint8_t *)(arr))[3]) <<  0)+\
++                    ((uint32_t)(((uint8_t *)(arr))[2]) <<  8)+\
++                    ((uint32_t)(((uint8_t *)(arr))[1]) << 16)+\
++                    ((uint32_t)(((uint8_t *)(arr))[0]) << 24))
++
++#define to16b(arr) (((uint16_t)(((uint8_t *)(arr))[1]) <<  0)+\
++                    ((uint16_t)(((uint8_t *)(arr))[0]) <<  8))
++
++#define to8b(arr) (((uint16_t)(((uint8_t *)(arr))[0]) <<  0))
++
++
++
+ class SocketIPC {
+ 
+     private:
+-- 
+2.25.4
+
+
+From 7fc4e4fc749a666222f3f1e4f005e537f9152365 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Sun, 9 Aug 2020 18:18:53 +0200
+Subject: [PATCH 08/12] threading _mostly_ implemented, still need to find a
+ way to kill the thread
+
+---
+ pcsx2/IPC.cpp | 30 ++++++++++++++++--------------
+ pcsx2/IPC.h   | 10 +++++-----
+ 2 files changed, 21 insertions(+), 19 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 949fdf739..0841351e2 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -3,6 +3,7 @@
+ #include <sys/un.h>
+ #include <stdio.h>
+ #include <stdlib.h>
++#include <thread>
+ #include "Common.h"
+ #include "Memory.h"
+ #include "IPC.h"
+@@ -31,32 +32,34 @@ void SocketIPC::Start() {
+             return;
+         }
+ 
+-        // maximum queue of 5 commands before refusing
+-        listen(m_sock, 5);
+-        // TODO: start thread here
+-        SocketThread();
++        // maximum queue of 100 commands before refusing
++        listen(m_sock, 100);
++
+         m_state = Started;
++        std::thread m_thread(SocketThread, m_sock);
++        m_thread.detach();
+     }
+ }
+ 
+-void SocketIPC::SocketThread() {
++void SocketIPC::SocketThread(int sock) {
+     char buf[1024];
++    int msgsock = 0;
+ 
+     while(true) {
+-        m_msgsock = accept(m_sock, 0, 0);
+-        if (m_msgsock == -1) {
++        msgsock = accept(sock, 0, 0);
++        if (msgsock == -1) {
+             Console.WriteLn( Color_Red, "IPC: Connection to socket broken! Shutting down...\n" );
+             return;
+         }
+         else {
+             bzero(buf, sizeof(buf));
+-            if (read(m_msgsock, buf, 1024) < 0) {
++            if (read(msgsock, buf, 1024) < 0) {
+                 Console.WriteLn( Color_Red, "IPC: Cannot receive event! Shutting down...\n" );
+                 return;
+             }
+             else {
+                 auto res = ParseCommand(buf);
+-                if (write(m_msgsock, std::get<1>(res), std::get<0>(res)) < 0) {
++                if (write(msgsock, std::get<1>(res), std::get<0>(res)) < 0) {
+                     Console.WriteLn( Color_Red, "IPC: Cannot send reply! Shutting down...\n" );
+                     return;
+                 }
+@@ -70,8 +73,7 @@ void SocketIPC::SocketThread() {
+ }
+ void SocketIPC::Stop() {
+     if(m_state == Started) {
+-        // TODO: stop thread here
+-        close(m_msgsock);
++        // TODO: close thread there!
+         close(m_sock);
+         unlink(SOCKET_NAME);
+         m_state = Stopped;
+@@ -89,7 +91,7 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char *buf) {
+     //         |  |           argument (VLE)
+     //         |  |           |
+     // format: XX YY YY YY YY ZZ ZZ ZZ ZZ
+-    //        reply code: 00 = OK, 01 = NOT OK
++    //        reply code: 00 = OK, FF = NOT OK
+     //        |  return value (VLE)
+     //        |  | 
+     // reply: XX ZZ ZZ ZZ ZZ
+@@ -169,13 +171,13 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char *buf) {
+         case MsgWrite64: {
+             memWrite64(a, to64b(&buf[5]));
+             res_array = (char*)malloc(1*sizeof(char));
+-            res_array[0] =  0x01; 
++            res_array[0] =  0x00; 
+             rval = std::make_tuple(1,res_array);
+             break;
+         }
+         default: {
+             res_array = (char*)malloc(1*sizeof(char));
+-            res_array[0] =  0x01; 
++            res_array[0] =  0xFF; 
+             rval = std::make_tuple(1,res_array);
+             break;
+         }
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index 66d3d3a4f..26e9f0cf3 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -15,7 +15,7 @@
+ #define to16b(arr) (((uint16_t)(((uint8_t *)(arr))[1]) <<  0)+\
+                     ((uint16_t)(((uint8_t *)(arr))[0]) <<  8))
+ 
+-#define to8b(arr) (((uint16_t)(((uint8_t *)(arr))[0]) <<  0))
++#define to8b(arr) (((uint8_t)(((uint8_t *)(arr))[0]) <<  0))
+ 
+ 
+ 
+@@ -28,10 +28,10 @@ class SocketIPC {
+ const char* SOCKET_NAME = "/tmp/pcsx2";
+ 
+ // currently running thread identifier
+-int m_thread = 0;
++std::thread m_thread;
+ 
+ // socket handlers
+-int m_sock, m_msgsock = 0;
++int m_sock = 0;
+ 
+ 
+ // possible command names
+@@ -56,12 +56,12 @@ enum State {
+ State m_state = Stopped;
+ 
+ /* Internal function, thread used to relay IPC commands. */
+-void SocketThread();
++static void SocketThread(int sock);
+ 
+ /* Internal function, Parses an IPC command.
+  * buf: buffer containing the IPC command.
+  * return value: buffer containing the result of the command. */
+-std::tuple<int, char*> ParseCommand(char* buf);
++static std::tuple<int, char*> ParseCommand(char* buf);
+ 
+     public: 
+ 
+-- 
+2.25.4
+
+
+From 202fd96cb1f82977cc2c1d179c04dc8e01e67b30 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Sun, 9 Aug 2020 18:52:11 +0200
+Subject: [PATCH 09/12] well here we are
+
+---
+ pcsx2/IPC.cpp | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 0841351e2..07f0e8cc3 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -8,6 +8,8 @@
+ #include "Memory.h"
+ #include "IPC.h"
+ 
++// TODO: when pcsx2 has a running SysCoreThread but no memory layout setup it
++// asserts, eg by using Shutdown, fix that
+ 
+ SocketIPC::SocketIPC() {
+ }
+@@ -63,17 +65,12 @@ void SocketIPC::SocketThread(int sock) {
+                     Console.WriteLn( Color_Red, "IPC: Cannot send reply! Shutting down...\n" );
+                     return;
+                 }
+-                printf("sent %d bytes, which are:\n", std::get<0>(res));
+-                for(int i =0; i < std::get<0>(res); i++) {
+-                    printf("%u\n", std::get<1>(res)[i]);
+-                }
+             }
+         }
+     }
+ }
+ void SocketIPC::Stop() {
+     if(m_state == Started) {
+-        // TODO: close thread there!
+         close(m_sock);
+         unlink(SOCKET_NAME);
+         m_state = Stopped;
+-- 
+2.25.4
+
+
+From 97d4a52f440e7efe150a55ab82461b007ade6f1e Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Sun, 9 Aug 2020 19:46:00 +0200
+Subject: [PATCH 10/12] Revert "some quick and dirty poc"
+
+This reverts commit 5162a716fd3517064f56a8ad129ea92133ba3407.
+---
+ cmake/BuildParameters.cmake |  6 +++---
+ pcsx2/Patch_Memory.cpp      | 17 +----------------
+ 2 files changed, 4 insertions(+), 19 deletions(-)
+
+diff --git a/cmake/BuildParameters.cmake b/cmake/BuildParameters.cmake
+index 02d039ec8..e1ca1ee92 100644
+--- a/cmake/BuildParameters.cmake
++++ b/cmake/BuildParameters.cmake
+@@ -333,7 +333,7 @@ endif()
+ 
+ if (USE_CLANG)
+     # -Wno-deprecated-register: glib issue...
+-    set(DEFAULT_WARNINGS "${DEFAULT_WARNINGS}  -Wno-deprecated-register -Wno-c++17-extensions")
++    set(DEFAULT_WARNINGS "${DEFAULT_WARNINGS}  -Wno-deprecated-register -Wno-c++14-extensions")
+     set(DBG "-g -fno-omit-frame-pointer")
+ elseif (USE_ICC)
+     set(DBG "-g -fno-omit-frame-pointer")
+@@ -410,7 +410,7 @@ endif()
+ # Note: -DGTK_DISABLE_DEPRECATED can be used to test a build without gtk deprecated feature. It could be useful to port to a newer API
+ set(DEFAULT_GCC_FLAG "${ARCH_FLAG} ${COMMON_FLAG} ${DEFAULT_WARNINGS} ${AGGRESSIVE_WARNING} ${HARDENING_FLAG} ${DEBUG_FLAG} ${ASAN_FLAG} ${OPTIMIZATION_FLAG} ${LTO_FLAGS} ${PGO_FLAGS} ${PLUGIN_SUPPORT}")
+ # c++ only flags
+-set(DEFAULT_CPP_FLAG "${DEFAULT_GCC_FLAG} -std=c++17 -Wno-invalid-offsetof")
++set(DEFAULT_CPP_FLAG "${DEFAULT_GCC_FLAG} -std=c++11 -Wno-invalid-offsetof")
+ 
+ #-------------------------------------------------------------------------------
+ # Allow user to set some default flags
+@@ -490,4 +490,4 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+ 
+     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip,-dead_strip_dylibs")
+     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-dead_strip,-dead_strip_dylibs")
+-endif()
++endif()
+\ No newline at end of file
+diff --git a/pcsx2/Patch_Memory.cpp b/pcsx2/Patch_Memory.cpp
+index f7adb3ea3..c335037a1 100644
+--- a/pcsx2/Patch_Memory.cpp
++++ b/pcsx2/Patch_Memory.cpp
+@@ -20,9 +20,6 @@
+ #include "IopCommon.h"
+ #include "Patch.h"
+ #include <chrono>
+-#include <filesystem>
+-#include <fstream>
+-namespace fs = std::filesystem;
+ 
+ u32 SkipCount = 0, IterationCount = 0;
+ u32 IterationIncrement = 0, ValueIncrement = 0;
+@@ -418,8 +415,6 @@ void handle_extended_t(IniPatch *p)
+                         }
+                     } break;
+ 
+-
+-
+                     case 0xE0000000: { // IF Statements (Multi)
+                         u8 mem8 = memRead8((u32)p->data & 0x0FFFFFFF);
+                         u16 mem16 = memRead16((u32)p->data & 0x0FFFFFFF);
+@@ -472,17 +467,7 @@ void handle_extended_t(IniPatch *p)
+                                         break;
+                                 }
+                             } break;
+-                case 0xF0000000: { // IPC
+-                    auto tmp_path = fs::temp_directory_path();
+-                    u32 value = memRead32((u32)p->addr & 0x0FFFFFFF);
+-                    tmp_path /= "pcsx2_ipc";
+-
+-                    std::ofstream ofs(tmp_path);
+-                    ofs << std::hex << value; 
+-                    ofs.close();
+-                }break;
+-
+-                PrevCheatType = 0;
++                                PrevCheatType = 0;
+                         }
+                     } break;
+                 }
+-- 
+2.25.4
+
+
+From 8bfa28314fcc5788761ff2cf14331adb8011e82b Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Mon, 10 Aug 2020 04:05:55 +0200
+Subject: [PATCH 11/12] did i mention i hate windows
+
+---
+ pcsx2/IPC.cpp                                 | 237 +++++++++++-------
+ pcsx2/IPC.h                                   | 148 ++++++-----
+ pcsx2/System/SysCoreThread.cpp                |   5 -
+ pcsx2/windows/VCprojects/pcsx2.vcxproj        |   4 +-
+ .../windows/VCprojects/pcsx2.vcxproj.filters  |   6 +
+ 5 files changed, 242 insertions(+), 158 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 07f0e8cc3..8e3f52a94 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -1,26 +1,64 @@
+-#include <sys/types.h>
+-#include <sys/socket.h>
+-#include <sys/un.h>
++
++#include "PrecompiledHeader.h"
++
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <thread>
++#include <sys/types.h>
++#if _WIN32
++#pragma comment(lib, "Ws2_32.lib")
++#define bzero(b, len) (memset((b), '\0', (len)), (void)0)
++#include <windows.h>
++#else
++#include <sys/socket.h>
++#include <sys/un.h>
++#endif
++
+ #include "Common.h"
+ #include "Memory.h"
+ #include "IPC.h"
+ 
+-// TODO: when pcsx2 has a running SysCoreThread but no memory layout setup it
+-// asserts, eg by using Shutdown, fix that
+ 
+ SocketIPC::SocketIPC() {
++    Start();
+ }
+ 
+ void SocketIPC::Start() {
+-    if(m_state == Stopped) {
++    if (m_state == Stopped) {
++#ifdef _WIN32
++        WSADATA wsa;
++        SOCKET new_socket;
++        struct sockaddr_in server, client;
++        int c;
++
++        if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
++            Console.WriteLn(Color_Red, "IPC: Cannot initialize winsock! Shutting down...");
++            return;
++        }
++
++        //Create a socket
++        if ((m_sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
++            Console.WriteLn(Color_Red, "IPC: Cannot open socket! Shutting down...");
++            return;
++        }
++
++        //Prepare the sockaddr_in structure
++        server.sin_family = AF_INET;
++        // localhost only
++        server.sin_addr.s_addr = inet_addr("127.0.0.1");
++        server.sin_port = htons(PORT);
++
++        if (bind(m_sock, (struct sockaddr*)&server, sizeof(server)) == SOCKET_ERROR) {
++            Console.WriteLn(Color_Red, "IPC: Error while binding to socket! Shutting down...");
++            return;
++        }
++
++#else
+         struct sockaddr_un server;
+ 
+         m_sock = socket(AF_UNIX, SOCK_STREAM, 0);
+         if (m_sock < 0) {
+-            Console.WriteLn( Color_Red, "IPC: Cannot open socket! Shutting down...\n" );
++            Console.WriteLn(Color_Red, "IPC: Cannot open socket! Shutting down...");
+             return;
+         }
+         server.sun_family = AF_UNIX;
+@@ -29,10 +67,11 @@ void SocketIPC::Start() {
+         // we unlink the socket so that when releasing this thread the socket gets
+         // freed even if we didn't close correctly the loop
+         unlink(SOCKET_NAME);
+-        if (bind(m_sock, (struct sockaddr *) &server, sizeof(struct sockaddr_un))) {
+-            Console.WriteLn( Color_Red, "IPC: Error while binding to socket! Shutting down...\n" );
++        if (bind(m_sock, (struct sockaddr*)&server, sizeof(struct sockaddr_un))) {
++            Console.WriteLn(Color_Red, "IPC: Error while binding to socket! Shutting down...");
+             return;
+         }
++#endif
+ 
+         // maximum queue of 100 commands before refusing
+         listen(m_sock, 100);
+@@ -42,37 +81,53 @@ void SocketIPC::Start() {
+         m_thread.detach();
+     }
+ }
+-
++#ifdef _WIN32
++void SocketIPC::SocketThread(SOCKET sock) {
++#else
+ void SocketIPC::SocketThread(int sock) {
++#endif
+     char buf[1024];
+     int msgsock = 0;
+ 
+-    while(true) {
++    while (true) {
+         msgsock = accept(sock, 0, 0);
+         if (msgsock == -1) {
+-            Console.WriteLn( Color_Red, "IPC: Connection to socket broken! Shutting down...\n" );
++            Console.WriteLn(Color_Red, "IPC: Connection to socket broken! Shutting down...\n");
+             return;
+         }
+         else {
+             bzero(buf, sizeof(buf));
++#ifdef _WIN32
++            if (recv(msgsock, buf, 1024, 0) < 0) {
++#else
+             if (read(msgsock, buf, 1024) < 0) {
+-                Console.WriteLn( Color_Red, "IPC: Cannot receive event! Shutting down...\n" );
+-                return;
+-            }
+-            else {
+-                auto res = ParseCommand(buf);
+-                if (write(msgsock, std::get<1>(res), std::get<0>(res)) < 0) {
+-                    Console.WriteLn( Color_Red, "IPC: Cannot send reply! Shutting down...\n" );
++#endif
++                    Console.WriteLn(Color_Red, "IPC: Cannot receive event! Shutting down...\n");
+                     return;
+                 }
+-            }
++                else {
++                    auto res = ParseCommand(buf);
++#ifdef _WIN32
++                    if (send(msgsock, std::get<1>(res), std::get<0>(res), 0) < 0) {
++#else
++                    if (write(msgsock, std::get<1>(res), std::get<0>(res)) < 0) {
++#endif
++                        Console.WriteLn(Color_Red, "IPC: Cannot send reply! Shutting down...\n");
++                        return;
++                    }
++                }
+         }
+     }
+ }
+ void SocketIPC::Stop() {
+-    if(m_state == Started) {
++    if (m_state == Started) {
++#ifdef _WIN32
++        closesocket(m_sock);
++        WSACleanup();
++#else
+         close(m_sock);
+         unlink(SOCKET_NAME);
++#endif
+         m_state = Stopped;
+     }
+ }
+@@ -80,9 +135,9 @@ SocketIPC::~SocketIPC() {
+     Stop();
+ }
+ 
+-// we might want to make some TMP magic here... 
++// we might want to make some TMP magic here...
+ // nvm, we NEED it, 90% of this function is array initialization
+-std::tuple<int, char*> SocketIPC::ParseCommand(char *buf) {
++std::tuple<int, char*> SocketIPC::ParseCommand(char* buf) {
+     //         IPC Message event (1 byte)
+     //         |  Memory address (4 byte)
+     //         |  |           argument (VLE)
+@@ -90,93 +145,105 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char *buf) {
+     // format: XX YY YY YY YY ZZ ZZ ZZ ZZ
+     //        reply code: 00 = OK, FF = NOT OK
+     //        |  return value (VLE)
+-    //        |  | 
++    //        |  |
+     // reply: XX ZZ ZZ ZZ ZZ
+     IPCCommand opcode = (IPCCommand)buf[0];
+     u32 a = int((unsigned char)(buf[1]) << 24 |
+             (unsigned char)(buf[2]) << 16 |
+             (unsigned char)(buf[3]) << 8 |
+             (unsigned char)(buf[4]));
+-    char *res_array;
++    char* res_array;
+     std::tuple<int, char*> rval;
+     switch (opcode) {
+         case MsgRead8: {
+-            u8 res = memRead8(a);
+-            res_array = (char*)malloc(2*sizeof(char));
+-            res_array[0] =  0x00; 
+-            res_array[1] = (unsigned char) res;
+-            rval =  std::make_tuple(2,res_array);
+-            break;
++                u8 res;
++                try{ res = memRead8(a);}
++                catch (...) { goto error; }
++                res_array = (char*)malloc(2 * sizeof(char));
++                res_array[0] = 0x00;
++                res_array[1] = (unsigned char)res;
++                rval = std::make_tuple(2, res_array);
++                break;
+         }
+         case MsgRead16: {
+-            u16 res = memRead16(a);
+-            res_array = (char*)malloc(3*sizeof(char));
+-            res_array[0] =  0x00; 
+-            res_array[1] = (unsigned char) (res >> 8) & 0xff;
+-            res_array[2] = (unsigned char) res;
+-            rval = std::make_tuple(3,res_array);
+-            break;
++                u16 res;
++                try{ res = memRead16(a);}
++                catch (...) { goto error; }
++                res_array = (char*)malloc(3 * sizeof(char));
++                res_array[0] = 0x00;
++                res_array[1] = (unsigned char)(res >> 8) & 0xff;
++                res_array[2] = (unsigned char)res;
++                rval = std::make_tuple(3, res_array);
++                break;
+         }
+         case MsgRead32: {
+-            u32 res = memRead32(a);
+-            res_array = (char*)malloc(5*sizeof(char));
+-            res_array[0] =  0x00; 
+-            res_array[1] = (unsigned char) (res >> 24) & 0xff;
+-            res_array[2] = (unsigned char) (res >> 16) & 0xff;
+-            res_array[3] = (unsigned char) (res >> 8) & 0xff;
+-            res_array[4] = (unsigned char) res;
+-            rval = std::make_tuple(5,res_array);
+-            break;
++                u32 res;
++                try{ res = memRead32(a);}
++                catch (...) { goto error; }
++                res_array = (char*)malloc(5 * sizeof(char));
++                res_array[0] = 0x00;
++                res_array[1] = (unsigned char)(res >> 24) & 0xff;
++                res_array[2] = (unsigned char)(res >> 16) & 0xff;
++                res_array[3] = (unsigned char)(res >> 8) & 0xff;
++                res_array[4] = (unsigned char)res;
++                rval = std::make_tuple(5, res_array);
++                break;
+         }
+         case MsgRead64: {
+-            u64 res;
+-            memRead64(a, &res);
+-            res_array = (char*)malloc(9*sizeof(char));
+-            res_array[0] =  0x00; 
+-            res_array[1] = (unsigned char) (res >> 56) & 0xff;
+-            res_array[2] = (unsigned char) (res >> 48) & 0xff;
+-            res_array[3] = (unsigned char) (res >> 40) & 0xff;
+-            res_array[4] = (unsigned char) (res >> 32) & 0xff;
+-            res_array[5] = (unsigned char) (res >> 24) & 0xff;
+-            res_array[6] = (unsigned char) (res >> 16) & 0xff;
+-            res_array[7] = (unsigned char) (res >> 8) & 0xff;
+-            res_array[8] = (unsigned char) res;
+-            rval = std::make_tuple(9,res_array);
+-            break;
++                u64 res;
++                try{ memRead64(a, &res);}
++                catch (...) { goto error; }
++                res_array = (char*)malloc(9 * sizeof(char));
++                res_array[0] = 0x00;
++                res_array[1] = (unsigned char)(res >> 56) & 0xff;
++                res_array[2] = (unsigned char)(res >> 48) & 0xff;
++                res_array[3] = (unsigned char)(res >> 40) & 0xff;
++                res_array[4] = (unsigned char)(res >> 32) & 0xff;
++                res_array[5] = (unsigned char)(res >> 24) & 0xff;
++                res_array[6] = (unsigned char)(res >> 16) & 0xff;
++                res_array[7] = (unsigned char)(res >> 8) & 0xff;
++                res_array[8] = (unsigned char)res;
++                rval = std::make_tuple(9, res_array);
++                break;
+         }
+         case MsgWrite8: {
+-            memWrite8(a, to8b(&buf[5]));
+-            res_array = (char*)malloc(1*sizeof(char));
+-            res_array[0] =  0x00; 
+-            rval = std::make_tuple(1,res_array);
+-            break;
++                try{memWrite8(a, to8b(&buf[5]));}
++                catch (...) { goto error; }
++                res_array = (char*)malloc(1 * sizeof(char));
++                res_array[0] = 0x00;
++                rval = std::make_tuple(1, res_array);
++                break;
+         }
+         case MsgWrite16: {
+-            memWrite16(a, to16b(&buf[5]));
+-            res_array = (char*)malloc(1*sizeof(char));
+-            res_array[0] =  0x00; 
+-            rval = std::make_tuple(1,res_array);
+-            break;
++                try{memWrite16(a, to16b(&buf[5]));}
++                catch (...) { goto error; }
++                res_array = (char*)malloc(1 * sizeof(char));
++                res_array[0] = 0x00;
++                rval = std::make_tuple(1, res_array);
++                break;
+         }
+         case MsgWrite32: {
+-            memWrite32(a, to32b(&buf[5]));
+-            res_array = (char*)malloc(1*sizeof(char));
+-            res_array[0] =  0x00; 
+-            rval = std::make_tuple(1,res_array);
+-            break;
++                try{memWrite32(a, to32b(&buf[5]));}
++                catch (...) { goto error; }
++                res_array = (char*)malloc(1 * sizeof(char));
++                res_array[0] = 0x00;
++                rval = std::make_tuple(1, res_array);
++                break;
+         }
+         case MsgWrite64: {
+-            memWrite64(a, to64b(&buf[5]));
+-            res_array = (char*)malloc(1*sizeof(char));
+-            res_array[0] =  0x00; 
+-            rval = std::make_tuple(1,res_array);
+-            break;
++                try{memWrite64(a, to64b(&buf[5]));}
++                catch (...) { goto error; }
++                res_array = (char*)malloc(1 * sizeof(char));
++                res_array[0] = 0x00;
++                rval = std::make_tuple(1, res_array);
++                break;
+         }
+         default: {
+-            res_array = (char*)malloc(1*sizeof(char));
+-            res_array[0] =  0xFF; 
+-            rval = std::make_tuple(1,res_array);
+-            break;
++            error:
++                res_array = (char*)malloc(1 * sizeof(char));
++                res_array[0] = 0xFF;
++                rval = std::make_tuple(1, res_array);
++                break;
+         }
+     }
+     return rval;
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index 26e9f0cf3..9f0ec10b7 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -1,79 +1,93 @@
+-#define to64b(arr) (((uint64_t)(((uint8_t *)(arr))[7]) <<  0)+\
+-                    ((uint64_t)(((uint8_t *)(arr))[6]) <<  8)+\
+-                    ((uint64_t)(((uint8_t *)(arr))[5]) << 16)+\
+-                    ((uint64_t)(((uint8_t *)(arr))[4]) << 24)+\
+-                    ((uint64_t)(((uint8_t *)(arr))[3]) << 32)+\
+-                    ((uint64_t)(((uint8_t *)(arr))[2]) << 40)+\
+-                    ((uint64_t)(((uint8_t *)(arr))[1]) << 48)+\
+-                    ((uint64_t)(((uint8_t *)(arr))[0]) << 56))
++#define to64b(arr) (((uint64_t)(((uint8_t*)(arr))[7]) << 0) +  \
++        ((uint64_t)(((uint8_t*)(arr))[6]) << 8) +  \
++        ((uint64_t)(((uint8_t*)(arr))[5]) << 16) + \
++        ((uint64_t)(((uint8_t*)(arr))[4]) << 24) + \
++        ((uint64_t)(((uint8_t*)(arr))[3]) << 32) + \
++        ((uint64_t)(((uint8_t*)(arr))[2]) << 40) + \
++        ((uint64_t)(((uint8_t*)(arr))[1]) << 48) + \
++        ((uint64_t)(((uint8_t*)(arr))[0]) << 56))
+ 
+-#define to32b(arr) (((uint32_t)(((uint8_t *)(arr))[3]) <<  0)+\
+-                    ((uint32_t)(((uint8_t *)(arr))[2]) <<  8)+\
+-                    ((uint32_t)(((uint8_t *)(arr))[1]) << 16)+\
+-                    ((uint32_t)(((uint8_t *)(arr))[0]) << 24))
++#define to32b(arr) (((uint32_t)(((uint8_t*)(arr))[3]) << 0) +  \
++        ((uint32_t)(((uint8_t*)(arr))[2]) << 8) +  \
++        ((uint32_t)(((uint8_t*)(arr))[1]) << 16) + \
++        ((uint32_t)(((uint8_t*)(arr))[0]) << 24))
+ 
+-#define to16b(arr) (((uint16_t)(((uint8_t *)(arr))[1]) <<  0)+\
+-                    ((uint16_t)(((uint8_t *)(arr))[0]) <<  8))
++#define to16b(arr) (((uint16_t)(((uint8_t*)(arr))[1]) << 0) + \
++        ((uint16_t)(((uint8_t*)(arr))[0]) << 8))
+ 
+-#define to8b(arr) (((uint8_t)(((uint8_t *)(arr))[0]) <<  0))
++#define to8b(arr) (((uint8_t)(((uint8_t*)(arr))[0]) << 0))
+ 
+ 
+ 
+-class SocketIPC {
++class SocketIPC
++{
+ 
+     private:
+ 
+-// absolute path of the socket. Stored in the temporary directory in linux since
+-// /run requires superuser permission
+-const char* SOCKET_NAME = "/tmp/pcsx2";
+-
+-// currently running thread identifier
+-std::thread m_thread;
+-
+-// socket handlers
+-int m_sock = 0;
+-
+-
+-// possible command names
+-enum IPCCommand {
+-    MsgRead8 = 0,
+-    MsgRead16 = 1,
+-    MsgRead32 = 2,
+-    MsgRead64 = 3,
+-    MsgWrite8 = 4,
+-    MsgWrite16 = 5,
+-    MsgWrite32 = 6,
+-    MsgWrite64 = 7
+-};
+-
+-// possible states of the IPC
+-enum State {
+-    Started,
+-    Stopped
+-};
+-
+-// current state of the IPC
+-State m_state = Stopped;
+-
+-/* Internal function, thread used to relay IPC commands. */
+-static void SocketThread(int sock);
+-
+-/* Internal function, Parses an IPC command.
+- * buf: buffer containing the IPC command.
+- * return value: buffer containing the result of the command. */
+-static std::tuple<int, char*> ParseCommand(char* buf);
+-
+-    public: 
+-
+-/* Initializers */
+-SocketIPC();
+-~SocketIPC();
+-
+-/* Starts the event-based socket thread. Does nothing if already started. */
+-void Start();
+-
+-/* Stops the event-based socket thread. Does nothing if already stopped. */
+-void Stop();
++#ifdef _WIN32
++        // windows claim to have support for AF_UNIX sockets but that is a blatant lie, 
++        //their SDK won't even run their own examples, so we go on TCP sockets.
++#define PORT 28011
++#else
++        // absolute path of the socket. Stored in the temporary directory in linux since
++        // /run requires superuser permission
++        const char* SOCKET_NAME = "/tmp/pcsx2.sock";
++#endif
++
++        // currently running thread identifier
++        std::thread m_thread;
++
++        // socket handlers
++#ifdef _WIN32
++        SOCKET m_sock = INVALID_SOCKET;
++#else
++        int m_sock = 0;
++#endif
++
++
++        // possible command names
++        enum IPCCommand {
++            MsgRead8 = 0,
++            MsgRead16 = 1,
++            MsgRead32 = 2,
++            MsgRead64 = 3,
++            MsgWrite8 = 4,
++            MsgWrite16 = 5,
++            MsgWrite32 = 6,
++            MsgWrite64 = 7
++        };
++
++        // possible states of the IPC
++        enum State {
++            Started,
++            Stopped
++        };
++
++        // current state of the IPC
++        State m_state = Stopped;
++
++        /* Internal function, thread used to relay IPC commands. */
++#ifdef _WIN32
++        static void SocketThread(SOCKET sock);
++#else
++        static void SocketThread(int sock);
++#endif
++
++        /* Internal function, Parses an IPC command.
++         * buf: buffer containing the IPC command.
++         * return value: buffer containing the result of the command. */
++        static std::tuple<int, char*> ParseCommand(char* buf);
++
++    public:
++        /* Initializers */
++        SocketIPC();
++        ~SocketIPC();
++
++        /* Starts the event-based socket thread. Does nothing if already started. */
++        void Start();
++
++        /* Stops the event-based socket thread. Does nothing if already stopped. */
++        void Stop();
+ 
+ 
+ }; // class SocketIPC
+diff --git a/pcsx2/System/SysCoreThread.cpp b/pcsx2/System/SysCoreThread.cpp
+index d117f2769..7f8341768 100644
+--- a/pcsx2/System/SysCoreThread.cpp
++++ b/pcsx2/System/SysCoreThread.cpp
+@@ -63,14 +63,12 @@ SysCoreThread::~SysCoreThread()
+ 
+ void SysCoreThread::Cancel( bool isBlocking )
+ {
+-    m_socketIpc.Stop();
+ 	m_hasActiveMachine = false;
+ 	_parent::Cancel();
+ }
+ 
+ bool SysCoreThread::Cancel( const wxTimeSpan& span )
+ {
+-    m_socketIpc.Stop();
+ 	m_hasActiveMachine = false;
+ 	return _parent::Cancel( span );
+ }
+@@ -178,7 +176,6 @@ void SysCoreThread::_reset_stuff_as_needed()
+ 	// because of changes to the TLB.  We don't actually support the TLB, however, so rec
+ 	// resets aren't in fact *needed* ... yet.  But might as well, no harm.  --air
+ 
+-    m_socketIpc.Stop();
+ 
+ 	GetVmMemory().CommitAll();
+ 
+@@ -209,7 +206,6 @@ void SysCoreThread::_reset_stuff_as_needed()
+ 
+ 		m_resetVsyncTimers		= false;
+ 	}
+-    m_socketIpc.Start();
+ }
+ 
+ void SysCoreThread::DoCpuReset()
+@@ -241,7 +237,6 @@ void SysCoreThread::GameStartingInThread()
+ 	sApp.PostAppMethod(&Pcsx2App::resetDebugger);
+ 
+ 	ApplyLoadedPatches(PPT_ONCE_ON_LOAD);
+-    m_socketIpc.Start();
+ #ifdef USE_SAVESLOT_UI_UPDATES
+ 	UI_UpdateSysControls();
+ #endif
+diff --git a/pcsx2/windows/VCprojects/pcsx2.vcxproj b/pcsx2/windows/VCprojects/pcsx2.vcxproj
+index 5107724a6..532a015ba 100644
+--- a/pcsx2/windows/VCprojects/pcsx2.vcxproj
++++ b/pcsx2/windows/VCprojects/pcsx2.vcxproj
+@@ -177,6 +177,7 @@
+     <ClCompile Include="..\..\gui\Dialogs\McdConfigDialog.cpp" />
+     <ClCompile Include="..\..\gui\Panels\MemoryCardListView.cpp" />
+     <ClCompile Include="..\..\IopGte.cpp" />
++    <ClCompile Include="..\..\IPC.cpp" />
+     <ClCompile Include="..\..\IPU\IPUdma.cpp" />
+     <ClCompile Include="..\..\IPU\IPUdither.cpp" />
+     <ClCompile Include="..\..\Linux\LnxConsolePipe.cpp">
+@@ -430,6 +431,7 @@
+     <ClInclude Include="..\..\gui\Debugger\DisassemblyDialog.h" />
+     <ClInclude Include="..\..\gui\Panels\MemoryCardPanels.h" />
+     <ClInclude Include="..\..\IopGte.h" />
++    <ClInclude Include="..\..\IPC.h" />
+     <ClInclude Include="..\..\IPU\IPUdma.h" />
+     <ClInclude Include="..\..\Mdec.h" />
+     <ClInclude Include="..\..\Patch.h" />
+@@ -618,4 +620,4 @@
+   </ItemGroup>
+   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+   <ImportGroup Label="ExtensionTargets" />
+-</Project>
+\ No newline at end of file
++</Project>
+diff --git a/pcsx2/windows/VCprojects/pcsx2.vcxproj.filters b/pcsx2/windows/VCprojects/pcsx2.vcxproj.filters
+index ab93bc2d0..f1add60a3 100644
+--- a/pcsx2/windows/VCprojects/pcsx2.vcxproj.filters
++++ b/pcsx2/windows/VCprojects/pcsx2.vcxproj.filters
+@@ -871,6 +871,9 @@
+     <ClCompile Include="..\..\IPU\IPUdither.cpp">
+       <Filter>System\Ps2\IPU</Filter>
+     </ClCompile>
++    <ClCompile Include="..\..\IPC.cpp">
++      <Filter>System</Filter>
++    </ClCompile>
+   </ItemGroup>
+   <ItemGroup>
+     <ClInclude Include="..\..\Patch.h">
+@@ -1323,6 +1326,9 @@
+     <ClInclude Include="..\..\Recording\VirtualPad.h">
+       <Filter>Recording\gui</Filter>
+     </ClInclude>
++    <ClInclude Include="..\..\IPC.h">
++      <Filter>System\Include</Filter>
++    </ClInclude>
+   </ItemGroup>
+   <ItemGroup>
+     <ResourceCompile Include="..\wxResources.rc">
+-- 
+2.25.4
+
+
+From fc50b83f5f379165edf4da6ff902a0369e50d218 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Mon, 10 Aug 2020 04:30:56 +0200
+Subject: [PATCH 12/12] cleanup
+
+---
+ build.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/build.sh b/build.sh
+index 91699f154..0791cd965 100755
+--- a/build.sh
++++ b/build.sh
+@@ -168,7 +168,7 @@ run_coverity()
+ }
+ 
+ # Main script
+-flags="-DCMAKE_BUILD_PO=FALSE -DCMAKE_INSTALL_PREFIX=/tmp/pcsx2_debug -DDISABLE_ADVANCE_SIMD=TRUE -DDISABLE_PCSX2_WRAPPER=TRUE -DDOC_DIR=/tmp/pcsx2_debug/share/doc/pcsx2 -DGAMEINDEX_DIR=/tmp/pcsx2_debug/share/pcsx2 -DGLSL_SHADER_DIR=/tmp/pcsx2_debug/share/pcsx2 -DwxWidgets_LIBRARIES=/nix/store/5jsn2w7cp2rrc1ks4y21xhr0pz61051b-wxwidgets-3.0.4/lib -DwxWidgets_INCLUDE_DIRS=/nix/store/5jsn2w7cp2rrc1ks4y21xhr0pz61051b-wxwidgets-3.0.4/include -DwxWidgets_CONFIG_EXECUTABLE=/nix/store/5jsn2w7cp2rrc1ks4y21xhr0pz61051b-wxwidgets-3.0.4/bin/wx-config -DPACKAGE_MODE=TRUE -DPLUGIN_DIR=/tmp/pcsx2_debug/lib/pcsx2 -DREBUILD_SHADER=TRUE -DXDG_STD=TRUE -DGTK2_GLIBCONFIG_INCLUDE_DIR=/nix/store/krlifqmwhzz3hf4kydr5gnrsn12q3x5h-glib-2.62.6/lib/glib-2.0/include -DGTK2_GDKCONFIG_INCLUDE_DIR=/nix/store/hl9cqdhk7jzwcr81wkcqy2krk9vn23gi-gtk+-2.24.32/lib/gtk-2.0/include -DGTK2_INCLUDE_DIRS=/nix/store/2dz1bzdiny2p2gsifx91azkafx2gqxyk-gtk+-2.24.32-dev/include/gtk-2.0 -DGTK3_API=FALSE"
++flags="-DCMAKE_BUILD_PO=FALSE"
+ 
+ cleanBuild=0
+ useClang=0
+-- 
+2.25.4
+
