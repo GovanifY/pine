@@ -1,92 +1,7 @@
-From 5162a716fd3517064f56a8ad129ea92133ba3407 Mon Sep 17 00:00:00 2001
-From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
-Date: Fri, 7 Aug 2020 02:39:01 +0200
-Subject: [PATCH 01/12] some quick and dirty poc
-
----
- cmake/BuildParameters.cmake |  6 +++---
- pcsx2/Patch_Memory.cpp      | 17 ++++++++++++++++-
- 2 files changed, 19 insertions(+), 4 deletions(-)
-
-diff --git a/cmake/BuildParameters.cmake b/cmake/BuildParameters.cmake
-index e1ca1ee92..02d039ec8 100644
---- a/cmake/BuildParameters.cmake
-+++ b/cmake/BuildParameters.cmake
-@@ -333,7 +333,7 @@ endif()
- 
- if (USE_CLANG)
-     # -Wno-deprecated-register: glib issue...
--    set(DEFAULT_WARNINGS "${DEFAULT_WARNINGS}  -Wno-deprecated-register -Wno-c++14-extensions")
-+    set(DEFAULT_WARNINGS "${DEFAULT_WARNINGS}  -Wno-deprecated-register -Wno-c++17-extensions")
-     set(DBG "-g -fno-omit-frame-pointer")
- elseif (USE_ICC)
-     set(DBG "-g -fno-omit-frame-pointer")
-@@ -410,7 +410,7 @@ endif()
- # Note: -DGTK_DISABLE_DEPRECATED can be used to test a build without gtk deprecated feature. It could be useful to port to a newer API
- set(DEFAULT_GCC_FLAG "${ARCH_FLAG} ${COMMON_FLAG} ${DEFAULT_WARNINGS} ${AGGRESSIVE_WARNING} ${HARDENING_FLAG} ${DEBUG_FLAG} ${ASAN_FLAG} ${OPTIMIZATION_FLAG} ${LTO_FLAGS} ${PGO_FLAGS} ${PLUGIN_SUPPORT}")
- # c++ only flags
--set(DEFAULT_CPP_FLAG "${DEFAULT_GCC_FLAG} -std=c++11 -Wno-invalid-offsetof")
-+set(DEFAULT_CPP_FLAG "${DEFAULT_GCC_FLAG} -std=c++17 -Wno-invalid-offsetof")
- 
- #-------------------------------------------------------------------------------
- # Allow user to set some default flags
-@@ -490,4 +490,4 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
- 
-     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip,-dead_strip_dylibs")
-     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-dead_strip,-dead_strip_dylibs")
--endif()
-\ No newline at end of file
-+endif()
-diff --git a/pcsx2/Patch_Memory.cpp b/pcsx2/Patch_Memory.cpp
-index c335037a1..f7adb3ea3 100644
---- a/pcsx2/Patch_Memory.cpp
-+++ b/pcsx2/Patch_Memory.cpp
-@@ -20,6 +20,9 @@
- #include "IopCommon.h"
- #include "Patch.h"
- #include <chrono>
-+#include <filesystem>
-+#include <fstream>
-+namespace fs = std::filesystem;
- 
- u32 SkipCount = 0, IterationCount = 0;
- u32 IterationIncrement = 0, ValueIncrement = 0;
-@@ -415,6 +418,8 @@ void handle_extended_t(IniPatch *p)
-                         }
-                     } break;
- 
-+
-+
-                     case 0xE0000000: { // IF Statements (Multi)
-                         u8 mem8 = memRead8((u32)p->data & 0x0FFFFFFF);
-                         u16 mem16 = memRead16((u32)p->data & 0x0FFFFFFF);
-@@ -467,7 +472,17 @@ void handle_extended_t(IniPatch *p)
-                                         break;
-                                 }
-                             } break;
--                                PrevCheatType = 0;
-+                case 0xF0000000: { // IPC
-+                    auto tmp_path = fs::temp_directory_path();
-+                    u32 value = memRead32((u32)p->addr & 0x0FFFFFFF);
-+                    tmp_path /= "pcsx2_ipc";
-+
-+                    std::ofstream ofs(tmp_path);
-+                    ofs << std::hex << value; 
-+                    ofs.close();
-+                }break;
-+
-+                PrevCheatType = 0;
-                         }
-                     } break;
-                 }
--- 
-2.25.4
-
-
-From c25d97525ab070e144081618b11ec88a700d7252 Mon Sep 17 00:00:00 2001
+From f0e93d9edc93ce52425b18a34ceca33d7056c5b6 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sat, 8 Aug 2020 08:43:41 +0200
-Subject: [PATCH 02/12] some simple unix socket example
+Subject: [PATCH 01/19] some simple unix socket example
 
 ---
  pcsx2/IPC.cpp                  | 69 ++++++++++++++++++++++++++++++++++
@@ -201,10 +116,10 @@ index d69e5014a..fb6f390d3 100644
 2.25.4
 
 
-From 5680cd77d3a0bae14f298eda7fde880cc7698c38 Mon Sep 17 00:00:00 2001
+From c528a27c8d8e4f9b0082f865fe59dcf9c907fedd Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sat, 8 Aug 2020 10:13:18 +0200
-Subject: [PATCH 03/12] SocketIPC implemented inside SysCoreThread,
+Subject: [PATCH 02/19] SocketIPC implemented inside SysCoreThread,
  initialization in constructor is probably useless, will have to check later.
  threading to implement in IPC.cpp
 
@@ -361,10 +276,10 @@ index 6ddf09fad..d94f5973f 100644
 2.25.4
 
 
-From 8b0c0e072ea34805f252e5dc4321d1881edee4ff Mon Sep 17 00:00:00 2001
+From 0b6c3fceadace20130d836d4ccb694b1a1e9adc4 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sat, 8 Aug 2020 20:26:34 +0200
-Subject: [PATCH 04/12] working socketipc implem
+Subject: [PATCH 03/19] working socketipc implem
 
 ---
  pcsx2/CMakeLists.txt      |  2 ++
@@ -564,10 +479,10 @@ index d94f5973f..552d133cd 100644
 2.25.4
 
 
-From 725868191e9e72eef442b49bade4bc2a7a72fc8f Mon Sep 17 00:00:00 2001
+From 48b4498607b916dd83147db8a48048c55497ffb5 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 04:42:59 +0200
-Subject: [PATCH 05/12] good to test
+Subject: [PATCH 04/19] good to test
 
 ---
  pcsx2/IPC.cpp | 35 +++++++++++++++++++++++++++++++----
@@ -648,10 +563,10 @@ index afb2b2c38..4f239bfc7 100644
 2.25.4
 
 
-From 546352318d511ca98873b391ecdcae4715b8c237 Mon Sep 17 00:00:00 2001
+From 79a9a4aaa04d54dd1df25230c5ba3764ed90735d Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 09:52:18 +0200
-Subject: [PATCH 06/12] SocketIPC: working implem
+Subject: [PATCH 05/19] SocketIPC: working implem
 
 ---
  pcsx2/IPC.cpp                  | 193 ++++++++++++++++++++++++---------
@@ -949,10 +864,10 @@ index 0760cf88e..d117f2769 100644
 2.25.4
 
 
-From c7085180983796d9aad33c8efa65d4e2011efed7 Mon Sep 17 00:00:00 2001
+From 902dbeb288dff0b96e171d7c8e200a59c3eb5e6a Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 10:30:45 +0200
-Subject: [PATCH 07/12] SocketIPC: correct implementation
+Subject: [PATCH 06/19] SocketIPC: correct implementation
 
 ---
  build.sh      |  2 +-
@@ -961,7 +876,7 @@ Subject: [PATCH 07/12] SocketIPC: correct implementation
  3 files changed, 30 insertions(+), 19 deletions(-)
 
 diff --git a/build.sh b/build.sh
-index 0791cd965..91699f154 100755
+index 15aedc7a7..2c11fca48 100755
 --- a/build.sh
 +++ b/build.sh
 @@ -168,7 +168,7 @@ run_coverity()
@@ -1068,10 +983,10 @@ index ac26ab18e..66d3d3a4f 100644
 2.25.4
 
 
-From 7fc4e4fc749a666222f3f1e4f005e537f9152365 Mon Sep 17 00:00:00 2001
+From 19406e4ef40eaf147941efd96552d9ad0bf73afd Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 18:18:53 +0200
-Subject: [PATCH 08/12] threading _mostly_ implemented, still need to find a
+Subject: [PATCH 07/19] threading _mostly_ implemented, still need to find a
  way to kill the thread
 
 ---
@@ -1215,10 +1130,10 @@ index 66d3d3a4f..26e9f0cf3 100644
 2.25.4
 
 
-From 202fd96cb1f82977cc2c1d179c04dc8e01e67b30 Mon Sep 17 00:00:00 2001
+From b55ce1bd68feddf216fa0b16a3bfa7f2d82a4106 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 18:52:11 +0200
-Subject: [PATCH 09/12] well here we are
+Subject: [PATCH 08/19] well here we are
 
 ---
  pcsx2/IPC.cpp | 7 ++-----
@@ -1259,96 +1174,10 @@ index 0841351e2..07f0e8cc3 100644
 2.25.4
 
 
-From 97d4a52f440e7efe150a55ab82461b007ade6f1e Mon Sep 17 00:00:00 2001
-From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
-Date: Sun, 9 Aug 2020 19:46:00 +0200
-Subject: [PATCH 10/12] Revert "some quick and dirty poc"
-
-This reverts commit 5162a716fd3517064f56a8ad129ea92133ba3407.
----
- cmake/BuildParameters.cmake |  6 +++---
- pcsx2/Patch_Memory.cpp      | 17 +----------------
- 2 files changed, 4 insertions(+), 19 deletions(-)
-
-diff --git a/cmake/BuildParameters.cmake b/cmake/BuildParameters.cmake
-index 02d039ec8..e1ca1ee92 100644
---- a/cmake/BuildParameters.cmake
-+++ b/cmake/BuildParameters.cmake
-@@ -333,7 +333,7 @@ endif()
- 
- if (USE_CLANG)
-     # -Wno-deprecated-register: glib issue...
--    set(DEFAULT_WARNINGS "${DEFAULT_WARNINGS}  -Wno-deprecated-register -Wno-c++17-extensions")
-+    set(DEFAULT_WARNINGS "${DEFAULT_WARNINGS}  -Wno-deprecated-register -Wno-c++14-extensions")
-     set(DBG "-g -fno-omit-frame-pointer")
- elseif (USE_ICC)
-     set(DBG "-g -fno-omit-frame-pointer")
-@@ -410,7 +410,7 @@ endif()
- # Note: -DGTK_DISABLE_DEPRECATED can be used to test a build without gtk deprecated feature. It could be useful to port to a newer API
- set(DEFAULT_GCC_FLAG "${ARCH_FLAG} ${COMMON_FLAG} ${DEFAULT_WARNINGS} ${AGGRESSIVE_WARNING} ${HARDENING_FLAG} ${DEBUG_FLAG} ${ASAN_FLAG} ${OPTIMIZATION_FLAG} ${LTO_FLAGS} ${PGO_FLAGS} ${PLUGIN_SUPPORT}")
- # c++ only flags
--set(DEFAULT_CPP_FLAG "${DEFAULT_GCC_FLAG} -std=c++17 -Wno-invalid-offsetof")
-+set(DEFAULT_CPP_FLAG "${DEFAULT_GCC_FLAG} -std=c++11 -Wno-invalid-offsetof")
- 
- #-------------------------------------------------------------------------------
- # Allow user to set some default flags
-@@ -490,4 +490,4 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
- 
-     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-dead_strip,-dead_strip_dylibs")
-     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,-dead_strip,-dead_strip_dylibs")
--endif()
-+endif()
-\ No newline at end of file
-diff --git a/pcsx2/Patch_Memory.cpp b/pcsx2/Patch_Memory.cpp
-index f7adb3ea3..c335037a1 100644
---- a/pcsx2/Patch_Memory.cpp
-+++ b/pcsx2/Patch_Memory.cpp
-@@ -20,9 +20,6 @@
- #include "IopCommon.h"
- #include "Patch.h"
- #include <chrono>
--#include <filesystem>
--#include <fstream>
--namespace fs = std::filesystem;
- 
- u32 SkipCount = 0, IterationCount = 0;
- u32 IterationIncrement = 0, ValueIncrement = 0;
-@@ -418,8 +415,6 @@ void handle_extended_t(IniPatch *p)
-                         }
-                     } break;
- 
--
--
-                     case 0xE0000000: { // IF Statements (Multi)
-                         u8 mem8 = memRead8((u32)p->data & 0x0FFFFFFF);
-                         u16 mem16 = memRead16((u32)p->data & 0x0FFFFFFF);
-@@ -472,17 +467,7 @@ void handle_extended_t(IniPatch *p)
-                                         break;
-                                 }
-                             } break;
--                case 0xF0000000: { // IPC
--                    auto tmp_path = fs::temp_directory_path();
--                    u32 value = memRead32((u32)p->addr & 0x0FFFFFFF);
--                    tmp_path /= "pcsx2_ipc";
--
--                    std::ofstream ofs(tmp_path);
--                    ofs << std::hex << value; 
--                    ofs.close();
--                }break;
--
--                PrevCheatType = 0;
-+                                PrevCheatType = 0;
-                         }
-                     } break;
-                 }
--- 
-2.25.4
-
-
-From 8bfa28314fcc5788761ff2cf14331adb8011e82b Mon Sep 17 00:00:00 2001
+From 8b7ea980be5337ce969dd29158c7cf01d3c12917 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 04:05:55 +0200
-Subject: [PATCH 11/12] did i mention i hate windows
+Subject: [PATCH 09/19] did i mention i hate windows
 
 ---
  pcsx2/IPC.cpp                                 | 237 +++++++++++-------
@@ -1957,17 +1786,17 @@ index ab93bc2d0..f1add60a3 100644
 2.25.4
 
 
-From fc50b83f5f379165edf4da6ff902a0369e50d218 Mon Sep 17 00:00:00 2001
+From 6a81ef3df69b01387463cc5d04792d6924cb4e5b Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 04:30:56 +0200
-Subject: [PATCH 12/12] cleanup
+Subject: [PATCH 10/19] cleanup
 
 ---
  build.sh | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/build.sh b/build.sh
-index 91699f154..0791cd965 100755
+index 2c11fca48..15aedc7a7 100755
 --- a/build.sh
 +++ b/build.sh
 @@ -168,7 +168,7 @@ run_coverity()
@@ -1979,6 +1808,1456 @@ index 91699f154..0791cd965 100755
  
  cleanBuild=0
  useClang=0
+-- 
+2.25.4
+
+
+From e671e69488ca717d963963c66ee6bbd0dd771c36 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Mon, 10 Aug 2020 13:54:33 +0200
+Subject: [PATCH 11/19] threading that actually works + state cleanup
+
+---
+ pcsx2/IPC.cpp                  | 71 ++++++++++++++--------------------
+ pcsx2/IPC.h                    | 47 +++++++---------------
+ pcsx2/System/SysCoreThread.cpp |  1 +
+ 3 files changed, 46 insertions(+), 73 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 8e3f52a94..d500ccc44 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -6,7 +6,6 @@
+ #include <thread>
+ #include <sys/types.h>
+ #if _WIN32
+-#pragma comment(lib, "Ws2_32.lib")
+ #define bzero(b, len) (memset((b), '\0', (len)), (void)0)
+ #include <windows.h>
+ #else
+@@ -18,19 +17,17 @@
+ #include "Memory.h"
+ #include "IPC.h"
+ 
++// TODO: try-catch blocks do not avoid asserts/crash on linux when vm is
++// inactive, fix that!!
+ 
+-SocketIPC::SocketIPC() {
+-    Start();
+-}
+-
+-void SocketIPC::Start() {
+-    if (m_state == Stopped) {
++SocketIPC::SocketIPC() : pxThread("IPC_Socket") {
+ #ifdef _WIN32
+         WSADATA wsa;
+         SOCKET new_socket;
+         struct sockaddr_in server, client;
+         int c;
+ 
++
+         if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+             Console.WriteLn(Color_Red, "IPC: Cannot initialize winsock! Shutting down...");
+             return;
+@@ -76,23 +73,16 @@ void SocketIPC::Start() {
+         // maximum queue of 100 commands before refusing
+         listen(m_sock, 100);
+ 
+-        m_state = Started;
+-        std::thread m_thread(SocketThread, m_sock);
+-        m_thread.detach();
+-    }
++        // we start the thread
++        Start();
+ }
+-#ifdef _WIN32
+-void SocketIPC::SocketThread(SOCKET sock) {
+-#else
+-void SocketIPC::SocketThread(int sock) {
+-#endif
++
++void SocketIPC::ExecuteTaskInThread() {
+     char buf[1024];
+     int msgsock = 0;
+-
+     while (true) {
+-        msgsock = accept(sock, 0, 0);
++        msgsock = accept(m_sock, 0, 0);
+         if (msgsock == -1) {
+-            Console.WriteLn(Color_Red, "IPC: Connection to socket broken! Shutting down...\n");
+             return;
+         }
+         else {
+@@ -102,25 +92,23 @@ void SocketIPC::SocketThread(int sock) {
+ #else
+             if (read(msgsock, buf, 1024) < 0) {
+ #endif
+-                    Console.WriteLn(Color_Red, "IPC: Cannot receive event! Shutting down...\n");
+                     return;
+                 }
+                 else {
+                     auto res = ParseCommand(buf);
+ #ifdef _WIN32
+-                    if (send(msgsock, std::get<1>(res), std::get<0>(res), 0) < 0) {
++                    if (send(msgsock, res.second, res.first, 0) < 0) {
+ #else
+-                    if (write(msgsock, std::get<1>(res), std::get<0>(res)) < 0) {
++                    if (write(msgsock, res.second, res.first) < 0) {
+ #endif
+-                        Console.WriteLn(Color_Red, "IPC: Cannot send reply! Shutting down...\n");
+                         return;
+                     }
+                 }
+         }
+     }
+ }
+-void SocketIPC::Stop() {
+-    if (m_state == Started) {
++
++SocketIPC::~SocketIPC() {
+ #ifdef _WIN32
+         closesocket(m_sock);
+         WSACleanup();
+@@ -128,16 +116,16 @@ void SocketIPC::Stop() {
+         close(m_sock);
+         unlink(SOCKET_NAME);
+ #endif
+-        m_state = Stopped;
+-    }
+-}
+-SocketIPC::~SocketIPC() {
+-    Stop();
++        // destroy the thread
++	    try {
++		    pxThread::Cancel();
++	    }
++	    DESTRUCTOR_CATCHALL
+ }
+ 
+ // we might want to make some TMP magic here...
+ // nvm, we NEED it, 90% of this function is array initialization
+-std::tuple<int, char*> SocketIPC::ParseCommand(char* buf) {
++std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+     //         IPC Message event (1 byte)
+     //         |  Memory address (4 byte)
+     //         |  |           argument (VLE)
+@@ -148,12 +136,13 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char* buf) {
+     //        |  |
+     // reply: XX ZZ ZZ ZZ ZZ
+     IPCCommand opcode = (IPCCommand)buf[0];
++    // YY YY YY YY from schema above
+     u32 a = int((unsigned char)(buf[1]) << 24 |
+             (unsigned char)(buf[2]) << 16 |
+             (unsigned char)(buf[3]) << 8 |
+             (unsigned char)(buf[4]));
+     char* res_array;
+-    std::tuple<int, char*> rval;
++    std::pair<int, char*> rval;
+     switch (opcode) {
+         case MsgRead8: {
+                 u8 res;
+@@ -162,7 +151,7 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 res_array = (char*)malloc(2 * sizeof(char));
+                 res_array[0] = 0x00;
+                 res_array[1] = (unsigned char)res;
+-                rval = std::make_tuple(2, res_array);
++                rval = std::make_pair(2, res_array);
+                 break;
+         }
+         case MsgRead16: {
+@@ -173,7 +162,7 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 res_array[0] = 0x00;
+                 res_array[1] = (unsigned char)(res >> 8) & 0xff;
+                 res_array[2] = (unsigned char)res;
+-                rval = std::make_tuple(3, res_array);
++                rval = std::make_pair(3, res_array);
+                 break;
+         }
+         case MsgRead32: {
+@@ -186,7 +175,7 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 res_array[2] = (unsigned char)(res >> 16) & 0xff;
+                 res_array[3] = (unsigned char)(res >> 8) & 0xff;
+                 res_array[4] = (unsigned char)res;
+-                rval = std::make_tuple(5, res_array);
++                rval = std::make_pair(5, res_array);
+                 break;
+         }
+         case MsgRead64: {
+@@ -203,7 +192,7 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 res_array[6] = (unsigned char)(res >> 16) & 0xff;
+                 res_array[7] = (unsigned char)(res >> 8) & 0xff;
+                 res_array[8] = (unsigned char)res;
+-                rval = std::make_tuple(9, res_array);
++                rval = std::make_pair(9, res_array);
+                 break;
+         }
+         case MsgWrite8: {
+@@ -211,7 +200,7 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 catch (...) { goto error; }
+                 res_array = (char*)malloc(1 * sizeof(char));
+                 res_array[0] = 0x00;
+-                rval = std::make_tuple(1, res_array);
++                rval = std::make_pair(1, res_array);
+                 break;
+         }
+         case MsgWrite16: {
+@@ -219,7 +208,7 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 catch (...) { goto error; }
+                 res_array = (char*)malloc(1 * sizeof(char));
+                 res_array[0] = 0x00;
+-                rval = std::make_tuple(1, res_array);
++                rval = std::make_pair(1, res_array);
+                 break;
+         }
+         case MsgWrite32: {
+@@ -227,7 +216,7 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 catch (...) { goto error; }
+                 res_array = (char*)malloc(1 * sizeof(char));
+                 res_array[0] = 0x00;
+-                rval = std::make_tuple(1, res_array);
++                rval = std::make_pair(1, res_array);
+                 break;
+         }
+         case MsgWrite64: {
+@@ -235,14 +224,14 @@ std::tuple<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 catch (...) { goto error; }
+                 res_array = (char*)malloc(1 * sizeof(char));
+                 res_array[0] = 0x00;
+-                rval = std::make_tuple(1, res_array);
++                rval = std::make_pair(1, res_array);
+                 break;
+         }
+         default: {
+             error:
+                 res_array = (char*)malloc(1 * sizeof(char));
+                 res_array[0] = 0xFF;
+-                rval = std::make_tuple(1, res_array);
++                rval = std::make_pair(1, res_array);
+                 break;
+         }
+     }
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index 9f0ec10b7..9ee3b5364 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -18,11 +18,16 @@
+ #define to8b(arr) (((uint8_t)(((uint8_t*)(arr))[0]) << 0))
+ 
+ 
++#include "Utilities/PersistentThread.h"
+ 
+-class SocketIPC
+-{
++using namespace Threading;
+ 
+-    private:
++class SocketIPC : public pxThread {
++
++
++	typedef pxThread _parent;
++
++    protected:
+ 
+ #ifdef _WIN32
+         // windows claim to have support for AF_UNIX sockets but that is a blatant lie, 
+@@ -34,9 +39,6 @@ class SocketIPC
+         const char* SOCKET_NAME = "/tmp/pcsx2.sock";
+ #endif
+ 
+-        // currently running thread identifier
+-        std::thread m_thread;
+-
+         // socket handlers
+ #ifdef _WIN32
+         SOCKET m_sock = INVALID_SOCKET;
+@@ -44,8 +46,7 @@ class SocketIPC
+         int m_sock = 0;
+ #endif
+ 
+-
+-        // possible command names
++        // possible command messages
+         enum IPCCommand {
+             MsgRead8 = 0,
+             MsgRead16 = 1,
+@@ -57,37 +58,19 @@ class SocketIPC
+             MsgWrite64 = 7
+         };
+ 
+-        // possible states of the IPC
+-        enum State {
+-            Started,
+-            Stopped
+-        };
+ 
+-        // current state of the IPC
+-        State m_state = Stopped;
+-
+-        /* Internal function, thread used to relay IPC commands. */
+-#ifdef _WIN32
+-        static void SocketThread(SOCKET sock);
+-#else
+-        static void SocketThread(int sock);
+-#endif
++        /* Thread used to relay IPC commands. */
++        void ExecuteTaskInThread();
+ 
+         /* Internal function, Parses an IPC command.
+          * buf: buffer containing the IPC command.
+-         * return value: buffer containing the result of the command. */
+-        static std::tuple<int, char*> ParseCommand(char* buf);
++         * return value: pair containing a buffer with the result 
++         *               of the command and its size. */
++        static std::pair<int, char*> ParseCommand(char* buf);
+ 
+     public:
+         /* Initializers */
+         SocketIPC();
+-        ~SocketIPC();
+-
+-        /* Starts the event-based socket thread. Does nothing if already started. */
+-        void Start();
+-
+-        /* Stops the event-based socket thread. Does nothing if already stopped. */
+-        void Stop();
+-
++        virtual ~SocketIPC();
+ 
+ }; // class SocketIPC
+diff --git a/pcsx2/System/SysCoreThread.cpp b/pcsx2/System/SysCoreThread.cpp
+index 7f8341768..cd509eb80 100644
+--- a/pcsx2/System/SysCoreThread.cpp
++++ b/pcsx2/System/SysCoreThread.cpp
+@@ -51,6 +51,7 @@ SysCoreThread::SysCoreThread()
+ 	m_resetVirtualMachine	= true;
+ 
+ 	m_hasActiveMachine		= false;
++
+ }
+ 
+ SysCoreThread::~SysCoreThread()
+-- 
+2.25.4
+
+
+From f16d4d40b9a484b84451042af22a5d835533f083 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Mon, 10 Aug 2020 14:58:23 +0200
+Subject: [PATCH 12/19] good looking code!
+
+---
+ pcsx2/IPC.cpp | 104 ++++++++++++++++++++++++++------------------------
+ pcsx2/IPC.h   |  23 +++++++++++
+ 2 files changed, 78 insertions(+), 49 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index d500ccc44..013bf1764 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -123,8 +123,51 @@ SocketIPC::~SocketIPC() {
+ 	    DESTRUCTOR_CATCHALL
+ }
+ 
+-// we might want to make some TMP magic here...
+-// nvm, we NEED it, 90% of this function is array initialization
++char* SocketIPC::MakeOkIPC(int size) {
++    char* res_array = (char*)malloc(size * sizeof(char));
++    res_array[0] = (unsigned char) IPC_OK;
++    return res_array;
++}
++
++
++char* SocketIPC::MakeFailIPC(int size) {
++    char* res_array = (char*)malloc(size * sizeof(char));
++    res_array[0] = (unsigned char) IPC_FAIL;
++    return res_array;
++}
++
++char* SocketIPC::from64b(char* res_array, uint64_t res, int i) {
++    res_array[i+0] = (unsigned char)(res >> 56) & 0xff;
++    res_array[i+1] = (unsigned char)(res >> 48) & 0xff;
++    res_array[i+2] = (unsigned char)(res >> 40) & 0xff;
++    res_array[i+3] = (unsigned char)(res >> 32) & 0xff;
++    res_array[i+4] = (unsigned char)(res >> 24) & 0xff;
++    res_array[i+5] = (unsigned char)(res >> 16) & 0xff;
++    res_array[i+6] = (unsigned char)(res >> 8) & 0xff;
++    res_array[i+7] = (unsigned char)res;
++    return res_array;
++}
++
++char* SocketIPC::from32b(char* res_array, uint32_t res, int i) {
++    res_array[i+0] = (unsigned char)(res >> 24) & 0xff;
++    res_array[i+1] = (unsigned char)(res >> 16) & 0xff;
++    res_array[i+2] = (unsigned char)(res >> 8) & 0xff;
++    res_array[i+3] = (unsigned char)res;
++    return res_array;
++}
++
++char* SocketIPC::from16b(char* res_array, uint16_t res, int i) {
++    res_array[i+0] = (unsigned char)(res >> 8) & 0xff;
++    res_array[i+1] = (unsigned char)res;
++    return res_array;
++}
++
++char* SocketIPC::from8b(char* res_array, uint8_t res, int i) {
++    res_array[i+0] = (unsigned char)res;
++    return res_array;
++}
++
++
+ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+     //         IPC Message event (1 byte)
+     //         |  Memory address (4 byte)
+@@ -137,101 +180,64 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+     // reply: XX ZZ ZZ ZZ ZZ
+     IPCCommand opcode = (IPCCommand)buf[0];
+     // YY YY YY YY from schema above
+-    u32 a = int((unsigned char)(buf[1]) << 24 |
+-            (unsigned char)(buf[2]) << 16 |
+-            (unsigned char)(buf[3]) << 8 |
+-            (unsigned char)(buf[4]));
+-    char* res_array;
++    u32 a = to32b(&buf[1]);
+     std::pair<int, char*> rval;
+     switch (opcode) {
+         case MsgRead8: {
+                 u8 res;
+                 try{ res = memRead8(a);}
+                 catch (...) { goto error; }
+-                res_array = (char*)malloc(2 * sizeof(char));
+-                res_array[0] = 0x00;
+-                res_array[1] = (unsigned char)res;
+-                rval = std::make_pair(2, res_array);
++                rval = std::make_pair(2, from8b(MakeOkIPC(2), res, 1));
+                 break;
+         }
+         case MsgRead16: {
+                 u16 res;
+                 try{ res = memRead16(a);}
+                 catch (...) { goto error; }
+-                res_array = (char*)malloc(3 * sizeof(char));
+-                res_array[0] = 0x00;
+-                res_array[1] = (unsigned char)(res >> 8) & 0xff;
+-                res_array[2] = (unsigned char)res;
+-                rval = std::make_pair(3, res_array);
++                rval = std::make_pair(3, from16b(MakeOkIPC(3), res, 1));
+                 break;
+         }
+         case MsgRead32: {
+                 u32 res;
+                 try{ res = memRead32(a);}
+                 catch (...) { goto error; }
+-                res_array = (char*)malloc(5 * sizeof(char));
+-                res_array[0] = 0x00;
+-                res_array[1] = (unsigned char)(res >> 24) & 0xff;
+-                res_array[2] = (unsigned char)(res >> 16) & 0xff;
+-                res_array[3] = (unsigned char)(res >> 8) & 0xff;
+-                res_array[4] = (unsigned char)res;
+-                rval = std::make_pair(5, res_array);
++                rval = std::make_pair(5, from64b(MakeOkIPC(5), res, 1));
+                 break;
+         }
+         case MsgRead64: {
+                 u64 res;
+                 try{ memRead64(a, &res);}
+                 catch (...) { goto error; }
+-                res_array = (char*)malloc(9 * sizeof(char));
+-                res_array[0] = 0x00;
+-                res_array[1] = (unsigned char)(res >> 56) & 0xff;
+-                res_array[2] = (unsigned char)(res >> 48) & 0xff;
+-                res_array[3] = (unsigned char)(res >> 40) & 0xff;
+-                res_array[4] = (unsigned char)(res >> 32) & 0xff;
+-                res_array[5] = (unsigned char)(res >> 24) & 0xff;
+-                res_array[6] = (unsigned char)(res >> 16) & 0xff;
+-                res_array[7] = (unsigned char)(res >> 8) & 0xff;
+-                res_array[8] = (unsigned char)res;
+-                rval = std::make_pair(9, res_array);
++                rval = std::make_pair(9, from64b(MakeOkIPC(9), res, 1));
+                 break;
+         }
+         case MsgWrite8: {
+                 try{memWrite8(a, to8b(&buf[5]));}
+                 catch (...) { goto error; }
+-                res_array = (char*)malloc(1 * sizeof(char));
+-                res_array[0] = 0x00;
+-                rval = std::make_pair(1, res_array);
++                rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+         }
+         case MsgWrite16: {
+                 try{memWrite16(a, to16b(&buf[5]));}
+                 catch (...) { goto error; }
+-                res_array = (char*)malloc(1 * sizeof(char));
+-                res_array[0] = 0x00;
+-                rval = std::make_pair(1, res_array);
++                rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+         }
+         case MsgWrite32: {
+                 try{memWrite32(a, to32b(&buf[5]));}
+                 catch (...) { goto error; }
+-                res_array = (char*)malloc(1 * sizeof(char));
+-                res_array[0] = 0x00;
+-                rval = std::make_pair(1, res_array);
++                rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+         }
+         case MsgWrite64: {
+                 try{memWrite64(a, to64b(&buf[5]));}
+                 catch (...) { goto error; }
+-                res_array = (char*)malloc(1 * sizeof(char));
+-                res_array[0] = 0x00;
+-                rval = std::make_pair(1, res_array);
++                rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+         }
+         default: {
+             error:
+-                res_array = (char*)malloc(1 * sizeof(char));
+-                res_array[0] = 0xFF;
+-                rval = std::make_pair(1, res_array);
++                rval = std::make_pair(1, MakeFailIPC(1));
+                 break;
+         }
+     }
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index 9ee3b5364..35ca147ae 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -1,3 +1,4 @@
++/* Formatting utilities to get a uint from a char* */
+ #define to64b(arr) (((uint64_t)(((uint8_t*)(arr))[7]) << 0) +  \
+         ((uint64_t)(((uint8_t*)(arr))[6]) << 8) +  \
+         ((uint64_t)(((uint8_t*)(arr))[5]) << 16) + \
+@@ -58,6 +59,11 @@ class SocketIPC : public pxThread {
+             MsgWrite64 = 7
+         };
+ 
++        enum IPCResult {
++            IPC_OK = 0,
++            IPC_FAIL = 0xFF
++        };
++
+ 
+         /* Thread used to relay IPC commands. */
+         void ExecuteTaskInThread();
+@@ -68,6 +74,23 @@ class SocketIPC : public pxThread {
+          *               of the command and its size. */
+         static std::pair<int, char*> ParseCommand(char* buf);
+ 
++        /* Formats an IPC buffer
++         * size: size of the array to allocate
++         * return value: buffer containing the status code allocated of size
++         *               size */
++        static char* MakeOkIPC(int size);
++        static char* MakeFailIPC(int size);
++
++        /* Converts an uint to an char* in little endian 
++         * res_array: the array to modify 
++         * res: the value to convert
++         * i: when to insert it into the array 
++         * return value: res_array */
++        static char* from64b(char* res_array, uint64_t res, int i);
++        static char* from32b(char* res_array, uint32_t res, int i);
++        static char* from16b(char* res_array, uint16_t res, int i);
++        static char* from8b(char* res_array, uint8_t res, int i);
++
+     public:
+         /* Initializers */
+         SocketIPC();
+-- 
+2.25.4
+
+
+From 0b72941acad704e5c123d064bd39e7ae716e1c0b Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Mon, 10 Aug 2020 16:43:54 +0200
+Subject: [PATCH 13/19] copyright header + bugfix, next on the list is passing
+ the state of SysCore to SocketIPC
+
+---
+ pcsx2/IPC.cpp                  | 16 +++++++++++++++-
+ pcsx2/IPC.h                    | 18 ++++++++++++++++++
+ pcsx2/System/SysCoreThread.cpp |  1 -
+ 3 files changed, 33 insertions(+), 2 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 013bf1764..f2ec3030f 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -1,3 +1,17 @@
++/*  PCSX2 - PS2 Emulator for PCs
++ *  Copyright (C) 2002-2020  PCSX2 Dev Team
++ *
++ *  PCSX2 is free software: you can redistribute it and/or modify it under the terms
++ *  of the GNU Lesser General Public License as published by the Free Software Found-
++ *  ation, either version 3 of the License, or (at your option) any later version.
++ *
++ *  PCSX2 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
++ *  PURPOSE.  See the GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License along with PCSX2.
++ *  If not, see <http://www.gnu.org/licenses/>.
++ */
+ 
+ #include "PrecompiledHeader.h"
+ 
+@@ -201,7 +215,7 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 u32 res;
+                 try{ res = memRead32(a);}
+                 catch (...) { goto error; }
+-                rval = std::make_pair(5, from64b(MakeOkIPC(5), res, 1));
++                rval = std::make_pair(5, from32b(MakeOkIPC(5), res, 1));
+                 break;
+         }
+         case MsgRead64: {
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index 35ca147ae..c5e4231a8 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -1,3 +1,21 @@
++/*  PCSX2 - PS2 Emulator for PCs
++ *  Copyright (C) 2002-2020  PCSX2 Dev Team
++ *
++ *  PCSX2 is free software: you can redistribute it and/or modify it under the terms
++ *  of the GNU Lesser General Public License as published by the Free Software Found-
++ *  ation, either version 3 of the License, or (at your option) any later version.
++ *
++ *  PCSX2 is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
++ *  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
++ *  PURPOSE.  See the GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License along with PCSX2.
++ *  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++/* Client code example for interfacing with the IPC interface is available 
++ * here: https://code.govanify.com/govanify/pcsx2_ipc/ */
++
+ /* Formatting utilities to get a uint from a char* */
+ #define to64b(arr) (((uint64_t)(((uint8_t*)(arr))[7]) << 0) +  \
+         ((uint64_t)(((uint8_t*)(arr))[6]) << 8) +  \
+diff --git a/pcsx2/System/SysCoreThread.cpp b/pcsx2/System/SysCoreThread.cpp
+index cd509eb80..7f8341768 100644
+--- a/pcsx2/System/SysCoreThread.cpp
++++ b/pcsx2/System/SysCoreThread.cpp
+@@ -51,7 +51,6 @@ SysCoreThread::SysCoreThread()
+ 	m_resetVirtualMachine	= true;
+ 
+ 	m_hasActiveMachine		= false;
+-
+ }
+ 
+ SysCoreThread::~SysCoreThread()
+-- 
+2.25.4
+
+
+From 91e7055509057c6c0480e39389e8eede9fc58aa1 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Mon, 10 Aug 2020 18:37:32 +0200
+Subject: [PATCH 14/19] safety checks in place and handle to main vm integrated
+
+---
+ pcsx2/IPC.cpp                  | 48 ++++++++++++++++++++--------------
+ pcsx2/IPC.h                    | 12 ++++++---
+ pcsx2/System/SysCoreThread.cpp |  3 +++
+ pcsx2/System/SysThreads.h      |  5 ++--
+ 4 files changed, 42 insertions(+), 26 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index f2ec3030f..7c29b5261 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -29,12 +29,10 @@
+ 
+ #include "Common.h"
+ #include "Memory.h"
++#include "System/SysThreads.h"
+ #include "IPC.h"
+ 
+-// TODO: try-catch blocks do not avoid asserts/crash on linux when vm is
+-// inactive, fix that!!
+-
+-SocketIPC::SocketIPC() : pxThread("IPC_Socket") {
++SocketIPC::SocketIPC(SysCoreThread *vm) : pxThread("IPC_Socket") {
+ #ifdef _WIN32
+         WSADATA wsa;
+         SOCKET new_socket;
+@@ -87,6 +85,8 @@ SocketIPC::SocketIPC() : pxThread("IPC_Socket") {
+         // maximum queue of 100 commands before refusing
+         listen(m_sock, 100);
+ 
++        m_vm = vm;
++
+         // we start the thread
+         Start();
+ }
+@@ -199,53 +199,61 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+     switch (opcode) {
+         case MsgRead8: {
+                 u8 res;
+-                try{ res = memRead8(a);}
+-                catch (...) { goto error; }
++                if(m_vm->HasActiveMachine() == true) {
++                    res = memRead8(a);
++                } else { goto error; }
+                 rval = std::make_pair(2, from8b(MakeOkIPC(2), res, 1));
+                 break;
+         }
+         case MsgRead16: {
+                 u16 res;
+-                try{ res = memRead16(a);}
+-                catch (...) { goto error; }
++                if(m_vm->HasActiveMachine() == true) {
++                    res = memRead16(a);
++                } else { goto error; }
+                 rval = std::make_pair(3, from16b(MakeOkIPC(3), res, 1));
+                 break;
+         }
+         case MsgRead32: {
+                 u32 res;
+-                try{ res = memRead32(a);}
+-                catch (...) { goto error; }
++                if(m_vm->HasActiveMachine() == true) {
++                    res = memRead32(a);
++                } else { goto error; }
+                 rval = std::make_pair(5, from32b(MakeOkIPC(5), res, 1));
+                 break;
+         }
+         case MsgRead64: {
+                 u64 res;
+-                try{ memRead64(a, &res);}
+-                catch (...) { goto error; }
++                if(m_vm->HasActiveMachine() == true) {
++                    memRead64(a, &res);
++                } else { goto error; }
+                 rval = std::make_pair(9, from64b(MakeOkIPC(9), res, 1));
+                 break;
+         }
+         case MsgWrite8: {
+-                try{memWrite8(a, to8b(&buf[5]));}
+-                catch (...) { goto error; }
++                if(m_vm->HasActiveMachine() == true) {
++                    memWrite8(a, to8b(&buf[5]));
++                } else { goto error; }
+                 rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+         }
+         case MsgWrite16: {
+-                try{memWrite16(a, to16b(&buf[5]));}
+-                catch (...) { goto error; }
++                if(m_vm->HasActiveMachine() == true) {
++                    memWrite16(a, to16b(&buf[5]));
++                } else { goto error; }
+                 rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+         }
+         case MsgWrite32: {
+-                try{memWrite32(a, to32b(&buf[5]));}
+-                catch (...) { goto error; }
++                if(m_vm->HasActiveMachine() == true) {
++                    memWrite32(a, to32b(&buf[5]));
++                } else { goto error; }
+                 rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+         }
+         case MsgWrite64: {
+-                try{memWrite64(a, to64b(&buf[5]));}
+-                catch (...) { goto error; }
++                if(m_vm->HasActiveMachine() == true) {
++                    memWrite64(a, to64b(&buf[5]));
++                } else { goto error; }
+                 rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+         }
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index c5e4231a8..0b5f02191 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -16,6 +16,8 @@
+ /* Client code example for interfacing with the IPC interface is available 
+  * here: https://code.govanify.com/govanify/pcsx2_ipc/ */
+ 
++#pragma once
++
+ /* Formatting utilities to get a uint from a char* */
+ #define to64b(arr) (((uint64_t)(((uint8_t*)(arr))[7]) << 0) +  \
+         ((uint64_t)(((uint8_t*)(arr))[6]) << 8) +  \
+@@ -36,14 +38,13 @@
+ 
+ #define to8b(arr) (((uint8_t)(((uint8_t*)(arr))[0]) << 0))
+ 
+-
+ #include "Utilities/PersistentThread.h"
++#include "System/SysThreads.h"
+ 
+ using namespace Threading;
+ 
+ class SocketIPC : public pxThread {
+ 
+-
+ 	typedef pxThread _parent;
+ 
+     protected:
+@@ -77,11 +78,14 @@ class SocketIPC : public pxThread {
+             MsgWrite64 = 7
+         };
+ 
++        // possible result codes
+         enum IPCResult {
+             IPC_OK = 0,
+             IPC_FAIL = 0xFF
+         };
+ 
++        // handle to the main vm thread
++        SysCoreThread * m_vm;
+ 
+         /* Thread used to relay IPC commands. */
+         void ExecuteTaskInThread();
+@@ -90,7 +94,7 @@ class SocketIPC : public pxThread {
+          * buf: buffer containing the IPC command.
+          * return value: pair containing a buffer with the result 
+          *               of the command and its size. */
+-        static std::pair<int, char*> ParseCommand(char* buf);
++        std::pair<int, char*> ParseCommand(char* buf);
+ 
+         /* Formats an IPC buffer
+          * size: size of the array to allocate
+@@ -111,7 +115,7 @@ class SocketIPC : public pxThread {
+ 
+     public:
+         /* Initializers */
+-        SocketIPC();
++        SocketIPC(SysCoreThread *vm);
+         virtual ~SocketIPC();
+ 
+ }; // class SocketIPC
+diff --git a/pcsx2/System/SysCoreThread.cpp b/pcsx2/System/SysCoreThread.cpp
+index 7f8341768..930619357 100644
+--- a/pcsx2/System/SysCoreThread.cpp
++++ b/pcsx2/System/SysCoreThread.cpp
+@@ -24,6 +24,7 @@
+ #include "Patch.h"
+ #include "SysThreads.h"
+ #include "MTVU.h"
++#include "IPC.h"
+ 
+ #include "../DebugTools/MIPSAnalyst.h"
+ #include "../DebugTools/SymbolMap.h"
+@@ -51,6 +52,8 @@ SysCoreThread::SysCoreThread()
+ 	m_resetVirtualMachine	= true;
+ 
+ 	m_hasActiveMachine		= false;
++
++    m_socketIpc = std::make_unique<SocketIPC>(this);
+ }
+ 
+ SysCoreThread::~SysCoreThread()
+diff --git a/pcsx2/System/SysThreads.h b/pcsx2/System/SysThreads.h
+index 552d133cd..5b4c7f90f 100644
+--- a/pcsx2/System/SysThreads.h
++++ b/pcsx2/System/SysThreads.h
+@@ -19,7 +19,7 @@
+ 
+ #include "Utilities/PersistentThread.h"
+ #include "x86emitter/tools.h"
+-#include "../IPC.h"
++#include "IPC.h"
+ 
+ 
+ using namespace Threading;
+@@ -172,7 +172,8 @@ protected:
+ 	bool			m_resetVirtualMachine;
+ 
+     // Stores the state of the socket IPC thread.
+-    SocketIPC       m_socketIpc;
++    std::unique_ptr<SocketIPC> m_socketIpc;
++
+ 
+ 	// Indicates if the system has an active virtual machine state.  Pretty much always
+ 	// true anytime between plugins being initialized and plugins being shutdown.  Gets
+-- 
+2.25.4
+
+
+From dd86832d46916954c85524e5b74f7ea736e9e968 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Mon, 10 Aug 2020 20:55:23 +0200
+Subject: [PATCH 15/19] TMP goodness
+
+---
+ pcsx2/IPC.cpp | 37 ++++---------------------------------
+ pcsx2/IPC.h   | 11 +++++++----
+ 2 files changed, 11 insertions(+), 37 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 7c29b5261..768a892cc 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -150,36 +150,7 @@ char* SocketIPC::MakeFailIPC(int size) {
+     return res_array;
+ }
+ 
+-char* SocketIPC::from64b(char* res_array, uint64_t res, int i) {
+-    res_array[i+0] = (unsigned char)(res >> 56) & 0xff;
+-    res_array[i+1] = (unsigned char)(res >> 48) & 0xff;
+-    res_array[i+2] = (unsigned char)(res >> 40) & 0xff;
+-    res_array[i+3] = (unsigned char)(res >> 32) & 0xff;
+-    res_array[i+4] = (unsigned char)(res >> 24) & 0xff;
+-    res_array[i+5] = (unsigned char)(res >> 16) & 0xff;
+-    res_array[i+6] = (unsigned char)(res >> 8) & 0xff;
+-    res_array[i+7] = (unsigned char)res;
+-    return res_array;
+-}
+-
+-char* SocketIPC::from32b(char* res_array, uint32_t res, int i) {
+-    res_array[i+0] = (unsigned char)(res >> 24) & 0xff;
+-    res_array[i+1] = (unsigned char)(res >> 16) & 0xff;
+-    res_array[i+2] = (unsigned char)(res >> 8) & 0xff;
+-    res_array[i+3] = (unsigned char)res;
+-    return res_array;
+-}
+ 
+-char* SocketIPC::from16b(char* res_array, uint16_t res, int i) {
+-    res_array[i+0] = (unsigned char)(res >> 8) & 0xff;
+-    res_array[i+1] = (unsigned char)res;
+-    return res_array;
+-}
+-
+-char* SocketIPC::from8b(char* res_array, uint8_t res, int i) {
+-    res_array[i+0] = (unsigned char)res;
+-    return res_array;
+-}
+ 
+ 
+ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+@@ -202,7 +173,7 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 if(m_vm->HasActiveMachine() == true) {
+                     res = memRead8(a);
+                 } else { goto error; }
+-                rval = std::make_pair(2, from8b(MakeOkIPC(2), res, 1));
++                rval = std::make_pair(2, FromArray(MakeOkIPC(2), res, 1));
+                 break;
+         }
+         case MsgRead16: {
+@@ -210,7 +181,7 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 if(m_vm->HasActiveMachine() == true) {
+                     res = memRead16(a);
+                 } else { goto error; }
+-                rval = std::make_pair(3, from16b(MakeOkIPC(3), res, 1));
++                rval = std::make_pair(3, FromArray(MakeOkIPC(3), res, 1));
+                 break;
+         }
+         case MsgRead32: {
+@@ -218,7 +189,7 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 if(m_vm->HasActiveMachine() == true) {
+                     res = memRead32(a);
+                 } else { goto error; }
+-                rval = std::make_pair(5, from32b(MakeOkIPC(5), res, 1));
++                rval = std::make_pair(5, FromArray(MakeOkIPC(5), res, 1));
+                 break;
+         }
+         case MsgRead64: {
+@@ -226,7 +197,7 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 if(m_vm->HasActiveMachine() == true) {
+                     memRead64(a, &res);
+                 } else { goto error; }
+-                rval = std::make_pair(9, from64b(MakeOkIPC(9), res, 1));
++                rval = std::make_pair(9, FromArray(MakeOkIPC(9), res, 1));
+                 break;
+         }
+         case MsgWrite8: {
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index 0b5f02191..abcebb8e6 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -108,10 +108,13 @@ class SocketIPC : public pxThread {
+          * res: the value to convert
+          * i: when to insert it into the array 
+          * return value: res_array */
+-        static char* from64b(char* res_array, uint64_t res, int i);
+-        static char* from32b(char* res_array, uint32_t res, int i);
+-        static char* from16b(char* res_array, uint16_t res, int i);
+-        static char* from8b(char* res_array, uint8_t res, int i);
++        template <typename T>
++        static char* FromArray(char* res_array, T res, int i) {
++           for(int y=sizeof(T); y > 0; y--) {
++               res_array[i-(y-sizeof(T))] = (unsigned char)(res >> ((y-1)*8)) & 0xff;
++           }
++           return res_array;
++        }
+ 
+     public:
+         /* Initializers */
+-- 
+2.25.4
+
+
+From a4842e7e690acf15e4461592857cd37f02cb3c9f Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Mon, 10 Aug 2020 21:11:20 +0200
+Subject: [PATCH 16/19] pre merge cleanup
+
+---
+ pcsx2/CMakeLists.txt           | 4 ++--
+ pcsx2/IPC.cpp                  | 8 ++------
+ pcsx2/IPC.h                    | 2 +-
+ pcsx2/System/SysCoreThread.cpp | 3 +--
+ pcsx2/System/SysThreads.h      | 5 ++---
+ 5 files changed, 8 insertions(+), 14 deletions(-)
+
+diff --git a/pcsx2/CMakeLists.txt b/pcsx2/CMakeLists.txt
+index 46e9f48fa..0b0ec26bb 100644
+--- a/pcsx2/CMakeLists.txt
++++ b/pcsx2/CMakeLists.txt
+@@ -75,7 +75,7 @@ set(pcsx2Sources
+ 	IopIrq.cpp
+ 	IopMem.cpp
+ 	IopSio2.cpp
+-    IPC.cpp
++	IPC.cpp
+ 	Mdec.cpp
+ 	Memory.cpp
+ 	MMI.cpp
+@@ -148,7 +148,7 @@ set(pcsx2Headers
+ 	IopHw.h
+ 	IopMem.h
+ 	IopSio2.h
+-    IPC.h
++	IPC.h
+ 	Mdec.h
+ 	MTVU.h
+ 	Memory.h
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 768a892cc..ff56c80c8 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -45,13 +45,11 @@ SocketIPC::SocketIPC(SysCoreThread *vm) : pxThread("IPC_Socket") {
+             return;
+         }
+ 
+-        //Create a socket
+         if ((m_sock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+             Console.WriteLn(Color_Red, "IPC: Cannot open socket! Shutting down...");
+             return;
+         }
+ 
+-        //Prepare the sockaddr_in structure
+         server.sin_family = AF_INET;
+         // localhost only
+         server.sin_addr.s_addr = inet_addr("127.0.0.1");
+@@ -84,7 +82,8 @@ SocketIPC::SocketIPC(SysCoreThread *vm) : pxThread("IPC_Socket") {
+ 
+         // maximum queue of 100 commands before refusing
+         listen(m_sock, 100);
+-
++        
++        // we save an handle to the main vm object
+         m_vm = vm;
+ 
+         // we start the thread
+@@ -150,9 +149,6 @@ char* SocketIPC::MakeFailIPC(int size) {
+     return res_array;
+ }
+ 
+-
+-
+-
+ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+     //         IPC Message event (1 byte)
+     //         |  Memory address (4 byte)
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index abcebb8e6..6cc5863e0 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -51,7 +51,7 @@ class SocketIPC : public pxThread {
+ 
+ #ifdef _WIN32
+         // windows claim to have support for AF_UNIX sockets but that is a blatant lie, 
+-        //their SDK won't even run their own examples, so we go on TCP sockets.
++        // their SDK won't even run their own examples, so we go on TCP sockets.
+ #define PORT 28011
+ #else
+         // absolute path of the socket. Stored in the temporary directory in linux since
+diff --git a/pcsx2/System/SysCoreThread.cpp b/pcsx2/System/SysCoreThread.cpp
+index 930619357..bed5424d7 100644
+--- a/pcsx2/System/SysCoreThread.cpp
++++ b/pcsx2/System/SysCoreThread.cpp
+@@ -53,7 +53,7 @@ SysCoreThread::SysCoreThread()
+ 
+ 	m_hasActiveMachine		= false;
+ 
+-    m_socketIpc = std::make_unique<SocketIPC>(this);
++	m_socketIpc = std::make_unique<SocketIPC>(this);
+ }
+ 
+ SysCoreThread::~SysCoreThread()
+@@ -179,7 +179,6 @@ void SysCoreThread::_reset_stuff_as_needed()
+ 	// because of changes to the TLB.  We don't actually support the TLB, however, so rec
+ 	// resets aren't in fact *needed* ... yet.  But might as well, no harm.  --air
+ 
+-
+ 	GetVmMemory().CommitAll();
+ 
+ 	if( m_resetVirtualMachine || m_resetRecompilers || m_resetProfilers )
+diff --git a/pcsx2/System/SysThreads.h b/pcsx2/System/SysThreads.h
+index 5b4c7f90f..e9c79a2b6 100644
+--- a/pcsx2/System/SysThreads.h
++++ b/pcsx2/System/SysThreads.h
+@@ -171,9 +171,8 @@ protected:
+ 	bool			m_resetVsyncTimers;
+ 	bool			m_resetVirtualMachine;
+ 
+-    // Stores the state of the socket IPC thread.
+-    std::unique_ptr<SocketIPC> m_socketIpc;
+-
++	// Stores the state of the socket IPC thread.
++	std::unique_ptr<SocketIPC> m_socketIpc;
+ 
+ 	// Indicates if the system has an active virtual machine state.  Pretty much always
+ 	// true anytime between plugins being initialized and plugins being shutdown.  Gets
+-- 
+2.25.4
+
+
+From f62ede2c6e00f53e227c33bf4038af733a0a1563 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Mon, 10 Aug 2020 22:05:13 +0200
+Subject: [PATCH 17/19] more template fun
+
+---
+ pcsx2/IPC.cpp | 21 ++++++++++-----------
+ pcsx2/IPC.h   | 35 ++++++++++++++---------------------
+ 2 files changed, 24 insertions(+), 32 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index ff56c80c8..f51bcdbce 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -83,7 +83,7 @@ SocketIPC::SocketIPC(SysCoreThread *vm) : pxThread("IPC_Socket") {
+         // maximum queue of 100 commands before refusing
+         listen(m_sock, 100);
+         
+-        // we save an handle to the main vm object
++        // we save a handle of the main vm object
+         m_vm = vm;
+ 
+         // we start the thread
+@@ -142,7 +142,6 @@ char* SocketIPC::MakeOkIPC(int size) {
+     return res_array;
+ }
+ 
+-
+ char* SocketIPC::MakeFailIPC(int size) {
+     char* res_array = (char*)malloc(size * sizeof(char));
+     res_array[0] = (unsigned char) IPC_FAIL;
+@@ -161,7 +160,7 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+     // reply: XX ZZ ZZ ZZ ZZ
+     IPCCommand opcode = (IPCCommand)buf[0];
+     // YY YY YY YY from schema above
+-    u32 a = to32b(&buf[1]);
++    u32 a = FromArray<u32>(buf, 1);
+     std::pair<int, char*> rval;
+     switch (opcode) {
+         case MsgRead8: {
+@@ -169,7 +168,7 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 if(m_vm->HasActiveMachine() == true) {
+                     res = memRead8(a);
+                 } else { goto error; }
+-                rval = std::make_pair(2, FromArray(MakeOkIPC(2), res, 1));
++                rval = std::make_pair(2, ToArray(MakeOkIPC(2), res, 1));
+                 break;
+         }
+         case MsgRead16: {
+@@ -177,7 +176,7 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 if(m_vm->HasActiveMachine() == true) {
+                     res = memRead16(a);
+                 } else { goto error; }
+-                rval = std::make_pair(3, FromArray(MakeOkIPC(3), res, 1));
++                rval = std::make_pair(3, ToArray(MakeOkIPC(3), res, 1));
+                 break;
+         }
+         case MsgRead32: {
+@@ -185,7 +184,7 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 if(m_vm->HasActiveMachine() == true) {
+                     res = memRead32(a);
+                 } else { goto error; }
+-                rval = std::make_pair(5, FromArray(MakeOkIPC(5), res, 1));
++                rval = std::make_pair(5, ToArray(MakeOkIPC(5), res, 1));
+                 break;
+         }
+         case MsgRead64: {
+@@ -193,33 +192,33 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf) {
+                 if(m_vm->HasActiveMachine() == true) {
+                     memRead64(a, &res);
+                 } else { goto error; }
+-                rval = std::make_pair(9, FromArray(MakeOkIPC(9), res, 1));
++                rval = std::make_pair(9, ToArray(MakeOkIPC(9), res, 1));
+                 break;
+         }
+         case MsgWrite8: {
+                 if(m_vm->HasActiveMachine() == true) {
+-                    memWrite8(a, to8b(&buf[5]));
++                    memWrite8(a, FromArray<u8>(buf, 5));
+                 } else { goto error; }
+                 rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+         }
+         case MsgWrite16: {
+                 if(m_vm->HasActiveMachine() == true) {
+-                    memWrite16(a, to16b(&buf[5]));
++                    memWrite16(a, FromArray<u16>(buf, 5));
+                 } else { goto error; }
+                 rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+         }
+         case MsgWrite32: {
+                 if(m_vm->HasActiveMachine() == true) {
+-                    memWrite32(a, to32b(&buf[5]));
++                    memWrite32(a, FromArray<u32>(buf, 5));
+                 } else { goto error; }
+                 rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+         }
+         case MsgWrite64: {
+                 if(m_vm->HasActiveMachine() == true) {
+-                    memWrite64(a, to64b(&buf[5]));
++                    memWrite64(a, FromArray<u64>(buf, 5));
+                 } else { goto error; }
+                 rval = std::make_pair(1, MakeOkIPC(1));
+                 break;
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index 6cc5863e0..f37aa65d4 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -18,26 +18,6 @@
+ 
+ #pragma once
+ 
+-/* Formatting utilities to get a uint from a char* */
+-#define to64b(arr) (((uint64_t)(((uint8_t*)(arr))[7]) << 0) +  \
+-        ((uint64_t)(((uint8_t*)(arr))[6]) << 8) +  \
+-        ((uint64_t)(((uint8_t*)(arr))[5]) << 16) + \
+-        ((uint64_t)(((uint8_t*)(arr))[4]) << 24) + \
+-        ((uint64_t)(((uint8_t*)(arr))[3]) << 32) + \
+-        ((uint64_t)(((uint8_t*)(arr))[2]) << 40) + \
+-        ((uint64_t)(((uint8_t*)(arr))[1]) << 48) + \
+-        ((uint64_t)(((uint8_t*)(arr))[0]) << 56))
+-
+-#define to32b(arr) (((uint32_t)(((uint8_t*)(arr))[3]) << 0) +  \
+-        ((uint32_t)(((uint8_t*)(arr))[2]) << 8) +  \
+-        ((uint32_t)(((uint8_t*)(arr))[1]) << 16) + \
+-        ((uint32_t)(((uint8_t*)(arr))[0]) << 24))
+-
+-#define to16b(arr) (((uint16_t)(((uint8_t*)(arr))[1]) << 0) + \
+-        ((uint16_t)(((uint8_t*)(arr))[0]) << 8))
+-
+-#define to8b(arr) (((uint8_t)(((uint8_t*)(arr))[0]) << 0))
+-
+ #include "Utilities/PersistentThread.h"
+ #include "System/SysThreads.h"
+ 
+@@ -109,13 +89,26 @@ class SocketIPC : public pxThread {
+          * i: when to insert it into the array 
+          * return value: res_array */
+         template <typename T>
+-        static char* FromArray(char* res_array, T res, int i) {
++        static char* ToArray(char* res_array, T res, int i) {
+            for(int y=sizeof(T); y > 0; y--) {
+                res_array[i-(y-sizeof(T))] = (unsigned char)(res >> ((y-1)*8)) & 0xff;
+            }
+            return res_array;
+         }
+ 
++        /* Converts a char* to an uint in little endian 
++         * arr: the array to convert
++         * i: when to load it from the array 
++         * return value: the converted value */
++        template <typename T>
++        static T FromArray(char* arr, int i) {
++            T res = 0;
++            for(int y=sizeof(T); y > 0; y--) {
++                res += (((T)(((uint8_t*)(arr))[i-(y-sizeof(T))]) << ((y-1)*8)));
++            }
++            return res;
++        }
++
+     public:
+         /* Initializers */
+         SocketIPC(SysCoreThread *vm);
+-- 
+2.25.4
+
+
+From 7b593fc9dc8482c750d2327738c1eec0369b1411 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Mon, 10 Aug 2020 22:29:56 +0200
+Subject: [PATCH 18/19] new menu option, next step: find out how to link it to
+ SysCoreThread
+
+---
+ pcsx2/Config.h               | 1 +
+ pcsx2/Pcsx2Config.cpp        | 1 +
+ pcsx2/gui/App.h              | 1 +
+ pcsx2/gui/MainFrame.cpp      | 5 +++++
+ pcsx2/gui/MainFrame.h        | 1 +
+ pcsx2/gui/MainMenuClicks.cpp | 7 +++++++
+ 6 files changed, 16 insertions(+)
+
+diff --git a/pcsx2/Config.h b/pcsx2/Config.h
+index 614947b96..ffc6e133d 100644
+--- a/pcsx2/Config.h
++++ b/pcsx2/Config.h
+@@ -453,6 +453,7 @@ struct Pcsx2Config
+ 			CdvdShareWrite		:1,		// allows the iso to be modified while it's loaded
+ 			EnablePatches		:1,		// enables patch detection and application
+ 			EnableCheats		:1,		// enables cheat detection and application
++			EnableIPC		    :1,		// enables inter-process communication 
+ 			EnableWideScreenPatches		:1,
+ #ifndef DISABLE_RECORDING
+ 			EnableRecordingTools :1,
+diff --git a/pcsx2/Pcsx2Config.cpp b/pcsx2/Pcsx2Config.cpp
+index a30941aaf..3db8727f5 100644
+--- a/pcsx2/Pcsx2Config.cpp
++++ b/pcsx2/Pcsx2Config.cpp
+@@ -432,6 +432,7 @@ void Pcsx2Config::LoadSave( IniInterface& ini )
+ 	IniBitBool( CdvdShareWrite );
+ 	IniBitBool( EnablePatches );
+ 	IniBitBool( EnableCheats );
++	IniBitBool( EnableIPC );
+ 	IniBitBool( EnableWideScreenPatches );
+ #ifndef DISABLE_RECORDING
+ 	IniBitBool( EnableRecordingTools );
+diff --git a/pcsx2/gui/App.h b/pcsx2/gui/App.h
+index 4348c5e24..8d001a062 100644
+--- a/pcsx2/gui/App.h
++++ b/pcsx2/gui/App.h
+@@ -119,6 +119,7 @@ enum MenuIdentifiers
+ 	MenuId_EnableBackupStates,	// Checkbox to enable/disables savestates backup
+ 	MenuId_EnablePatches,
+ 	MenuId_EnableCheats,
++	MenuId_EnableIPC,
+ 	MenuId_EnableWideScreenPatches,
+ 	MenuId_EnableRecordingTools,
+ 	MenuId_EnableLuaTools,
+diff --git a/pcsx2/gui/MainFrame.cpp b/pcsx2/gui/MainFrame.cpp
+index f89a2e7b7..0c2f08427 100644
+--- a/pcsx2/gui/MainFrame.cpp
++++ b/pcsx2/gui/MainFrame.cpp
+@@ -201,6 +201,7 @@ void MainEmuFrame::ConnectMenus()
+ 
+ 	Bind(wxEVT_MENU, &MainEmuFrame::Menu_EnablePatches_Click, this, MenuId_EnablePatches);
+ 	Bind(wxEVT_MENU, &MainEmuFrame::Menu_EnableCheats_Click, this, MenuId_EnableCheats);
++	Bind(wxEVT_MENU, &MainEmuFrame::Menu_EnableIPC_Click, this, MenuId_EnableIPC);
+ 	Bind(wxEVT_MENU, &MainEmuFrame::Menu_EnableWideScreenPatches_Click, this, MenuId_EnableWideScreenPatches);
+ #ifndef DISABLE_RECORDING
+ 	Bind(wxEVT_MENU, &MainEmuFrame::Menu_EnableRecordingTools_Click, this, MenuId_EnableRecordingTools);
+@@ -466,6 +467,9 @@ MainEmuFrame::MainEmuFrame(wxWindow* parent, const wxString& title)
+ 	m_menuSys.Append(MenuId_EnableCheats,	_("Enable &Cheats"),
+ 		wxEmptyString, wxITEM_CHECK);
+ 
++	m_menuSys.Append(MenuId_EnableIPC,	_("Enable &IPC"),
++		wxEmptyString, wxITEM_CHECK);
++
+ 	m_menuSys.Append(MenuId_EnableWideScreenPatches,	_("Enable &Widescreen Patches"),
+ 		_("Enabling Widescreen Patches may occasionally cause issues."), wxITEM_CHECK);
+ 
+@@ -746,6 +750,7 @@ void MainEmuFrame::ApplyConfigToGui(AppConfig& configToApply, int flags)
+ 	{//these should not be affected by presets
+ 		menubar.Check( MenuId_EnableBackupStates, configToApply.EmuOptions.BackupSavestate );
+ 		menubar.Check( MenuId_EnableCheats,  configToApply.EmuOptions.EnableCheats );
++		menubar.Check( MenuId_EnableIPC,  configToApply.EmuOptions.EnableIPC );
+ 		menubar.Check( MenuId_EnableWideScreenPatches,  configToApply.EmuOptions.EnableWideScreenPatches );
+ #ifndef DISABLE_RECORDING
+ 		menubar.Check(MenuId_EnableRecordingTools, configToApply.EmuOptions.EnableRecordingTools);
+diff --git a/pcsx2/gui/MainFrame.h b/pcsx2/gui/MainFrame.h
+index 557058624..2b13a2a93 100644
+--- a/pcsx2/gui/MainFrame.h
++++ b/pcsx2/gui/MainFrame.h
+@@ -181,6 +181,7 @@ protected:
+ 	void Menu_EnableBackupStates_Click(wxCommandEvent &event);
+ 	void Menu_EnablePatches_Click(wxCommandEvent &event);
+ 	void Menu_EnableCheats_Click(wxCommandEvent &event);
++	void Menu_EnableIPC_Click(wxCommandEvent &event);
+ 	void Menu_EnableWideScreenPatches_Click(wxCommandEvent &event);
+ #ifndef DISABLE_RECORDING
+ 	void Menu_EnableRecordingTools_Click(wxCommandEvent &event);
+diff --git a/pcsx2/gui/MainMenuClicks.cpp b/pcsx2/gui/MainMenuClicks.cpp
+index e8161a666..52f7be094 100644
+--- a/pcsx2/gui/MainMenuClicks.cpp
++++ b/pcsx2/gui/MainMenuClicks.cpp
+@@ -487,6 +487,13 @@ void MainEmuFrame::Menu_EnableCheats_Click( wxCommandEvent& )
+ 	AppSaveSettings();
+ }
+ 
++void MainEmuFrame::Menu_EnableIPC_Click( wxCommandEvent& )
++{
++	g_Conf->EmuOptions.EnableIPC  = GetMenuBar()->IsChecked( MenuId_EnableIPC );
++	AppApplySettings();
++	AppSaveSettings();
++}
++
+ void MainEmuFrame::Menu_EnableWideScreenPatches_Click( wxCommandEvent& )
+ {
+ 	g_Conf->EmuOptions.EnableWideScreenPatches  = GetMenuBar()->IsChecked( MenuId_EnableWideScreenPatches );
+-- 
+2.25.4
+
+
+From 65ed90d296cf9a328cbabff9e72f72fb9596993e Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Mon, 10 Aug 2020 23:22:33 +0200
+Subject: [PATCH 19/19] the setting is done
+
+---
+ pcsx2/System/SysCoreThread.cpp | 6 ++++--
+ pcsx2/System/SysThreads.h      | 7 +++++++
+ 2 files changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/pcsx2/System/SysCoreThread.cpp b/pcsx2/System/SysCoreThread.cpp
+index bed5424d7..3a78e5828 100644
+--- a/pcsx2/System/SysCoreThread.cpp
++++ b/pcsx2/System/SysCoreThread.cpp
+@@ -52,8 +52,6 @@ SysCoreThread::SysCoreThread()
+ 	m_resetVirtualMachine	= true;
+ 
+ 	m_hasActiveMachine		= false;
+-
+-	m_socketIpc = std::make_unique<SocketIPC>(this);
+ }
+ 
+ SysCoreThread::~SysCoreThread()
+@@ -242,6 +240,10 @@ void SysCoreThread::GameStartingInThread()
+ #ifdef USE_SAVESLOT_UI_UPDATES
+ 	UI_UpdateSysControls();
+ #endif
++    if(EmuConfig.EnableIPC && m_IpcState == OFF){
++	    m_IpcState = ON;
++	    m_socketIpc = std::make_unique<SocketIPC>(this);
++    }
+ }
+ 
+ bool SysCoreThread::StateCheckInThread()
+diff --git a/pcsx2/System/SysThreads.h b/pcsx2/System/SysThreads.h
+index e9c79a2b6..5d000539a 100644
+--- a/pcsx2/System/SysThreads.h
++++ b/pcsx2/System/SysThreads.h
+@@ -174,6 +174,13 @@ protected:
+ 	// Stores the state of the socket IPC thread.
+ 	std::unique_ptr<SocketIPC> m_socketIpc;
+ 
++    // Current state of the IPC thread
++    enum StateIPC {
++        OFF,
++        ON
++    };
++    StateIPC m_IpcState = OFF;
++
+ 	// Indicates if the system has an active virtual machine state.  Pretty much always
+ 	// true anytime between plugins being initialized and plugins being shutdown.  Gets
+ 	// set false when plugins are shutdown, the corethread is canceled, or when an error
 -- 
 2.25.4
 
