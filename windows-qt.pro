@@ -17,6 +17,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         client.cpp
 
+HEADERS += \
+        pcsx2_ipc.h
+
 LIBS += -lws2_32
 
 # Default rules for deployment.
