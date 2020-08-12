@@ -43,14 +43,15 @@
  */
 class PCSX2Ipc {
   protected:
-#ifdef _WIN32
+#if  defined(_WIN32) || defined(DOXYGEN)
     /**
      * TCP socket port.  
      * Used by the IPC on platforms with TCP sockets.  
      * Currently Windows only.
      */
     const uint16_t PORT = 28011;
-#else
+#endif
+#if !defined(_WIN32) || defined(DOXYGEN)
     /**
      * Unix socket name.  
      * The name of the unix socket used on platforms with unix socket support.  
