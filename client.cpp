@@ -5,8 +5,7 @@ void msleep(int sleepMs) {
 #ifdef _WIN32
     Sleep(sleepMs);
 #else
-    usleep(sleepMs *
-           1000); // usleep takes sleep time in us (1 millionth of a second)
+    usleep(sleepMs * 1000); 
 #endif
 }
 

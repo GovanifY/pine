@@ -313,7 +313,6 @@ class PCSX2Ipc {
      * @param value The value to write.
      */
     void Write8(uint32_t address, uint8_t value) {
-        FormatBeginning(6, address, MsgWrite8);
         char *cmd = ToArray(FormatBeginning(6, address, MsgWrite8), value, 5);
         if (SendCommand(std::make_pair(6, cmd),
                         std::make_pair(1, ResArray(1))) < 0)
