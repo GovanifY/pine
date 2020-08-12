@@ -22,3 +22,9 @@ other ideas:
 input
 renderer hooks
 
+
+
+NEXT: OnFrame:
+implementation:
+SysCoreThread: on vsync if IPC then call IpcEvent, sends a blocking socket
+connection each frame to do your thing

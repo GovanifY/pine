@@ -18,7 +18,7 @@
 
 /* Quick HOWTO:
  * The Entire PCSX2IPC API is below, you can find it clearly defined between the
- * command just below me with a bunch of equals and a relatively similar one at
+ * comment just below me with a bunch of equals and a relatively similar one at
  * the end of the class, just search for equals.
  *
  * This API exposes a result value which is assumed to be checked after
