@@ -198,7 +198,7 @@ class PCSX2Ipc {
         uint8_t Read8(uint32_t address) {
             char* res = ResArray(2);
             if (SendCommand(std::make_pair(5,FormatBeginning(5, address, MsgRead8)), std::make_pair(2,res)) < 0) {
-                result = Fail;
+                result = Fail; return 0;
             } else { result = Success; }
             return FromArray<uint8_t>(res, 1);
         }
@@ -209,7 +209,7 @@ class PCSX2Ipc {
         uint16_t Read16(uint32_t address) {
             char* res = ResArray(3);
             if (SendCommand(std::make_pair(5,FormatBeginning(5, address, MsgRead16)), std::make_pair(3,res)) < 0) {
-                result = Fail;
+                result = Fail; return 0;
             } else { result = Success; }
             return FromArray<uint16_t>(res, 1);
         }
@@ -220,7 +220,7 @@ class PCSX2Ipc {
         uint32_t Read32(uint32_t address) {
             char* res = ResArray(5);
             if (SendCommand(std::make_pair(5,FormatBeginning(5, address, MsgRead32)), std::make_pair(5,res)) < 0) {
-                result = Fail;
+                result = Fail; return 0;
             } else { result = Success; }
             return FromArray<uint32_t>(res, 1);
         }
@@ -231,7 +231,7 @@ class PCSX2Ipc {
         uint64_t Read64(uint32_t address) {
             char* res = ResArray(9);
             if (SendCommand(std::make_pair(5,FormatBeginning(5, address, MsgRead64)), std::make_pair(9,res)) < 0) {
-                result = Fail;
+                result = Fail; return 0;
             } else { result = Success; }
             return FromArray<uint64_t>(res, 1);
         }
