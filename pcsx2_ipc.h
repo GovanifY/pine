@@ -8,8 +8,12 @@
 #include <unistd.h>
 
 #ifdef _WIN32
+#define read_portable(a, b, c) (recv(a, b, c, 0))
+#define write_portable(a, b, c) (send(a, b, c, 0))
 #include <windows.h>
 #else
+#define read_portable(a, b, c) (read(a, b, c))
+#define write_portable(a, b, c) (write(a, b, c))
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -159,19 +163,11 @@ class PCSX2Ipc {
 
 #endif
 
-#ifdef _WIN32
-        if (send(sock, command.second, command.first, 0) < 0) {
-#else
-        if (write(sock, command.second, command.first) < 0) {
-#endif
+        if (write_portable(sock, command.second, command.first) < 0) {
             return -1;
         }
 
-#ifdef _WIN32
-        if (recv(sock, ret.second, ret.first, 0) < 0) {
-#else
-        if (read(sock, ret.second, ret.first) < 0) {
-#endif
+        if (read_portable(sock, ret.second, ret.first) < 0) {
             return -1;
         }
         close(sock);
