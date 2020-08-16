@@ -1,4 +1,7 @@
 #include "pcsx2_ipc.h"
+#include <stdio.h>
+#include <ostream>
+#include <iostream>
 
 // a portable sleep function
 void msleep(int sleepMs) {
@@ -18,8 +21,15 @@ void read_background(PCSX2Ipc *ipc) {
 
         // we read a 32 bit value from memory address 0x00347D34
         try {
-            uint32_t value = ipc->Read32(0x00347D34);
-            printf("PCSX2Ipc::Read32(0x00347D34) :  %u\n", value);
+            // those comments are a rough approximation of the latency time of
+            // socket IPC, in µs, if you want this
+
+            //auto t1 = std::chrono::high_resolution_clock::now();
+            uint32_t value = ipc->Read<uint32_t>(0x00347D34);
+            //auto t2 = std::chrono::high_resolution_clock::now();
+            //auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
+            //std::cout << "execution time: " << duration << std::endl;
+            printf("PCSX2Ipc::Read<uint32_t>(0x00347D34) :  %u\n", value);
         } catch (...) {
             // if the operation failed
             printf("ERROR!!!!!\n");
@@ -40,8 +50,8 @@ int main(int argc, char *argv[]) {
     // in this case we wait 5 seconds before writing to our address
     msleep(5000);
     try {
-        ipc->Write8(0x00347D34, 0xFF);
-        printf("PCSX2Ipc::Write8(0x00347D34, 255)\n");
+        ipc->Write<uint8_t>(0x00347D34, 0xFF);
+        printf("PCSX2Ipc::Write(0x00347D34, 255)\n");
     } catch (...) {
         // if the operation failed
         printf("ERROR!!!!!\n");

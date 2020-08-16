@@ -1,2 +1,2 @@
 all:
-	g++ client.cpp -pthread -o client
+	g++ -std=c++17 client.cpp -pthread -o client

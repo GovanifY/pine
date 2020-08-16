@@ -89,6 +89,32 @@ class PCSX2Ipc {
     char* ipc_buffer;
 
     /**
+     * Length of the batch IPC request.  
+     * This is used when chaining multiple IPC commands in one go by using
+     * MsgMultiCommand to store the length of the entire IPC message.  
+     * @see IPCCommand 
+     */
+    int batch_len = 0;
+
+    /**
+     * Length of the reply of the batch IPC request.  
+     * This is used when chaining multiple IPC commands in one go by using
+     * MsgMultiCommand to store the length of the reply of the IPC message.  
+     * @see IPCCommand 
+     */
+    int reply_len = 0;
+
+    /**
+     * Sets the state of the batch command building.  
+     * This is used when chaining multiple IPC commands in one go by using
+     * MsgMultiCommand.  
+     * As we cannot build multiple batch IPC commands at the same time because
+     * of state keeping issues we block the initialization of another batch
+     * request until the other ends.  
+     */
+    bool batch_blocking = false;
+
+    /**
      * IPC Command messages opcodes.  
      * A list of possible operations possible by the IPC.  
      * Each one of them is what we call an "opcode" and is the first
@@ -102,7 +128,8 @@ class PCSX2Ipc {
         MsgWrite8 = 4,  /**< Write 8 bit value to memory. */
         MsgWrite16 = 5, /**< Write 16 bit value to memory. */
         MsgWrite32 = 6, /**< Write 32 bit value to memory. */
-        MsgWrite64 = 7  /**< Write 64 bit value to memory. */
+        MsgWrite64 = 7,  /**< Write 64 bit value to memory. */
+        MsgMultiCommand = 0xFF  /**< Treats multiple IPC commands in batch. */
     };
 
     /**
@@ -229,144 +256,112 @@ class PCSX2Ipc {
         Unknown  /**< Unknown if the command completed successfully or not. */
     };
 
+
     /**
-     * Reads an 8 bit value from PCSX2 game memory.  
+     * Initializes a MsgMultiCommand IPC message.  
+     * @see batch_blocking
+     * @see batch_len
+     * @see reply_len
+     */
+    void InitializeBatch() {
+        //TODO: finish the batch sending protocol
+        while(batch_blocking) { }
+        // TODO: /!\ race condition much?
+        batch_blocking = true;
+        batch_len = 0;
+        reply_len = 0;
+    }
+
+    /**
+     * Reads a value from PCSX2 game memory.  
      * On error throws an IPCStatus.  
      * Format: XX YY YY YY YY  
      * Legend: XX = IPC Tag, YY = Address.  
      * @see IPCCommand
      * @see IPCStatus
      * @param address The address to read.
-     * @return The value read in memory.
+     * @param T Flag to enable batch processing or not.
+     * @return The value read in memory. If in batch mode the IPC message.
      */
-    uint8_t Read8(uint32_t address) {
-        if (SendCommand(
-                std::make_pair(5, FormatBeginning(ipc_buffer, address, MsgRead8)),
-                std::make_pair(2, ret_buffer)) < 0)
-            throw Fail;
-        return FromArray<uint8_t>(ret_buffer, 1);
+    template <typename Y, bool T = false> auto Read(uint32_t address) {
+        // deduce ipc tag
+        IPCCommand tag;
+        switch(sizeof(Y)) {
+            case 1:
+                tag = MsgRead8;
+                break;
+            case 2:
+                tag = MsgRead16;
+                break;
+            case 4:
+                tag = MsgRead32;
+                break;
+            case 8:
+                tag = MsgRead64;
+                break;
+            default:
+                throw Fail;
+        }
+
+        // batch mode
+        if constexpr (T) {
+            char *cmd = FormatBeginning(&ipc_buffer[batch_len], address, tag);
+            batch_len += 5;
+            reply_len += sizeof(Y);
+            return cmd;
+        } else {
+            if (SendCommand(
+                        std::make_pair(5, FormatBeginning(ipc_buffer, address, tag)),
+                        std::make_pair(1 + sizeof(Y), ret_buffer)) < 0)
+                throw Fail;
+            return FromArray<Y>(ret_buffer, 1);
+        }
     }
 
     /**
-     * Reads a 16 bit value from PCSX2 game memory.  
+     * Writes a value to PCSX2 game memory.  
      * On error throws an IPCStatus.  
-     * Format: XX YY YY YY YY  
-     * Legend: XX = IPC Tag, YY = Address.  
-     * @see IPCCommand
-     * @see IPCStatus
-     * @param address The address to read.
-     * @return The value read in memory.
-     */
-    uint16_t Read16(uint32_t address) {
-        if (SendCommand(
-                std::make_pair(5, FormatBeginning(ipc_buffer, address, MsgRead16)),
-                std::make_pair(3, ret_buffer)) < 0)
-            throw Fail;
-        return FromArray<uint16_t>(ret_buffer, 1);
-    }
-
-    /**
-     * Reads a 32 bit value from PCSX2 game memory.  
-     * On error throws an IPCStatus.  
-     * Format: XX YY YY YY YY  
-     * Legend: XX = IPC Tag, YY = Address. 
-     * @see IPCCommand
-     * @see IPCStatus
-     * @param address The address to read.
-     * @return The value read in memory.
-     */
-    uint32_t Read32(uint32_t address) {
-        if (SendCommand(
-                std::make_pair(5, FormatBeginning(ipc_buffer, address, MsgRead32)),
-                std::make_pair(5, ret_buffer)) < 0)
-            throw Fail;
-        return FromArray<uint32_t>(ret_buffer, 1);
-    }
-
-    /**
-     * Reads a 64 bit value from PCSX2 game memory.  
-     * On error throws an IPCStatus.  
-     * Format: XX YY YY YY YY  
-     * Legend: XX = IPC Tag, YY = Address.
-     * @see IPCCommand
-     * @see IPCStatus
-     * @param address The address to read.
-     * @return The value read in memory.
-     */
-    uint64_t Read64(uint32_t address) {
-        if (SendCommand(
-                std::make_pair(5, FormatBeginning(ipc_buffer, address, MsgRead64)),
-                std::make_pair(9, ret_buffer)) < 0)
-            throw Fail;
-        return FromArray<uint64_t>(ret_buffer, 1);
-    }
-
-    /**
-     * Writes an 8 bit value from PCSX2 game memory.  
-     * On error throws an IPCStatus.  
-     * Format: XX YY YY YY YY ZZ  
+     * Format: XX YY YY YY YY (ZZ*??)   
      * Legend: XX = IPC Tag, YY = Address, ZZ = Value.  
      * @see IPCCommand
      * @see IPCStatus
      * @param address The address to write to.
      * @param value The value to write.
+     * @return If in batch mode the IPC message otherwise void.
      */
-    void Write8(uint32_t address, uint8_t value) {
-        char *cmd = ToArray(FormatBeginning(ipc_buffer, address, MsgWrite8), value, 5);
-        if (SendCommand(std::make_pair(6, cmd),
-                        std::make_pair(1, ret_buffer)) < 0)
-            throw Fail;
-    }
+    template <typename Y, bool T = false> auto Write(uint32_t address, Y value) {
+        // deduce ipc tag
+        IPCCommand tag;
+        switch(sizeof(Y)) {
+            case 1:
+                tag = MsgWrite8;
+                break;
+            case 2:
+                tag = MsgWrite16;
+                break;
+            case 4:
+                tag = MsgWrite32;
+                break;
+            case 8:
+                tag = MsgWrite64;
+                break;
+            default:
+                throw Fail;
+        }
 
-    /**
-     * Writes a 16 bit value from PCSX2 game memory.  
-     * On error throws an IPCStatus.  
-     * Format: XX YY YY YY YY ZZ ZZ  
-     * Legend: XX = IPC Tag, YY = Address, ZZ = Value.  
-     * @see IPCCommand
-     * @see IPCStatus
-     * @param address The address to write to.
-     * @param value The value to write.
-     */
-    void Write16(uint32_t address, uint16_t value) {
-        char *cmd = ToArray(FormatBeginning(ipc_buffer, address, MsgWrite16), value, 5);
-        if (SendCommand(std::make_pair(7, cmd),
-                        std::make_pair(1, ret_buffer)) < 0)
-            throw Fail;
-    }
-
-    /**
-     * Writes a 32 bit value from PCSX2 game memory.  
-     * On error throws an IPCStatus.  
-     * Format: XX YY YY YY YY ZZ ZZ ZZ ZZ  
-     * Legend: XX = IPC Tag, YY = Address, ZZ = Value.  
-     * @see IPCCommand
-     * @see IPCStatus
-     * @param address The address to write to.
-     * @param value The value to write.
-     */
-    void Write32(uint32_t address, uint32_t value) {
-        char *cmd = ToArray(FormatBeginning(ipc_buffer, address, MsgWrite32), value, 5);
-        if (SendCommand(std::make_pair(9, cmd),
-                        std::make_pair(1, ret_buffer)) < 0)
-            throw Fail;
-    }
-
-    /**
-     * Writes a 64 bit value from PCSX2 game memory.  
-     * On error throws an IPCStatus.  
-     * Format: XX YY YY YY YY ZZ ZZ ZZ ZZ ZZ ZZ ZZ ZZ  
-     * Legend: XX = IPC Tag, YY = Address, ZZ = Value.
-     * @see IPCCommand
-     * @see IPCStatus
-     * @param address The address to write to.
-     * @param value The value to write.
-     */
-    void Write64(uint32_t address, uint64_t value) {
-        char *cmd = ToArray(FormatBeginning(ipc_buffer, address, MsgWrite64), value, 5);
-        if (SendCommand(std::make_pair(13, cmd),
-                        std::make_pair(1, ret_buffer)) < 0)
-            throw Fail;
+        // batch mode
+        if constexpr (T) {
+            char *cmd = ToArray<Y>(FormatBeginning(&ipc_buffer[batch_len], address, tag), value, 5);
+            batch_len += 5 + sizeof(Y);
+            return cmd;
+        }
+        else {
+            char *cmd = ToArray(FormatBeginning(ipc_buffer, address, tag), value, 5);
+            if (SendCommand(std::make_pair(5 + sizeof(Y), cmd),
+                            std::make_pair(1, ret_buffer)) < 0)
+                throw Fail;
+            return;
+        }
     }
 
     /**
