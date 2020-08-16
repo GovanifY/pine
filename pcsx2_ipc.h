@@ -292,8 +292,6 @@ class PCSX2Ipc {
      * @see arg_cnt
      */
     void InitializeBatch() {
-        // TODO: do not block IPC message building functions when batch is also
-        // locked, would be dumb dot dot dot
         batch_blocking.lock();
         ipc_blocking.lock();
         ipc_buffer[0] = (unsigned char)MsgMultiCommand;
@@ -372,8 +370,6 @@ class PCSX2Ipc {
                 throw Fail;
         }
 
-        std::lock_guard<std::mutex> lock(ipc_blocking);
-
         // batch mode
         if constexpr (T) {
             char *cmd = FormatBeginning(&ipc_buffer[batch_len], address, tag);
@@ -382,6 +378,8 @@ class PCSX2Ipc {
             arg_cnt += 1;
             return cmd;
         } else {
+            // we are already locked in batch mode
+            std::lock_guard<std::mutex> lock(ipc_blocking);
             if (SendCommand(
                         std::make_pair(5, FormatBeginning(ipc_buffer, address, tag)),
                         std::make_pair(1 + sizeof(Y), ret_buffer)) < 0)
@@ -421,8 +419,6 @@ class PCSX2Ipc {
                 throw Fail;
         }
 
-        std::lock_guard<std::mutex> lock(ipc_blocking);
-
         // batch mode
         if constexpr (T) {
             char *cmd = ToArray<Y>(FormatBeginning(&ipc_buffer[batch_len], address, tag), value, 5);
@@ -431,6 +427,8 @@ class PCSX2Ipc {
             return cmd;
         }
         else {
+            // we are already locked in batch mode
+            std::lock_guard<std::mutex> lock(ipc_blocking);
             char *cmd = ToArray(FormatBeginning(ipc_buffer, address, tag), value, 5);
             if (SendCommand(std::make_pair(5 + sizeof(Y), cmd),
                             std::make_pair(1, ret_buffer)) < 0)
@@ -448,14 +446,14 @@ class PCSX2Ipc {
         WSADATA wsa;
         WSAStartup(MAKEWORD(2, 2), &wsa);
 #endif
-	// for the sake of speed we malloc once a return buffer and reuse it by just
-	// cropping its size when needed, it is 450k long which is the size of 50k
-	// MsgWrite64 replies, should be good enough even if we implement batch IPC
-	// processing. Coincidentally 650k is the size of 50k MsgWrite64 REQUESTS so
-	// we just allocate a 1mb buffer in the end, lul
-	ret_buffer = (char*)malloc(450000 * sizeof(char));
-	ipc_buffer = (char*)malloc(650000 * sizeof(char));
-	batch_arg_place = (unsigned int*)malloc(50000 * sizeof(unsigned int));
+        // for the sake of speed we malloc once a return buffer and reuse it by just
+        // cropping its size when needed, it is 450k long which is the size of 50k
+        // MsgWrite64 replies, should be good enough even if we implement batch IPC
+        // processing. Coincidentally 650k is the size of 50k MsgWrite64 REQUESTS so
+        // we just allocate a 1mb buffer in the end, lul
+        ret_buffer = (char*)malloc(450000 * sizeof(char));
+        ipc_buffer = (char*)malloc(650000 * sizeof(char));
+        batch_arg_place = (unsigned int*)malloc(50000 * sizeof(unsigned int));
     }
 
     /**
