@@ -133,6 +133,12 @@ class PCSX2Ipc {
      */
     std::mutex batch_blocking;
 
+    /**
+     * Sets the state of the IPC message building.  
+     * As we cannot build multiple batch IPC commands at the same time because
+     * of state keeping issues we block the initialization of another message 
+     * request until the other ends.  
+     */
     std::mutex ipc_blocking;
 
     /**
@@ -185,6 +191,34 @@ class PCSX2Ipc {
     template <typename T> static T FromArray(char *arr, int i) {
 		return *(T*)(arr + i);
     }
+
+    /**
+     * Formats an IPC buffer.  
+     * Creates a new buffer with IPC opcode set and first address argument
+     * currently used for memory IPC commands.
+     * @param size The size of the array to allocate.
+     * @param address The address to put as an argument of the IPC command.
+     * @param command The IPC message tag(opcode).
+     * @see IPCCommand
+     * @return The IPC buffer.
+     */
+    char *FormatBeginning(char* cmd, uint32_t address, IPCCommand command) {
+        cmd[0] = (unsigned char)command;
+        return ToArray(cmd, address, 1);
+    }
+
+  public:
+    /**
+     * Result code of the IPC operation.  
+     * A list of result codes that should be returned, or thrown, depending
+     * on the state of the result of an IPC command.
+     */
+    enum IPCStatus {
+        Fail,    /**< IPC command failed to execute. */
+        Success, /**< IPC command successfully completed. */
+        Unknown  /**< Unknown if the command completed successfully or not. */
+    };
+
 
     /**
      * Sends an IPC command to PCSX2.  
@@ -251,40 +285,15 @@ class PCSX2Ipc {
     }
 
     /**
-     * Formats an IPC buffer.  
-     * Creates a new buffer with IPC opcode set and first address argument
-     * currently used for memory IPC commands.
-     * @param size The size of the array to allocate.
-     * @param address The address to put as an argument of the IPC command.
-     * @param command The IPC message tag(opcode).
-     * @see IPCCommand
-     * @return The IPC buffer.
-     */
-    char *FormatBeginning(char* cmd, uint32_t address, IPCCommand command) {
-        cmd[0] = (unsigned char)command;
-        return ToArray(cmd, address, 1);
-    }
-
-  public:
-    /**
-     * Result code of the IPC operation.  
-     * A list of result codes that should be returned, or thrown, depending
-     * on the state of the result of an IPC command.
-     */
-    enum IPCStatus {
-        Fail,    /**< IPC command failed to execute. */
-        Success, /**< IPC command successfully completed. */
-        Unknown  /**< Unknown if the command completed successfully or not. */
-    };
-
-
-    /**
      * Initializes a MsgMultiCommand IPC message.  
      * @see batch_blocking
      * @see batch_len
      * @see reply_len
+     * @see arg_cnt
      */
     void InitializeBatch() {
+        // TODO: do not block IPC message building functions when batch is also
+        // locked, would be dumb dot dot dot
         batch_blocking.lock();
         ipc_blocking.lock();
         ipc_buffer[0] = (unsigned char)MsgMultiCommand;
@@ -295,9 +304,20 @@ class PCSX2Ipc {
 
     /**
      * Finalizes a MsgMultiCommand IPC message.  
+     * @return A tuple with, in order:  
+     *         * The IPC command length.  
+     *         * The IPC message.  
+     *         * The IPC reply length.  
+     *         * A buffer to store the IPC reply.  
+     *         * A buffer storing the offset of the argument for each function in
+     *         the IPC reply buffer.  
+     *         NB: ownership of the buffers is delegated to the calling thread.
+     *         It is your duty to free them when done! (or not, I'm a
+     *         documentation, not a cop).  
      * @see batch_blocking
      * @see batch_len
      * @see reply_len
+     * @see arg_cnt
      */
     std::tuple<uint16_t, char*, unsigned int, char*, unsigned int*> FinalizeBatch() {
         // save size in IPC message header.
@@ -448,5 +468,6 @@ class PCSX2Ipc {
 #endif
         free(ret_buffer);
         free(ipc_buffer);
+        free(batch_arg_place);
     }
 };
