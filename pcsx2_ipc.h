@@ -96,10 +96,8 @@ class PCSX2Ipc {
      * @return res_array
      */
     template <typename T> static char *ToArray(char *res_array, T res, int i) {
-        for (int y = sizeof(T); y > 0; y--)
-            res_array[i - (y - sizeof(T))] =
-                (unsigned char)(res >> ((y - 1) * 8)) & 0xff;
-        return res_array;
+		memcpy((res_array + i), (char*)&res, sizeof(T));
+		return res_array;
     }
 
     /**
@@ -109,11 +107,7 @@ class PCSX2Ipc {
      * @return The converted value.
      */
     template <typename T> static T FromArray(char *arr, int i) {
-        T res = 0;
-        for (int y = sizeof(T); y > 0; y--)
-            res += (((T)(((uint8_t *)(arr))[i - (y - sizeof(T))])
-                     << ((y - 1) * 8)));
-        return res;
+		return *(T*)(arr + i);
     }
 
     /**
