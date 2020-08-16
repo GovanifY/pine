@@ -65,6 +65,30 @@ class PCSX2Ipc {
 #endif
 
     /**
+     * IPC return buffer.  
+     * A preallocated buffer used to store all IPC replies. Currently allocated
+     * to the size of 50.000 MsgWrite64 IPC calls.  
+     * WARNING: No checks are executed client or server-side about the size of
+     * this buffer, to ensure a fast implementation.  
+     * It is assumed you're not an absolutely insane person and you
+     * won't try to send in batch more than 50k IPC calls in a single batch.  
+     * @see ipc_buffer
+     */
+    char* ret_buffer;
+
+    /**
+     * IPC messages buffer.  
+     * A preallocated buffer used to store all IPC messages. Currently allocated
+     * to the size of 50.000 MsgWrite64 IPC calls.  
+     * WARNING: No checks are executed client or server-side about the size of
+     * this buffer, to ensure a fast implementation.  
+     * It is assumed you're not an absolutely insane person and you
+     * won't try to send in batch more than 50k IPC calls in a single batch.  
+     * @see ret_buffer
+     */
+    char* ipc_buffer;
+
+    /**
      * IPC Command messages opcodes.  
      * A list of possible operations possible by the IPC.  
      * Each one of them is what we call an "opcode" and is the first
@@ -188,20 +212,9 @@ class PCSX2Ipc {
      * @see IPCCommand
      * @return The IPC buffer.
      */
-    char *FormatBeginning(int size, uint32_t address, IPCCommand command) {
-        char *cmd = (char *)malloc(size * sizeof(char));
+    char *FormatBeginning(char* cmd, uint32_t address, IPCCommand command) {
         cmd[0] = (unsigned char)command;
         return ToArray(cmd, address, 1);
-    }
-
-    /**
-     * Allocates an array of given size.
-     * @param size Size of the array to allocate.
-     * @return The array.
-     */
-    char *ResArray(int size) {
-        char *cmd = (char *)malloc(size * sizeof(char));
-        return cmd;
     }
 
   public:
@@ -227,12 +240,11 @@ class PCSX2Ipc {
      * @return The value read in memory.
      */
     uint8_t Read8(uint32_t address) {
-        char *res = ResArray(2);
         if (SendCommand(
-                std::make_pair(5, FormatBeginning(5, address, MsgRead8)),
-                std::make_pair(2, res)) < 0)
+                std::make_pair(5, FormatBeginning(ipc_buffer, address, MsgRead8)),
+                std::make_pair(2, ret_buffer)) < 0)
             throw Fail;
-        return FromArray<uint8_t>(res, 1);
+        return FromArray<uint8_t>(ret_buffer, 1);
     }
 
     /**
@@ -246,12 +258,11 @@ class PCSX2Ipc {
      * @return The value read in memory.
      */
     uint16_t Read16(uint32_t address) {
-        char *res = ResArray(3);
         if (SendCommand(
-                std::make_pair(5, FormatBeginning(5, address, MsgRead16)),
-                std::make_pair(3, res)) < 0)
+                std::make_pair(5, FormatBeginning(ipc_buffer, address, MsgRead16)),
+                std::make_pair(3, ret_buffer)) < 0)
             throw Fail;
-        return FromArray<uint16_t>(res, 1);
+        return FromArray<uint16_t>(ret_buffer, 1);
     }
 
     /**
@@ -265,12 +276,11 @@ class PCSX2Ipc {
      * @return The value read in memory.
      */
     uint32_t Read32(uint32_t address) {
-        char *res = ResArray(5);
         if (SendCommand(
-                std::make_pair(5, FormatBeginning(5, address, MsgRead32)),
-                std::make_pair(5, res)) < 0)
+                std::make_pair(5, FormatBeginning(ipc_buffer, address, MsgRead32)),
+                std::make_pair(5, ret_buffer)) < 0)
             throw Fail;
-        return FromArray<uint32_t>(res, 1);
+        return FromArray<uint32_t>(ret_buffer, 1);
     }
 
     /**
@@ -284,12 +294,11 @@ class PCSX2Ipc {
      * @return The value read in memory.
      */
     uint64_t Read64(uint32_t address) {
-        char *res = ResArray(9);
         if (SendCommand(
-                std::make_pair(5, FormatBeginning(5, address, MsgRead64)),
-                std::make_pair(9, res)) < 0)
+                std::make_pair(5, FormatBeginning(ipc_buffer, address, MsgRead64)),
+                std::make_pair(9, ret_buffer)) < 0)
             throw Fail;
-        return FromArray<uint64_t>(res, 1);
+        return FromArray<uint64_t>(ret_buffer, 1);
     }
 
     /**
@@ -303,9 +312,9 @@ class PCSX2Ipc {
      * @param value The value to write.
      */
     void Write8(uint32_t address, uint8_t value) {
-        char *cmd = ToArray(FormatBeginning(6, address, MsgWrite8), value, 5);
+        char *cmd = ToArray(FormatBeginning(ipc_buffer, address, MsgWrite8), value, 5);
         if (SendCommand(std::make_pair(6, cmd),
-                        std::make_pair(1, ResArray(1))) < 0)
+                        std::make_pair(1, ret_buffer)) < 0)
             throw Fail;
     }
 
@@ -320,9 +329,9 @@ class PCSX2Ipc {
      * @param value The value to write.
      */
     void Write16(uint32_t address, uint16_t value) {
-        char *cmd = ToArray(FormatBeginning(7, address, MsgWrite16), value, 5);
+        char *cmd = ToArray(FormatBeginning(ipc_buffer, address, MsgWrite16), value, 5);
         if (SendCommand(std::make_pair(7, cmd),
-                        std::make_pair(1, ResArray(1))) < 0)
+                        std::make_pair(1, ret_buffer)) < 0)
             throw Fail;
     }
 
@@ -337,9 +346,9 @@ class PCSX2Ipc {
      * @param value The value to write.
      */
     void Write32(uint32_t address, uint32_t value) {
-        char *cmd = ToArray(FormatBeginning(9, address, MsgWrite32), value, 5);
+        char *cmd = ToArray(FormatBeginning(ipc_buffer, address, MsgWrite32), value, 5);
         if (SendCommand(std::make_pair(9, cmd),
-                        std::make_pair(1, ResArray(1))) < 0)
+                        std::make_pair(1, ret_buffer)) < 0)
             throw Fail;
     }
 
@@ -354,9 +363,9 @@ class PCSX2Ipc {
      * @param value The value to write.
      */
     void Write64(uint32_t address, uint64_t value) {
-        char *cmd = ToArray(FormatBeginning(13, address, MsgWrite64), value, 5);
+        char *cmd = ToArray(FormatBeginning(ipc_buffer, address, MsgWrite64), value, 5);
         if (SendCommand(std::make_pair(13, cmd),
-                        std::make_pair(1, ResArray(1))) < 0)
+                        std::make_pair(1, ret_buffer)) < 0)
             throw Fail;
     }
 
@@ -369,6 +378,13 @@ class PCSX2Ipc {
         WSADATA wsa;
         WSAStartup(MAKEWORD(2, 2), &wsa);
 #endif
+	// for the sake of speed we malloc once a return buffer and reuse it by just
+	// cropping its size when needed, it is 450k long which is the size of 50k
+	// MsgWrite64 replies, should be good enough even if we implement batch IPC
+	// processing. Coincidentally 650k is the size of 50k MsgWrite64 REQUESTS so
+	// we just allocate a 1mb buffer in the end, lul
+	ret_buffer = (char*)malloc(450000 * sizeof(char));
+	ipc_buffer = (char*)malloc(650000 * sizeof(char));
     }
 
     /**
@@ -379,5 +395,7 @@ class PCSX2Ipc {
 #ifdef _WIN32
         WSACleanup();
 #endif
+        free(ret_buffer);
+        free(ipc_buffer);
     }
 };
