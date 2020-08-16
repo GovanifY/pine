@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <thread>
 #include <unistd.h>
+#include <mutex>
 
 #ifdef _WIN32
 #define read_portable(a, b, c) (recv(a, b, c, 0))
@@ -112,7 +113,7 @@ class PCSX2Ipc {
      * of state keeping issues we block the initialization of another batch
      * request until the other ends.  
      */
-    bool batch_blocking = false;
+    std::mutex batch_blocking;
 
     /**
      * IPC Command messages opcodes.  
@@ -265,11 +266,19 @@ class PCSX2Ipc {
      */
     void InitializeBatch() {
         //TODO: finish the batch sending protocol
-        while(batch_blocking) { }
-        // TODO: /!\ race condition much?
-        batch_blocking = true;
+        batch_blocking.lock();
         batch_len = 0;
         reply_len = 0;
+    }
+
+    /**
+     * Sends a MsgMultiCommand IPC message.  
+     * @see batch_blocking
+     * @see batch_len
+     * @see reply_len
+     */
+    void SendBatch() {
+        batch_blocking.unlock();
     }
 
     /**
