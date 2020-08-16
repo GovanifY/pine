@@ -95,7 +95,7 @@ class PCSX2Ipc {
      * MsgMultiCommand to store the length of the entire IPC message.  
      * @see IPCCommand 
      */
-    int batch_len = 0;
+    uint16_t batch_len = 0;
 
     /**
      * Length of the reply of the batch IPC request.  
@@ -103,7 +103,25 @@ class PCSX2Ipc {
      * MsgMultiCommand to store the length of the reply of the IPC message.  
      * @see IPCCommand 
      */
-    int reply_len = 0;
+    unsigned int reply_len = 0;
+
+    /**
+     * Number of IPC messages of the batch IPC request.  
+     * This is used when chaining multiple IPC commands in one go by using
+     * MsgMultiCommand to store the number of IPC messages chained together.  
+     * @see IPCCommand 
+     */
+    unsigned int arg_cnt = 0;
+
+    /**
+     * Position of the batch arguments.  
+     * This is used when chaining multiple IPC commands in one go by using
+     * MsgMultiCommand. Stores the location of each message reply in the buffer
+     * sent by FinalizeBatch.
+     * @see FinalizeBatch
+     * @see IPCCommand 
+     */
+    unsigned int* batch_arg_place;
 
     /**
      * Sets the state of the batch command building.  
@@ -114,6 +132,8 @@ class PCSX2Ipc {
      * request until the other ends.  
      */
     std::mutex batch_blocking;
+
+    std::mutex ipc_blocking;
 
     /**
      * IPC Command messages opcodes.  
@@ -265,20 +285,40 @@ class PCSX2Ipc {
      * @see reply_len
      */
     void InitializeBatch() {
-        //TODO: finish the batch sending protocol
         batch_blocking.lock();
-        batch_len = 0;
-        reply_len = 0;
+        ipc_blocking.lock();
+        ipc_buffer[0] = (unsigned char)MsgMultiCommand;
+        batch_len = 3;
+        reply_len = 1;
+        arg_cnt = 0;
     }
 
     /**
-     * Sends a MsgMultiCommand IPC message.  
+     * Finalizes a MsgMultiCommand IPC message.  
      * @see batch_blocking
      * @see batch_len
      * @see reply_len
      */
-    void SendBatch() {
+    std::tuple<uint16_t, char*, unsigned int, char*, unsigned int*> FinalizeBatch() {
+        // save size in IPC message header.
+        ToArray(ipc_buffer, batch_len, 1);
+
+        // we copy our arrays to unblock the IPC class.
+        uint16_t bl = batch_len;
+        int rl = reply_len;
+        char *c_cmd = (char*)malloc(batch_len*sizeof(char));
+        memcpy(c_cmd, ipc_buffer, batch_len*sizeof(char));
+        char *c_ret = (char*)malloc(reply_len*sizeof(char));
+        memcpy(c_ret, ret_buffer, reply_len*sizeof(char));
+        unsigned int *arg_place = (unsigned int*)malloc(arg_cnt*sizeof(unsigned int));
+        memcpy(arg_place, batch_arg_place, arg_cnt*sizeof(unsigned int));
+
+        // we unblock the mutex
         batch_blocking.unlock();
+        ipc_blocking.unlock();
+
+        // MultiCommand is done!
+        return std::make_tuple(bl, c_cmd, rl, c_ret, arg_place);
     }
 
     /**
@@ -312,11 +352,14 @@ class PCSX2Ipc {
                 throw Fail;
         }
 
+        std::lock_guard<std::mutex> lock(ipc_blocking);
+
         // batch mode
         if constexpr (T) {
             char *cmd = FormatBeginning(&ipc_buffer[batch_len], address, tag);
             batch_len += 5;
             reply_len += sizeof(Y);
+            arg_cnt += 1;
             return cmd;
         } else {
             if (SendCommand(
@@ -358,10 +401,13 @@ class PCSX2Ipc {
                 throw Fail;
         }
 
+        std::lock_guard<std::mutex> lock(ipc_blocking);
+
         // batch mode
         if constexpr (T) {
             char *cmd = ToArray<Y>(FormatBeginning(&ipc_buffer[batch_len], address, tag), value, 5);
             batch_len += 5 + sizeof(Y);
+            arg_cnt += 1;
             return cmd;
         }
         else {
@@ -389,6 +435,7 @@ class PCSX2Ipc {
 	// we just allocate a 1mb buffer in the end, lul
 	ret_buffer = (char*)malloc(450000 * sizeof(char));
 	ipc_buffer = (char*)malloc(650000 * sizeof(char));
+	batch_arg_place = (unsigned int*)malloc(50000 * sizeof(unsigned int));
     }
 
     /**
