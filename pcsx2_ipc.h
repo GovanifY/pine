@@ -223,12 +223,12 @@ class PCSX2Ipc {
     /**
      * Sends an IPC command to PCSX2.  
      * Fails if the IPC cannot be sent or if PCSX2 returns IPC_FAIL.
+     * Throws an IPCStatus on failure.  
      * @param command A pair containing the IPC command size and buffer.
      * @param ret A pair containing the IPC return size and buffer.
      * @see IPCResult
-     * @return 0 on success, -1 on failure.
      */
-    int SendCommand(std::pair<int, char *> command,
+    void SendCommand(std::pair<int, char *> command,
                     std::pair<int, char *> ret) {
 #ifdef _WIN32
         SOCKET sock;
@@ -236,7 +236,7 @@ class PCSX2Ipc {
 
         sock = socket(AF_INET, SOCK_STREAM, 0);
         if (sock < 0) {
-            return -1;
+            throw Fail;
         }
 
         // Prepare the sockaddr_in structure
@@ -247,7 +247,7 @@ class PCSX2Ipc {
 
         if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
             close(sock);
-            return -1;
+            throw Fail;
         }
 
 #else
@@ -256,7 +256,7 @@ class PCSX2Ipc {
 
         sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if (sock < 0) {
-            return -1;
+            throw Fail;
         }
         server.sun_family = AF_UNIX;
         strcpy(server.sun_path, SOCKET_NAME);
@@ -264,24 +264,23 @@ class PCSX2Ipc {
         if (connect(sock, (struct sockaddr *)&server,
                     sizeof(struct sockaddr_un)) < 0) {
             close(sock);
-            return -1;
+            throw Fail;
         }
 
 #endif
 
         if (write_portable(sock, command.second, command.first) < 0) {
-            return -1;
+            throw Fail;
         }
 
         if (read_portable(sock, ret.second, ret.first) < 0) {
-            return -1;
+            throw Fail;
         }
         close(sock);
 
         if (ret.second[0] == (char)IPC_FAIL) {
-            return -1;
+            throw Fail;
         }
-        return 0;
     }
 
     /**
@@ -319,7 +318,7 @@ class PCSX2Ipc {
      */
     std::tuple<uint16_t, char*, unsigned int, char*, unsigned int*> FinalizeBatch() {
         // save size in IPC message header.
-        ToArray(ipc_buffer, batch_len, 1);
+        ToArray<uint16_t>(ipc_buffer, arg_cnt, 1);
 
         // we copy our arrays to unblock the IPC class.
         uint16_t bl = batch_len;
@@ -380,10 +379,8 @@ class PCSX2Ipc {
         } else {
             // we are already locked in batch mode
             std::lock_guard<std::mutex> lock(ipc_blocking);
-            if (SendCommand(
-                        std::make_pair(5, FormatBeginning(ipc_buffer, address, tag)),
-                        std::make_pair(1 + sizeof(Y), ret_buffer)) < 0)
-                throw Fail;
+            SendCommand(std::make_pair(5, FormatBeginning(ipc_buffer, address, tag)),
+                        std::make_pair(1 + sizeof(Y), ret_buffer));
             return FromArray<Y>(ret_buffer, 1);
         }
     }
@@ -430,9 +427,8 @@ class PCSX2Ipc {
             // we are already locked in batch mode
             std::lock_guard<std::mutex> lock(ipc_blocking);
             char *cmd = ToArray(FormatBeginning(ipc_buffer, address, tag), value, 5);
-            if (SendCommand(std::make_pair(5 + sizeof(Y), cmd),
-                            std::make_pair(1, ret_buffer)) < 0)
-                throw Fail;
+            SendCommand(std::make_pair(5 + sizeof(Y), cmd),
+                        std::make_pair(1, ret_buffer));
             return;
         }
     }
