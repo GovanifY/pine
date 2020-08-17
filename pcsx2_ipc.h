@@ -171,6 +171,22 @@ class PCSX2Ipc {
     };
 
     /**
+     * Formats an IPC buffer.  
+     * Creates a new buffer with IPC opcode set and first address argument
+     * currently used for memory IPC commands.
+     * @param size The size of the array to allocate.
+     * @param address The address to put as an argument of the IPC command.
+     * @param command The IPC message tag(opcode).
+     * @see IPCCommand
+     * @return The IPC buffer.
+     */
+    char *FormatBeginning(char* cmd, uint32_t address, IPCCommand command) {
+        cmd[0] = (unsigned char)command;
+        return ToArray(cmd, address, 1);
+    }
+
+  public:
+    /**
      * Converts an uint to an char* in little endian.  
      * @param res_array The array to modify.
      * @param res The value to convert.
@@ -192,22 +208,6 @@ class PCSX2Ipc {
 		return *(T*)(arr + i);
     }
 
-    /**
-     * Formats an IPC buffer.  
-     * Creates a new buffer with IPC opcode set and first address argument
-     * currently used for memory IPC commands.
-     * @param size The size of the array to allocate.
-     * @param address The address to put as an argument of the IPC command.
-     * @param command The IPC message tag(opcode).
-     * @see IPCCommand
-     * @return The IPC buffer.
-     */
-    char *FormatBeginning(char* cmd, uint32_t address, IPCCommand command) {
-        cmd[0] = (unsigned char)command;
-        return ToArray(cmd, address, 1);
-    }
-
-  public:
     /**
      * Result code of the IPC operation.  
      * A list of result codes that should be returned, or thrown, depending
@@ -285,10 +285,20 @@ class PCSX2Ipc {
 
     /**
      * Initializes a MsgMultiCommand IPC message.  
+     * Batch IPC messages are preferred when dealing with a lot of IPC messages
+     * in a quick fashion. They are _very_ fast, 1000 Write<uint8_t> are as fast
+     * as one Read<uint32_t> in non-batch mode, give or take, which is about
+     * 100µs.  
+     * You'll have to build the IPC messages in advance, with this function and
+     * FinalizeBatch, and will have to send the command yourself, along with
+     * dealing with the extraction of return values, if need there is.  
+     * It is a little bit less convenient than the standard IPC but has, at the
+     * very least, a 1000x speedup on big commands.  
      * @see batch_blocking
      * @see batch_len
      * @see reply_len
      * @see arg_cnt
+     * @see FinalizeBatch
      */
     void InitializeBatch() {
         batch_blocking.lock();
@@ -315,6 +325,7 @@ class PCSX2Ipc {
      * @see batch_len
      * @see reply_len
      * @see arg_cnt
+     * @see InitializeBatch
      */
     std::tuple<uint16_t, char*, unsigned int, char*, unsigned int*> FinalizeBatch() {
         // save size in IPC message header.
@@ -343,6 +354,8 @@ class PCSX2Ipc {
      * On error throws an IPCStatus.  
      * Format: XX YY YY YY YY  
      * Legend: XX = IPC Tag, YY = Address.  
+     * Return: (ZZ*??)   
+     * Legend: ZZ = Value read.  
      * @see IPCCommand
      * @see IPCStatus
      * @param address The address to read.
@@ -373,6 +386,7 @@ class PCSX2Ipc {
         if constexpr (T) {
             char *cmd = FormatBeginning(&ipc_buffer[batch_len], address, tag);
             batch_len += 5;
+            batch_arg_place[arg_cnt] = reply_len;
             reply_len += sizeof(Y);
             arg_cnt += 1;
             return cmd;
