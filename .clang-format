@@ -10,5 +10,6 @@ SpacesInCStyleCastParentheses: 'false'
 SpacesInContainerLiterals: 'false'
 SpacesInParentheses: 'false'
 UseTab: Never
+AlwaysBreakTemplateDeclarations: 'Yes'
 
 ...
