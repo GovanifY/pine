@@ -312,7 +312,7 @@ class PCSX2Ipc {
         }
         close(sock);
 
-        if (ret.buffer[0] == (unsigned char)IPC_FAIL) {
+        if (ret.buffer[0] == (char)IPC_FAIL) {
             throw Fail;
         }
     }
