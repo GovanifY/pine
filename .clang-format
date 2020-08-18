@@ -11,5 +11,6 @@ SpacesInContainerLiterals: 'false'
 SpacesInParentheses: 'false'
 UseTab: Never
 AlwaysBreakTemplateDeclarations: 'Yes'
+IndentCaseLabels: 'true'
 
 ...

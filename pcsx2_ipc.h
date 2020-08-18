@@ -371,20 +371,20 @@ class PCSX2Ipc {
         // deduce ipc tag
         IPCCommand tag;
         switch (sizeof(Y)) {
-        case 1:
-            tag = MsgRead8;
-            break;
-        case 2:
-            tag = MsgRead16;
-            break;
-        case 4:
-            tag = MsgRead32;
-            break;
-        case 8:
-            tag = MsgRead64;
-            break;
-        default:
-            throw Fail;
+            case 1:
+                tag = MsgRead8;
+                break;
+            case 2:
+                tag = MsgRead16;
+                break;
+            case 4:
+                tag = MsgRead32;
+                break;
+            case 8:
+                tag = MsgRead64;
+                break;
+            default:
+                throw Fail;
         }
 
         // batch mode
@@ -421,20 +421,20 @@ class PCSX2Ipc {
         // deduce ipc tag
         IPCCommand tag;
         switch (sizeof(Y)) {
-        case 1:
-            tag = MsgWrite8;
-            break;
-        case 2:
-            tag = MsgWrite16;
-            break;
-        case 4:
-            tag = MsgWrite32;
-            break;
-        case 8:
-            tag = MsgWrite64;
-            break;
-        default:
-            throw Fail;
+            case 1:
+                tag = MsgWrite8;
+                break;
+            case 2:
+                tag = MsgWrite16;
+                break;
+            case 4:
+                tag = MsgWrite32;
+                break;
+            case 8:
+                tag = MsgWrite64;
+                break;
+            default:
+                throw Fail;
         }
 
         // batch mode
