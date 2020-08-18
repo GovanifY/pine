@@ -441,6 +441,7 @@ class PCSX2Ipc {
      * @see IPCStatus
      * @param address The address to write to.
      * @param value The value to write.
+     * @param T Flag to enable batch processing or not.
      * @return If in batch mode the IPC message otherwise void.
      */
     template <typename Y, bool T = false>
