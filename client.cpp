@@ -64,13 +64,9 @@ auto main(int argc, char *argv[]) -> int {
         ipc->Write<uint8_t, true>(0x00347D33, 0xEF);
         ipc->Write<uint8_t, true>(0x00347D32, 0xDF);
         auto res = ipc->FinalizeBatch();
-        std::pair<int, char *> command =
-            std::make_pair((int)std::get<0>(res), std::get<1>(res));
-        std::pair<int, char *> ret =
-            std::make_pair((int)std::get<2>(res), std::get<3>(res));
         // our batch ipc packet is now saved and ready to be used whenever! When
         // we need it we just fire up a SendCommand:
-        ipc->SendCommand(command, ret);
+        ipc->SendCommand(res.ipc_message, res.ipc_return);
 
         // let's do it another time, but this time with Read, which returns
         // arguments!
@@ -79,28 +75,21 @@ auto main(int argc, char *argv[]) -> int {
         ipc->Read<uint8_t, true>(0x00347D33);
         ipc->Read<uint8_t, true>(0x00347D32);
         auto resr = ipc->FinalizeBatch();
-        std::pair<int, char *> commandr =
-            std::make_pair((int)std::get<0>(resr), std::get<1>(resr));
-        std::pair<int, char *> retr =
-            std::make_pair((int)std::get<2>(resr), std::get<3>(resr));
         // same as before
-        ipc->SendCommand(commandr, retr);
+        ipc->SendCommand(resr.ipc_message, resr.ipc_return);
 
-        // now this is a little bit more tricky, the last argument returned by
+        // now this is a little bit more tricky, return_locations returned by
         // FinalizeBatch tells us where the replies are stored in the return
-        // buffer, so let's save this value in replies, and try to get the reply
-        // of the second function, in our case Read(0x00347D32)
+        // buffer, so let's save this value in the variable result, and try to
+        // get the reply of the third function, in our case Read(0x00347D32)
+        unsigned int result = resr.return_locations[2];
 
-        // we first get the last argument of FinalizeBatch
-        unsigned int *replies = std::get<4>(resr);
-        // retrieve the location of the 2nd reply
-        unsigned int result = replies[2];
-        // and use this location to get the reply from our return buffer!
-        // NB: you'll have to read the doc to verify what the return value of
-        // the command is and convert it accordingly, in our case Read<uint8_t>
-        // returns an uint8_t, so this isn't very hard :p
+        // and now let's use this location to get the reply from our return
+        // buffer! NB: you'll have to read the doc to verify what the return
+        // value of the command is and convert it accordingly, in our case
+        // Read<uint8_t> returns an uint8_t, so this isn't very hard :p
         printf("PCSX2Ipc::Read<uint8_t>(0x00347D32) :  %u\n",
-               ipc->FromArray<uint8_t>(retr.second, result));
+               ipc->FromArray<uint8_t>(resr.ipc_return.buffer, result));
     } catch (...) {
         // if the operation failed
         printf("ERROR!!!!!\n");

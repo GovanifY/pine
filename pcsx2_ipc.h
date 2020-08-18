@@ -188,6 +188,38 @@ class PCSX2Ipc {
 
   public:
     /**
+     * IPC message buffer. @n
+     * A list of all needed fields to store an IPC message.
+     */
+    struct IPCBuffer {
+        int size;     /**< Size of the buffer. */
+        char *buffer; /**< Buffer. */
+        // do NOT specify a destructor to free buffer as we reuse the same
+        // buffer to avoid the cost of mallocs; We specify destructors upon need
+        // on structures that makes a copy of this, eg BatchCommand.
+    };
+
+    /**
+     * IPC batch message fields. @n
+     * A list of all needed fields to send a batch IPC message command and
+     * retrieve their result.
+     */
+    struct BatchCommand {
+        IPCBuffer ipc_message;          /**< IPC message fields. */
+        IPCBuffer ipc_return;           /**< IPC return fields. */
+        unsigned int *return_locations; /**< Location of arguments in IPC return
+                                           fields. */
+        /**
+         * BatchCommand Destructor.
+         */
+        ~BatchCommand() {
+            delete[] ipc_message.buffer;
+            delete[] ipc_return.buffer;
+            delete[] return_locations;
+        }
+    };
+
+    /**
      * Converts an uint to an char* in little endian.
      * @param res_array The array to modify.
      * @param res The value to convert.
@@ -226,12 +258,12 @@ class PCSX2Ipc {
      * Sends an IPC command to PCSX2. @n
      * Fails if the IPC cannot be sent or if PCSX2 returns IPC_FAIL.
      * Throws an IPCStatus on failure.
-     * @param command A pair containing the IPC command size and buffer.
-     * @param ret A pair containing the IPC return size and buffer.
+     * @param command An IPCBuffer containing the IPC command size and buffer.
+     * @param ret An IPCBuffer containing the IPC return size and buffer.
      * @see IPCResult
+     * @see IPCBuffer
      */
-    auto SendCommand(std::pair<int, char *> command, std::pair<int, char *> ret)
-        -> void {
+    auto SendCommand(IPCBuffer command, IPCBuffer ret) -> void {
 #ifdef _WIN32
         SOCKET sock;
         struct sockaddr_in server;
@@ -271,16 +303,16 @@ class PCSX2Ipc {
 
 #endif
 
-        if (write_portable(sock, command.second, command.first) < 0) {
+        if (write_portable(sock, command.buffer, command.size) < 0) {
             throw Fail;
         }
 
-        if (read_portable(sock, ret.second, ret.first) < 0) {
+        if (read_portable(sock, ret.buffer, ret.size) < 0) {
             throw Fail;
         }
         close(sock);
 
-        if (ret.second[0] == (char)IPC_FAIL) {
+        if (ret.buffer[0] == (unsigned char)IPC_FAIL) {
             throw Fail;
         }
     }
@@ -313,36 +345,30 @@ class PCSX2Ipc {
 
     /**
      * Finalizes a MsgMultiCommand IPC message.
-     * @return A tuple with, in order:
-     *         * The IPC command length.
-     *         * The IPC message.
-     *         * The IPC reply length.
-     *         * A buffer to store the IPC reply.
-     *         * A buffer storing the offset of the argument for each function
-     * in the IPC reply buffer.
-     * NB: ownership of the buffers is delegated to the
-     * calling thread. It is your duty to free them when done! (or not, I'm a
-     * documentation, not a cop).
+     * @return A BatchCommand with:
+     *         * The IPCBuffer of the message.
+     *         * The IPCBuffer of the return.
+     *         * The argument location in the reply buffer.
      * @see batch_blocking
      * @see batch_len
      * @see reply_len
      * @see arg_cnt
      * @see InitializeBatch
+     * @see IPCBuffer
+     * @see BatchCommand
      */
-    auto FinalizeBatch()
-        -> std::tuple<uint16_t, char *, unsigned int, char *, unsigned int *> {
+    auto FinalizeBatch() -> BatchCommand {
         // save size in IPC message header.
         ToArray<uint16_t>(ipc_buffer, arg_cnt, 1);
 
         // we copy our arrays to unblock the IPC class.
         uint16_t bl = batch_len;
         int rl = reply_len;
-        char *c_cmd = (char *)malloc(batch_len * sizeof(char));
+        char *c_cmd = new char[batch_len];
         memcpy(c_cmd, ipc_buffer, batch_len * sizeof(char));
-        char *c_ret = (char *)malloc(reply_len * sizeof(char));
+        char *c_ret = new char[reply_len];
         memcpy(c_ret, ret_buffer, reply_len * sizeof(char));
-        unsigned int *arg_place =
-            (unsigned int *)malloc(arg_cnt * sizeof(unsigned int));
+        unsigned int *arg_place = new unsigned int[arg_cnt];
         memcpy(arg_place, batch_arg_place, arg_cnt * sizeof(unsigned int));
 
         // we unblock the mutex
@@ -350,7 +376,8 @@ class PCSX2Ipc {
         ipc_blocking.unlock();
 
         // MultiCommand is done!
-        return std::make_tuple(bl, c_cmd, rl, c_ret, arg_place);
+        return BatchCommand{ IPCBuffer{ bl, c_cmd }, IPCBuffer{ rl, c_ret },
+                             arg_place };
     }
 
     /**
@@ -399,8 +426,8 @@ class PCSX2Ipc {
             // we are already locked in batch mode
             std::lock_guard<std::mutex> lock(ipc_blocking);
             SendCommand(
-                std::make_pair(5, FormatBeginning(ipc_buffer, address, tag)),
-                std::make_pair(1 + sizeof(Y), ret_buffer));
+                IPCBuffer{ 5, FormatBeginning(ipc_buffer, address, tag) },
+                IPCBuffer{ 1 + sizeof(Y), ret_buffer });
             return FromArray<Y>(ret_buffer, 1);
         }
     }
@@ -450,8 +477,8 @@ class PCSX2Ipc {
             std::lock_guard<std::mutex> lock(ipc_blocking);
             char *cmd =
                 ToArray(FormatBeginning(ipc_buffer, address, tag), value, 5);
-            SendCommand(std::make_pair(5 + sizeof(Y), cmd),
-                        std::make_pair(1, ret_buffer));
+            SendCommand(IPCBuffer{ 5 + sizeof(Y), cmd },
+                        IPCBuffer{ 1, ret_buffer });
             return;
         }
     }
@@ -470,9 +497,9 @@ class PCSX2Ipc {
         // of 50k MsgWrite64 replies, should be good enough even if we implement
         // batch IPC processing. Coincidentally 650k is the size of 50k
         // MsgWrite64 REQUESTS so we just allocate a 1mb buffer in the end, lul
-        ret_buffer = (char *)malloc(450000 * sizeof(char));
-        ipc_buffer = (char *)malloc(650000 * sizeof(char));
-        batch_arg_place = (unsigned int *)malloc(50000 * sizeof(unsigned int));
+        ret_buffer = new char[450000];
+        ipc_buffer = new char[650000];
+        batch_arg_place = new unsigned int[50000];
     }
 
     /**
@@ -483,8 +510,8 @@ class PCSX2Ipc {
 #ifdef _WIN32
         WSACleanup();
 #endif
-        free(ret_buffer);
-        free(ipc_buffer);
-        free(batch_arg_place);
+        delete[] ret_buffer;
+        delete[] ipc_buffer;
+        delete[] batch_arg_place;
     }
 };
