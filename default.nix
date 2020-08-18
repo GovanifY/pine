@@ -5,10 +5,16 @@ pkgs.mkShell {
   buildInputs = [
     pkgs.doxygen
     pkgs.gnumake
-    pkgs.gcc
+    pkgs.clang
     pkgs.python3
+    pkgs.zip
+    pkgs.clang-tools
     (pkgs.texlive.combine { inherit (pkgs.texlive) scheme-medium varwidth
     multirow hanging adjustbox collectbox stackengine sectsty tocloft
     newunicodechar etoc; })
   ];
+    # clang is pretty nice
+    shellHook = ''
+      export CXX="clang++"
+    '';
 }
