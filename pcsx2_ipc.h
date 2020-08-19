@@ -142,6 +142,42 @@ class PCSX2Ipc {
     std::mutex ipc_blocking;
 
     /**
+     * IPC result codes. @n
+     * A list of possible result codes the IPC can send back. @n
+     * Each one of them is what we call an "opcode" or "tag" and is the
+     * first byte sent by the IPC to differentiate between results.
+     */
+    enum IPCResult {
+        IPC_OK = 0,     /**< IPC command successfully completed. */
+        IPC_FAIL = 0xFF /**< IPC command failed to complete. */
+    };
+
+    /**
+     * Converts an uint to an char* in little endian.
+     * @param res_array The array to modify.
+     * @param res The value to convert.
+     * @param i When to insert it into the array
+     * @return res_array
+     */
+    template <typename T>
+    static auto ToArray(char *res_array, T res, int i) -> char * {
+        memcpy((res_array + i), (char *)&res, sizeof(T));
+        return res_array;
+    }
+
+    /**
+     * Converts a char* to an uint in little endian.
+     * @param arr The array to convert.
+     * @param i When to load it from the array.
+     * @return The converted value.
+     */
+    template <typename T>
+    static auto FromArray(char *arr, int i) -> T {
+        return *(T *)(arr + i);
+    }
+
+  public:
+    /**
      * IPC Command messages opcodes. @n
      * A list of possible operations possible by the IPC. @n
      * Each one of them is what we call an "opcode" and is the first
@@ -159,17 +195,7 @@ class PCSX2Ipc {
         MsgMultiCommand = 0xFF /**< Treats multiple IPC commands in batch. */
     };
 
-    /**
-     * IPC result codes. @n
-     * A list of possible result codes the IPC can send back. @n
-     * Each one of them is what we call an "opcode" or "tag" and is the
-     * first byte sent by the IPC to differentiate between results.
-     */
-    enum IPCResult {
-        IPC_OK = 0,     /**< IPC command successfully completed. */
-        IPC_FAIL = 0xFF /**< IPC command failed to complete. */
-    };
-
+  protected:
     /**
      * Formats an IPC buffer. @n
      * Creates a new buffer with IPC opcode set and first address argument
@@ -220,30 +246,6 @@ class PCSX2Ipc {
     };
 
     /**
-     * Converts an uint to an char* in little endian.
-     * @param res_array The array to modify.
-     * @param res The value to convert.
-     * @param i When to insert it into the array
-     * @return res_array
-     */
-    template <typename T>
-    static auto ToArray(char *res_array, T res, int i) -> char * {
-        memcpy((res_array + i), (char *)&res, sizeof(T));
-        return res_array;
-    }
-
-    /**
-     * Converts a char* to an uint in little endian.
-     * @param arr The array to convert.
-     * @param i When to load it from the array.
-     * @return The converted value.
-     */
-    template <typename T>
-    static auto FromArray(char *arr, int i) -> T {
-        return *(T *)(arr + i);
-    }
-
-    /**
      * Result code of the IPC operation. @n
      * A list of result codes that should be returned, or thrown, depending
      * on the state of the result of an IPC command.
@@ -255,15 +257,61 @@ class PCSX2Ipc {
     };
 
     /**
-     * Sends an IPC command to PCSX2. @n
-     * Fails if the IPC cannot be sent or if PCSX2 returns IPC_FAIL.
-     * Throws an IPCStatus on failure.
-     * @param command An IPCBuffer containing the IPC command size and buffer.
-     * @param ret An IPCBuffer containing the IPC return size and buffer.
+     * Returns the reply of an IPC command. @n
+     * Throws an IPCStatus if there is no reply to read.
+     * @param cmd A char array containing the IPC return buffer OR a
+     * BatchCommand.
+     * @param place An integer specifying where the argument is
+     * in the buffer OR which function to read the reply of in
+     * the case of a BatchCommand.
+     * @return The reply, variable type.
      * @see IPCResult
      * @see IPCBuffer
      */
-    auto SendCommand(IPCBuffer command, IPCBuffer ret) -> void {
+    template <IPCCommand T, typename Y>
+    auto GetReply(const Y &cmd, int place) {
+        char *buf;
+        int loc;
+        if constexpr (std::is_same<Y, BatchCommand>::value) {
+            buf = cmd.ipc_return.buffer;
+            loc = cmd.return_locations[place];
+        } else {
+            buf = cmd;
+            loc = place;
+        }
+        if constexpr (T == MsgRead8)
+            return FromArray<uint8_t>(buf, loc);
+        else if constexpr (T == MsgRead16)
+            return FromArray<uint16_t>(buf, loc);
+        else if constexpr (T == MsgRead32)
+            return FromArray<uint32_t>(buf, loc);
+        else if constexpr (T == MsgRead64)
+            return FromArray<uint64_t>(buf, loc);
+        else
+            throw Fail;
+    }
+
+    /**
+     * Sends an IPC command to PCSX2. @n
+     * Fails if the IPC cannot be sent or if PCSX2 returns IPC_FAIL.
+     * Throws an IPCStatus on failure.
+     * @param cmd An IPCBuffer containing the IPC command size and buffer OR a
+     * BatchCommand.
+     * @param rt An IPCBuffer containing the IPC return size and buffer.
+     * @see IPCResult
+     * @see IPCBuffer
+     */
+    template <typename T>
+    auto SendCommand(const T &cmd, const T &rt = T()) -> void {
+        IPCBuffer command;
+        IPCBuffer ret;
+        if constexpr (std::is_same<T, BatchCommand>::value) {
+            command = cmd.ipc_message;
+            ret = cmd.ipc_return;
+        } else {
+            command = cmd;
+            ret = rt;
+        }
 #ifdef _WIN32
         SOCKET sock;
         struct sockaddr_in server;
@@ -389,30 +437,30 @@ class PCSX2Ipc {
      * Legend: ZZ = Value read.
      * @see IPCCommand
      * @see IPCStatus
+     * @see GetReply
      * @param address The address to read.
      * @param T Flag to enable batch processing or not.
      * @return The value read in memory. If in batch mode the IPC message.
      */
     template <typename Y, bool T = false>
     auto Read(uint32_t address) {
-        // deduce ipc tag
-        IPCCommand tag;
-        switch (sizeof(Y)) {
-            case 1:
-                tag = MsgRead8;
-                break;
-            case 2:
-                tag = MsgRead16;
-                break;
-            case 4:
-                tag = MsgRead32;
-                break;
-            case 8:
-                tag = MsgRead64;
-                break;
-            default:
-                throw Fail;
-        }
+
+        // easiest way to get tag into a constexpr is a lambda, necessary for
+        // GetReply
+        constexpr IPCCommand tag = []() -> IPCCommand {
+            switch (sizeof(Y)) {
+                case 1:
+                    return MsgRead8;
+                case 2:
+                    return MsgRead16;
+                case 4:
+                    return MsgRead32;
+                case 8:
+                    return MsgRead64;
+                default:
+                    throw Fail;
+            }
+        }();
 
         // batch mode
         if constexpr (T) {
@@ -428,7 +476,7 @@ class PCSX2Ipc {
             SendCommand(
                 IPCBuffer{ 5, FormatBeginning(ipc_buffer, address, tag) },
                 IPCBuffer{ 1 + sizeof(Y), ret_buffer });
-            return FromArray<Y>(ret_buffer, 1);
+            return GetReply<tag>(ret_buffer, 1);
         }
     }
 
@@ -446,24 +494,23 @@ class PCSX2Ipc {
      */
     template <typename Y, bool T = false>
     auto Write(uint32_t address, Y value) {
-        // deduce ipc tag
-        IPCCommand tag;
-        switch (sizeof(Y)) {
-            case 1:
-                tag = MsgWrite8;
-                break;
-            case 2:
-                tag = MsgWrite16;
-                break;
-            case 4:
-                tag = MsgWrite32;
-                break;
-            case 8:
-                tag = MsgWrite64;
-                break;
-            default:
-                throw Fail;
-        }
+
+        // easiest way to get tag into a constexpr is a lambda, necessary for
+        // GetReply
+        constexpr IPCCommand tag = []() -> IPCCommand {
+            switch (sizeof(Y)) {
+                case 1:
+                    return MsgWrite8;
+                case 2:
+                    return MsgWrite16;
+                case 4:
+                    return MsgWrite32;
+                case 8:
+                    return MsgWrite64;
+                default:
+                    throw Fail;
+            }
+        }();
 
         // batch mode
         if constexpr (T) {

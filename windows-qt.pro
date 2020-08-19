@@ -1,7 +1,14 @@
 QT -= gui
 
-CONFIG += c++17 console
-CONFIG -= app_bundle
+CONFIG += c++17 console optimize_full
+
+# remove possible other optimization flags
+QMAKE_CXXFLAGS_RELEASE -= -O
+QMAKE_CXXFLAGS_RELEASE -= -O1
+QMAKE_CXXFLAGS_RELEASE -= -O2 
+
+# add the desired -O3 if not present
+QMAKE_CXXFLAGS_RELEASE *= -O3
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings

@@ -3,6 +3,15 @@
 #include <ostream>
 #include <stdio.h>
 
+#define u8 uint8_t
+#define u16 uint16_t
+#define u32 uint32_t
+#define u64 uint64_t
+
+// TODO: Remind me when C++20 using-enum is implemented in clang/gcc so i can
+// write cleaner code
+// using enum PCSX2Ipc::IPCCommand;
+
 // a portable sleep function
 auto msleep(int sleepMs) -> void {
 #ifdef _WIN32
@@ -25,12 +34,12 @@ auto read_background(PCSX2Ipc *ipc) -> void {
             // time of socket IPC, in µs, if you want to have an idea.
 
             // auto t1 = std::chrono::high_resolution_clock::now();
-            uint32_t value = ipc->Read<uint32_t>(0x00347D34);
+            uint32_t value = ipc->Read<u32>(0x00347D34);
             // auto t2 = std::chrono::high_resolution_clock::now();
             // auto duration =
-            // std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1
-            // ).count(); std::cout << "execution time: " << duration <<
-            // std::endl;
+            //    std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1)
+            //        .count();
+            // std::cout << "execution time: " << duration << std::endl;
             printf("PCSX2Ipc::Read<uint32_t>(0x00347D34) :  %u\n", value);
         } catch (...) {
             // if the operation failed
@@ -53,43 +62,47 @@ auto main(int argc, char *argv[]) -> int {
     msleep(5000);
     try {
         // a normal write can be done this way
-        ipc->Write<uint8_t>(0x00347D34, 0x5);
+        ipc->Write<u8>(0x00347D34, 0x5);
 
-        // if you need to make a lot of IPC requests at once(eg >50/16ms) it is
-        // recommended to build a batch message: you should build this message
-        // at the start of your thread once and keep the command/ret combo
-        // defined below to avoid wasting time recreating this IPC packet.
+        // if you need to make a lot of IPC requests at once(eg >50/frame @
+        // 60fps) it is recommended to build a batch message: you should build
+        // this message at the start of your thread once and keep the
+        // BatchCommand to avoid wasting time recreating this
+        // IPC packet.
+        //
+        // to create a batch IPC packet you need to initialize it, be sure to
+        // enable the batch command in templates(read the documentation, for
+        // Read it is Read<T, true>) and finalize it.
         ipc->InitializeBatch();
-        ipc->Write<uint8_t, true>(0x00347D34, 0xFF);
-        ipc->Write<uint8_t, true>(0x00347D33, 0xEF);
-        ipc->Write<uint8_t, true>(0x00347D32, 0xDF);
+        ipc->Write<u8, true>(0x00347D34, 0xFF);
+        ipc->Write<u8, true>(0x00347D33, 0xEF);
+        ipc->Write<u8, true>(0x00347D32, 0xDF);
         auto res = ipc->FinalizeBatch();
         // our batch ipc packet is now saved and ready to be used whenever! When
         // we need it we just fire up a SendCommand:
-        ipc->SendCommand(res.ipc_message, res.ipc_return);
+        ipc->SendCommand(res);
 
         // let's do it another time, but this time with Read, which returns
         // arguments!
         ipc->InitializeBatch();
-        ipc->Read<uint8_t, true>(0x00347D34);
-        ipc->Read<uint8_t, true>(0x00347D33);
-        ipc->Read<uint8_t, true>(0x00347D32);
+        ipc->Read<u8, true>(0x00347D34);
+        ipc->Read<u8, true>(0x00347D33);
+        ipc->Read<u8, true>(0x00347D32);
         auto resr = ipc->FinalizeBatch();
         // same as before
-        ipc->SendCommand(resr.ipc_message, resr.ipc_return);
+        ipc->SendCommand(resr);
 
-        // now this is a little bit more tricky, return_locations returned by
-        // FinalizeBatch tells us where the replies are stored in the return
-        // buffer, so let's save this value in the variable result, and try to
-        // get the reply of the third function, in our case Read(0x00347D32)
-        unsigned int result = resr.return_locations[2];
-
-        // and now let's use this location to get the reply from our return
-        // buffer! NB: you'll have to read the doc to verify what the return
-        // value of the command is and convert it accordingly, in our case
-        // Read<uint8_t> returns an uint8_t, so this isn't very hard :p
+        // now reading the return value is a little bit more tricky, you'll have
+        // to know the type of your function and the number it was executed in.
+        // For example, Read(0x00347D32) was our third function, and is a
+        // function of type MsgRead8, so we will do:
+        //   GetReply<MsgRead8>(resr, 2);
+        // 2 since arrays start at 0 in C++, so 3-1 = 2 and resr being our
+        // BatchCommand that we saved above!
+        // Refer to the documentation of IPCCommand to know all the possible
+        // function types
         printf("PCSX2Ipc::Read<uint8_t>(0x00347D32) :  %u\n",
-               ipc->FromArray<uint8_t>(resr.ipc_return.buffer, result));
+               ipc->GetReply<PCSX2Ipc::MsgRead8>(resr, 2));
     } catch (...) {
         // if the operation failed
         printf("ERROR!!!!!\n");

@@ -1,5 +1,5 @@
 all: format
-	$(CXX) -std=c++17 client.cpp -pthread -o client
+	$(CXX) -O3 -std=c++17 client.cpp -pthread -o client
 clean:
 	rm -rf client
 	rm -rf release
