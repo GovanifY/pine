@@ -1,7 +1,7 @@
 From f0e93d9edc93ce52425b18a34ceca33d7056c5b6 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sat, 8 Aug 2020 08:43:41 +0200
-Subject: [PATCH 01/33] some simple unix socket example
+Subject: [PATCH 01/35] some simple unix socket example
 
 ---
  pcsx2/IPC.cpp                  | 69 ++++++++++++++++++++++++++++++++++
@@ -119,7 +119,7 @@ index d69e5014a..fb6f390d3 100644
 From c528a27c8d8e4f9b0082f865fe59dcf9c907fedd Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sat, 8 Aug 2020 10:13:18 +0200
-Subject: [PATCH 02/33] SocketIPC implemented inside SysCoreThread,
+Subject: [PATCH 02/35] SocketIPC implemented inside SysCoreThread,
  initialization in constructor is probably useless, will have to check later.
  threading to implement in IPC.cpp
 
@@ -279,7 +279,7 @@ index 6ddf09fad..d94f5973f 100644
 From 0b6c3fceadace20130d836d4ccb694b1a1e9adc4 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sat, 8 Aug 2020 20:26:34 +0200
-Subject: [PATCH 03/33] working socketipc implem
+Subject: [PATCH 03/35] working socketipc implem
 
 ---
  pcsx2/CMakeLists.txt      |  2 ++
@@ -482,7 +482,7 @@ index d94f5973f..552d133cd 100644
 From 48b4498607b916dd83147db8a48048c55497ffb5 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 04:42:59 +0200
-Subject: [PATCH 04/33] good to test
+Subject: [PATCH 04/35] good to test
 
 ---
  pcsx2/IPC.cpp | 35 +++++++++++++++++++++++++++++++----
@@ -566,7 +566,7 @@ index afb2b2c38..4f239bfc7 100644
 From 79a9a4aaa04d54dd1df25230c5ba3764ed90735d Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 09:52:18 +0200
-Subject: [PATCH 05/33] SocketIPC: working implem
+Subject: [PATCH 05/35] SocketIPC: working implem
 
 ---
  pcsx2/IPC.cpp                  | 193 ++++++++++++++++++++++++---------
@@ -867,7 +867,7 @@ index 0760cf88e..d117f2769 100644
 From 902dbeb288dff0b96e171d7c8e200a59c3eb5e6a Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 10:30:45 +0200
-Subject: [PATCH 06/33] SocketIPC: correct implementation
+Subject: [PATCH 06/35] SocketIPC: correct implementation
 
 ---
  build.sh      |  2 +-
@@ -986,7 +986,7 @@ index ac26ab18e..66d3d3a4f 100644
 From 19406e4ef40eaf147941efd96552d9ad0bf73afd Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 18:18:53 +0200
-Subject: [PATCH 07/33] threading _mostly_ implemented, still need to find a
+Subject: [PATCH 07/35] threading _mostly_ implemented, still need to find a
  way to kill the thread
 
 ---
@@ -1133,7 +1133,7 @@ index 66d3d3a4f..26e9f0cf3 100644
 From b55ce1bd68feddf216fa0b16a3bfa7f2d82a4106 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 18:52:11 +0200
-Subject: [PATCH 08/33] well here we are
+Subject: [PATCH 08/35] well here we are
 
 ---
  pcsx2/IPC.cpp | 7 ++-----
@@ -1177,7 +1177,7 @@ index 0841351e2..07f0e8cc3 100644
 From 8b7ea980be5337ce969dd29158c7cf01d3c12917 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 04:05:55 +0200
-Subject: [PATCH 09/33] did i mention i hate windows
+Subject: [PATCH 09/35] did i mention i hate windows
 
 ---
  pcsx2/IPC.cpp                                 | 237 +++++++++++-------
@@ -1789,7 +1789,7 @@ index ab93bc2d0..f1add60a3 100644
 From 6a81ef3df69b01387463cc5d04792d6924cb4e5b Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 04:30:56 +0200
-Subject: [PATCH 10/33] cleanup
+Subject: [PATCH 10/35] cleanup
 
 ---
  build.sh | 2 +-
@@ -1815,7 +1815,7 @@ index 2c11fca48..15aedc7a7 100755
 From e671e69488ca717d963963c66ee6bbd0dd771c36 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 13:54:33 +0200
-Subject: [PATCH 11/33] threading that actually works + state cleanup
+Subject: [PATCH 11/35] threading that actually works + state cleanup
 
 ---
  pcsx2/IPC.cpp                  | 71 ++++++++++++++--------------------
@@ -2143,7 +2143,7 @@ index 7f8341768..cd509eb80 100644
 From f16d4d40b9a484b84451042af22a5d835533f083 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 14:58:23 +0200
-Subject: [PATCH 12/33] good looking code!
+Subject: [PATCH 12/35] good looking code!
 
 ---
  pcsx2/IPC.cpp | 104 ++++++++++++++++++++++++++------------------------
@@ -2372,7 +2372,7 @@ index 9ee3b5364..35ca147ae 100644
 From 0b72941acad704e5c123d064bd39e7ae716e1c0b Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 16:43:54 +0200
-Subject: [PATCH 13/33] copyright header + bugfix, next on the list is passing
+Subject: [PATCH 13/35] copyright header + bugfix, next on the list is passing
  the state of SysCore to SocketIPC
 
 ---
@@ -2457,7 +2457,7 @@ index cd509eb80..7f8341768 100644
 From 91e7055509057c6c0480e39389e8eede9fc58aa1 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 18:37:32 +0200
-Subject: [PATCH 14/33] safety checks in place and handle to main vm integrated
+Subject: [PATCH 14/35] safety checks in place and handle to main vm integrated
 
 ---
  pcsx2/IPC.cpp                  | 48 ++++++++++++++++++++--------------
@@ -2685,7 +2685,7 @@ index 552d133cd..5b4c7f90f 100644
 From dd86832d46916954c85524e5b74f7ea736e9e968 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 20:55:23 +0200
-Subject: [PATCH 15/33] TMP goodness
+Subject: [PATCH 15/35] TMP goodness
 
 ---
  pcsx2/IPC.cpp | 37 ++++---------------------------------
@@ -2798,7 +2798,7 @@ index 0b5f02191..abcebb8e6 100644
 From a4842e7e690acf15e4461592857cd37f02cb3c9f Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 21:11:20 +0200
-Subject: [PATCH 16/33] pre merge cleanup
+Subject: [PATCH 16/35] pre merge cleanup
 
 ---
  pcsx2/CMakeLists.txt           | 4 ++--
@@ -2925,7 +2925,7 @@ index 5b4c7f90f..e9c79a2b6 100644
 From f62ede2c6e00f53e227c33bf4038af733a0a1563 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 22:05:13 +0200
-Subject: [PATCH 17/33] more template fun
+Subject: [PATCH 17/35] more template fun
 
 ---
  pcsx2/IPC.cpp | 21 ++++++++++-----------
@@ -3094,7 +3094,7 @@ index 6cc5863e0..f37aa65d4 100644
 From 7b593fc9dc8482c750d2327738c1eec0369b1411 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 22:29:56 +0200
-Subject: [PATCH 18/33] new menu option, next step: find out how to link it to
+Subject: [PATCH 18/35] new menu option, next step: find out how to link it to
  SysCoreThread
 
 ---
@@ -3209,7 +3209,7 @@ index e8161a666..52f7be094 100644
 From 65ed90d296cf9a328cbabff9e72f72fb9596993e Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 23:22:33 +0200
-Subject: [PATCH 19/33] the setting is done
+Subject: [PATCH 19/35] the setting is done
 
 ---
  pcsx2/System/SysCoreThread.cpp | 6 ++++--
@@ -3265,7 +3265,7 @@ index e9c79a2b6..5d000539a 100644
 From 838287ef3e36331b80d9b7a59b0205716f3199ce Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 11:43:36 +0200
-Subject: [PATCH 20/33] clang-format
+Subject: [PATCH 20/35] clang-format
 
 ---
  pcsx2/IPC.cpp | 407 +++++++++++++++++++++++++++++---------------------
@@ -3894,7 +3894,7 @@ index f37aa65d4..0b513219e 100644
 From a0f5d15547926979a74fac3b85b58b8cc389edd4 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 11:48:17 +0200
-Subject: [PATCH 21/33] SysThread styling cleanup
+Subject: [PATCH 21/35] SysThread styling cleanup
 
 ---
  pcsx2/System/SysThreads.h | 13 +++++++------
@@ -3931,7 +3931,7 @@ index 5d000539a..56642ed51 100644
 From e3664ea782a524486fd93ce6a26d7fd13aaff098 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 11:50:17 +0200
-Subject: [PATCH 22/33] SysCoreThread restyling
+Subject: [PATCH 22/35] SysCoreThread restyling
 
 ---
  pcsx2/System/SysCoreThread.cpp | 9 +++++----
@@ -3964,7 +3964,7 @@ index 3a78e5828..5d1e34526 100644
 From 2413a12bc55ee2a631094376dd4e45cfa99345c4 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 11:51:49 +0200
-Subject: [PATCH 23/33] systhread additional cleanup
+Subject: [PATCH 23/35] systhread additional cleanup
 
 ---
  pcsx2/System/SysThreads.h | 4 ++--
@@ -3992,7 +3992,7 @@ index 56642ed51..790f47f37 100644
 From 45af6fb5686d34a58d874bf46fe86ef306d6b735 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 11:57:28 +0200
-Subject: [PATCH 24/33] one-line bracket inline
+Subject: [PATCH 24/35] one-line bracket inline
 
 ---
  pcsx2/IPC.cpp | 65 +++++++++++++--------------------------------------
@@ -4159,7 +4159,7 @@ index 0b513219e..5236c8bcf 100644
 From 1fef677ca47a26025690ab1ad1b15ee068d5778f Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 12:13:22 +0200
-Subject: [PATCH 25/33] bracketless if
+Subject: [PATCH 25/35] bracketless if
 
 ---
  pcsx2/IPC.cpp | 47 ++++++++++++++++++++++++-----------------------
@@ -4276,7 +4276,7 @@ index 64dfbeba2..3049a88d8 100644
 From 020ce3b57a4c8a066d7c7d378d8b88c9801e9f63 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 12:16:11 +0200
-Subject: [PATCH 26/33] implicit if
+Subject: [PATCH 26/35] implicit if
 
 ---
  pcsx2/IPC.cpp | 16 ++++++++--------
@@ -4365,7 +4365,7 @@ index 3049a88d8..00ed65932 100644
 From d15f90a321f3502938762bf71a081893132239d2 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 12:27:12 +0200
-Subject: [PATCH 27/33] clang-format and bracketless for
+Subject: [PATCH 27/35] clang-format and bracketless for
 
 ---
  pcsx2/IPC.h | 6 ++----
@@ -4404,7 +4404,7 @@ index 5236c8bcf..e9edc5ba7 100644
 From 69d41a53e2035377b60e3bdb1811c4fe169a263f Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Fri, 14 Aug 2020 23:13:35 +0200
-Subject: [PATCH 28/33] increase the possible socket queue
+Subject: [PATCH 28/35] increase the possible socket queue
 
 ---
  pcsx2/IPC.cpp | 4 ++--
@@ -4432,7 +4432,7 @@ index 00ed65932..7eecc062d 100644
 From b9ef45d7622f338b9eaf39a7ae78547503a13bba Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 16 Aug 2020 10:50:17 +0200
-Subject: [PATCH 29/33] IPC: optimized the array processing
+Subject: [PATCH 29/35] IPC: optimized the array processing
 
 ---
  pcsx2/IPC.h | 8 ++------
@@ -4471,7 +4471,7 @@ index e9edc5ba7..70a8c251b 100644
 From 5dce49bbe5371688924b162b72ca1fa5c6977ed2 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 16 Aug 2020 11:35:16 +0200
-Subject: [PATCH 30/33] IPC: even more optimization!
+Subject: [PATCH 30/35] IPC: even more optimization!
 
 ---
  pcsx2/IPC.cpp | 104 ++++++++++++++++++++++----------------------------
@@ -4730,7 +4730,7 @@ index 70a8c251b..1d095d866 100644
 From 26dcce22592e54d9330c1faeae07416b25726697 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 16 Aug 2020 11:55:04 +0200
-Subject: [PATCH 31/33] IPC: some readability changes
+Subject: [PATCH 31/35] IPC: some readability changes
 
 ---
  pcsx2/IPC.cpp | 19 +++++++------------
@@ -4797,7 +4797,7 @@ index f5c89ffad..366a62316 100644
 From d1f4ba451117c6beda0c685c1370f77114228496 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 16 Aug 2020 15:45:45 +0200
-Subject: [PATCH 32/33] IPC: performance + fix memory leak if we were to
+Subject: [PATCH 32/35] IPC: performance + fix memory leak if we were to
  restart an IPC thread
 
 ---
@@ -4868,7 +4868,7 @@ index 1d095d866..fba77683f 100644
 From 66c5033518294014d786689493c26d00027ce5fd Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 17 Aug 2020 16:29:16 +0200
-Subject: [PATCH 33/33] IPC: Implement batch command processing
+Subject: [PATCH 33/35] IPC: Implement batch command processing
 
 ---
  pcsx2/IPC.cpp | 157 +++++++++++++++++++++++++++-----------------------
@@ -5084,6 +5084,203 @@ index fba77683f..6f63f4157 100644
  	};
  
  	// possible result codes
+-- 
+2.25.4
+
+
+From c80c30e3cace0f45038379c84f218d750fc711ae Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Tue, 18 Aug 2020 06:26:01 +0200
+Subject: [PATCH 34/35] IPC: Better looking code and C++ idioms
+
+---
+ pcsx2/IPC.cpp | 18 +++++++++---------
+ pcsx2/IPC.h   | 15 +++++++++++++--
+ 2 files changed, 22 insertions(+), 11 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index ebcb31547..952befb22 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -110,8 +110,8 @@ void SocketIPC::ExecuteTaskInThread()
+ 	// MsgWrite64 replies, should be good enough even if we implement batch IPC
+ 	// processing. Coincidentally 650k is the size of 50k MsgWrite64 REQUESTS so
+ 	// we just allocate a 1mb buffer in the end, lul
+-	ret_buffer = (char*)malloc(450000 * sizeof(char));
+-	ipc_buffer = (char*)malloc(650000 * sizeof(char));
++	ret_buffer = new char[450000];
++	ipc_buffer = new char[650000];
+ 	while (true)
+ 	{
+ 		msgsock = accept(m_sock, 0, 0);
+@@ -128,7 +128,7 @@ void SocketIPC::ExecuteTaskInThread()
+ 			else
+ 			{
+ 				auto res = ParseCommand(ipc_buffer, ret_buffer);
+-				if (write_portable(msgsock, res.second, res.first) < 0)
++				if (write_portable(msgsock, res.buffer, res.size) < 0)
+ 				{
+ 					return;
+ 				}
+@@ -146,8 +146,8 @@ SocketIPC::~SocketIPC()
+ 	close(m_sock);
+ 	unlink(SOCKET_NAME);
+ #endif
+-	free(ret_buffer);
+-	free(ipc_buffer);
++	delete[] ret_buffer;
++	delete[] ipc_buffer;
+ 	// destroy the thread
+ 	try
+ 	{
+@@ -168,13 +168,13 @@ char* SocketIPC::MakeFailIPC(char* ret_buffer)
+ 	return ret_buffer;
+ }
+ 
+-std::pair<int, char*> SocketIPC::ParseCommand(char* buf, char* ret_buffer)
++SocketIPC::IPCBuffer SocketIPC::ParseCommand(char* buf, char* ret_buffer)
+ {
+ 	// currently all our instructions require a running VM so we check once
+ 	// here, will help perf when/if we implement multi-ipc processing in one
+ 	// socket roundtrip.
+ 	if (!m_vm->HasActiveMachine())
+-		return std::make_pair(1, MakeFailIPC(ret_buffer));
++		return IPCBuffer{1, MakeFailIPC(ret_buffer)};
+ 
+ 
+ 	u16 batch = 1;
+@@ -263,9 +263,9 @@ std::pair<int, char*> SocketIPC::ParseCommand(char* buf, char* ret_buffer)
+ 			}
+ 			default:
+ 			{
+-				return std::make_pair(1, MakeFailIPC(ret_buffer));
++				return IPCBuffer{1, MakeFailIPC(ret_buffer)};
+ 			}
+ 		}
+ 	}
+-	return std::make_pair(ret_cnt, MakeOkIPC(ret_buffer));
++	return IPCBuffer{(int)ret_cnt, MakeOkIPC(ret_buffer)};
+ }
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index 6f63f4157..e5eee1e2b 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -69,6 +69,17 @@ protected:
+ 		MsgMultiCommand = 0xFF /**< Treats multiple IPC commands in batch. */
+ 	};
+ 
++
++	/**
++     * IPC message buffer. 
++     * A list of all needed fields to store an IPC message.
++     */
++	struct IPCBuffer
++	{
++		int size;     /**< Size of the buffer. */
++		char* buffer; /**< Buffer. */
++	};
++
+ 	// possible result codes
+ 	enum IPCResult
+ 	{
+@@ -85,9 +96,9 @@ protected:
+ 	/* Internal function, Parses an IPC command.
+          * buf: buffer containing the IPC command.
+          * ret_buffer: buffer that will be used to send the reply.
+-         * return value: pair containing a buffer with the result 
++         * return value: IPCBuffer containing a buffer with the result 
+          *               of the command and its size. */
+-	std::pair<int, char*> ParseCommand(char* buf, char* ret_buffer);
++	IPCBuffer ParseCommand(char* buf, char* ret_buffer);
+ 
+ 	/* Formats an IPC buffer
+          * ret_buffer: return buffer to use. 
+-- 
+2.25.4
+
+
+From a506a7cc2d8050152ca9ada0758487a9f29e42a8 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Tue, 18 Aug 2020 06:50:21 +0200
+Subject: [PATCH 35/35] IPC: adhere to PCSX2 naming convention of field members
+
+---
+ pcsx2/IPC.cpp | 12 ++++++------
+ pcsx2/IPC.h   | 11 +++--------
+ 2 files changed, 9 insertions(+), 14 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 952befb22..166b3b0bf 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -110,8 +110,8 @@ void SocketIPC::ExecuteTaskInThread()
+ 	// MsgWrite64 replies, should be good enough even if we implement batch IPC
+ 	// processing. Coincidentally 650k is the size of 50k MsgWrite64 REQUESTS so
+ 	// we just allocate a 1mb buffer in the end, lul
+-	ret_buffer = new char[450000];
+-	ipc_buffer = new char[650000];
++	m_ret_buffer = new char[450000];
++	m_ipc_buffer = new char[650000];
+ 	while (true)
+ 	{
+ 		msgsock = accept(m_sock, 0, 0);
+@@ -121,13 +121,13 @@ void SocketIPC::ExecuteTaskInThread()
+ 		}
+ 		else
+ 		{
+-			if (read_portable(msgsock, ipc_buffer, 650000) < 0)
++			if (read_portable(msgsock, m_ipc_buffer, 650000) < 0)
+ 			{
+ 				return;
+ 			}
+ 			else
+ 			{
+-				auto res = ParseCommand(ipc_buffer, ret_buffer);
++				auto res = ParseCommand(m_ipc_buffer, m_ret_buffer);
+ 				if (write_portable(msgsock, res.buffer, res.size) < 0)
+ 				{
+ 					return;
+@@ -146,8 +146,8 @@ SocketIPC::~SocketIPC()
+ 	close(m_sock);
+ 	unlink(SOCKET_NAME);
+ #endif
+-	delete[] ret_buffer;
+-	delete[] ipc_buffer;
++	delete[] m_ret_buffer;
++	delete[] m_ipc_buffer;
+ 	// destroy the thread
+ 	try
+ 	{
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index e5eee1e2b..e8c44cf80 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -33,22 +33,17 @@ protected:
+ 	// windows claim to have support for AF_UNIX sockets but that is a blatant lie,
+ 	// their SDK won't even run their own examples, so we go on TCP sockets.
+ #define PORT 28011
++	SOCKET m_sock = INVALID_SOCKET;
+ #else
+ 	// absolute path of the socket. Stored in the temporary directory in linux since
+ 	// /run requires superuser permission
+ 	const char* SOCKET_NAME = "/tmp/pcsx2.sock";
+-#endif
+-
+-	// socket handlers
+-#ifdef _WIN32
+-	SOCKET m_sock = INVALID_SOCKET;
+-#else
+ 	int m_sock = 0;
+ #endif
+ 
+ 	// buffers that store the ipc request and reply messages.
+-	char* ret_buffer;
+-	char* ipc_buffer;
++	char* m_ret_buffer;
++	char* m_ipc_buffer;
+ 
+ 	/**
+      * IPC Command messages opcodes.  
 -- 
 2.25.4
 
