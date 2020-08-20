@@ -67,6 +67,7 @@ class PCSX2Ipc {
 
     /**
      * Maximum memory used by an IPC message request.
+     * Equivalent to 50,000 Write64 requests.
      * @see MAX_IPC_RETURN_SIZE
      * @see MAX_BATCH_REPLY_COUNT
      */
@@ -74,6 +75,7 @@ class PCSX2Ipc {
 
     /**
      * Maximum memory used by an IPC message reply.
+     * Equivalent to 50,000 Read64 replies.
      * @see MAX_IPC_SIZE
      * @see MAX_BATCH_REPLY_COUNT
      */
@@ -88,8 +90,7 @@ class PCSX2Ipc {
 
     /**
      * IPC return buffer. @n
-     * A preallocated buffer used to store all IPC replies. Currently allocated
-     * to the size of 50.000 MsgWrite64 IPC calls. @n
+     * A preallocated buffer used to store all IPC replies.
      * @see ipc_buffer
      * @see MAX_IPC_RETURN_SIZE
      */
@@ -97,8 +98,7 @@ class PCSX2Ipc {
 
     /**
      * IPC messages buffer. @n
-     * A preallocated buffer used to store all IPC messages. Currently allocated
-     * to the size of 50.000 MsgWrite64 IPC calls. @n
+     * A preallocated buffer used to store all IPC messages.
      * @see ret_buffer
      * @see MAX_IPC_SIZE
      */
@@ -201,6 +201,7 @@ class PCSX2Ipc {
     auto BatchSafetyChecks() -> void {
         // we do not really care about wasting cycles when building batch
         // packets, so let's just do sanity checks for the sake of it.
+        // TODO: go back when clang has implemented C++20 [[unlikely]]
         if (batch_len >= MAX_IPC_SIZE || reply_len >= MAX_IPC_RETURN_SIZE ||
             arg_cnt >= MAX_BATCH_REPLY_COUNT)
             throw OutOfMemory;
