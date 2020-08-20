@@ -197,13 +197,16 @@ class PCSX2Ipc {
 
     /**
      * Ensures a batch IPC message isn't too big.
+     * @param command_size Additional size required for the message.
+     * @param reply_size Additional size required for the reply.
      */
-    auto BatchSafetyChecks() -> void {
+    auto BatchSafetyChecks(int command_size, int reply_size = 0) -> void {
         // we do not really care about wasting cycles when building batch
         // packets, so let's just do sanity checks for the sake of it.
         // TODO: go back when clang has implemented C++20 [[unlikely]]
-        if (batch_len >= MAX_IPC_SIZE || reply_len >= MAX_IPC_RETURN_SIZE ||
-            arg_cnt >= MAX_BATCH_REPLY_COUNT)
+        if ((batch_len + command_size) >= MAX_IPC_SIZE ||
+            (reply_len + reply_size) >= MAX_IPC_RETURN_SIZE ||
+            arg_cnt + 1 >= MAX_BATCH_REPLY_COUNT)
             throw OutOfMemory;
     }
 
@@ -497,7 +500,7 @@ class PCSX2Ipc {
 
         // batch mode
         if constexpr (T) {
-            BatchSafetyChecks();
+            BatchSafetyChecks(5, sizeof(Y));
             char *cmd = FormatBeginning(&ipc_buffer[batch_len], address, tag);
             batch_len += 5;
             batch_arg_place[arg_cnt] = reply_len;
@@ -548,7 +551,7 @@ class PCSX2Ipc {
 
         // batch mode
         if constexpr (T) {
-            BatchSafetyChecks();
+            BatchSafetyChecks(5 + sizeof(Y));
             char *cmd = ToArray<Y>(
                 FormatBeginning(&ipc_buffer[batch_len], address, tag), value,
                 5);
