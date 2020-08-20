@@ -66,14 +66,32 @@ class PCSX2Ipc {
 #endif
 
     /**
+     * Maximum memory used by an IPC message request.
+     * @see MAX_IPC_RETURN_SIZE
+     * @see MAX_BATCH_REPLY_COUNT
+     */
+    const unsigned int MAX_IPC_SIZE = 650000;
+
+    /**
+     * Maximum memory used by an IPC message reply.
+     * @see MAX_IPC_SIZE
+     * @see MAX_BATCH_REPLY_COUNT
+     */
+    const unsigned int MAX_IPC_RETURN_SIZE = 450000;
+
+    /**
+     * Maximum number of commands sent in a batch message.
+     * @see MAX_IPC_RETURN_SIZE
+     * @see MAX_IPC_SIZE
+     */
+    const unsigned int MAX_BATCH_REPLY_COUNT = 50000;
+
+    /**
      * IPC return buffer. @n
      * A preallocated buffer used to store all IPC replies. Currently allocated
      * to the size of 50.000 MsgWrite64 IPC calls. @n
-     * WARNING: No checks are executed client or server-side about the size of
-     * this buffer, to ensure a fast implementation. @n
-     * It is assumed you're not an absolutely insane person and you
-     * won't try to send in batch more than 50k IPC calls in a single batch.
      * @see ipc_buffer
+     * @see MAX_IPC_RETURN_SIZE
      */
     char *ret_buffer;
 
@@ -81,11 +99,8 @@ class PCSX2Ipc {
      * IPC messages buffer. @n
      * A preallocated buffer used to store all IPC messages. Currently allocated
      * to the size of 50.000 MsgWrite64 IPC calls. @n
-     * WARNING: No checks are executed client or server-side about the size of
-     * this buffer, to ensure a fast implementation. @n
-     * It is assumed you're not an absolutely insane person and you
-     * won't try to send in batch more than 50k IPC calls in a single batch.
      * @see ret_buffer
+     * @see MAX_IPC_SIZE
      */
     char *ipc_buffer;
 
@@ -94,6 +109,7 @@ class PCSX2Ipc {
      * This is used when chaining multiple IPC commands in one go by using
      * MsgMultiCommand to store the length of the entire IPC message.
      * @see IPCCommand
+     * @see MAX_IPC_SIZE
      */
     uint16_t batch_len = 0;
 
@@ -102,6 +118,7 @@ class PCSX2Ipc {
      * This is used when chaining multiple IPC commands in one go by using
      * MsgMultiCommand to store the length of the reply of the IPC message.
      * @see IPCCommand
+     * @see MAX_IPC_RETURN_SIZE
      */
     unsigned int reply_len = 0;
 
@@ -110,6 +127,7 @@ class PCSX2Ipc {
      * This is used when chaining multiple IPC commands in one go by using
      * MsgMultiCommand to store the number of IPC messages chained together.
      * @see IPCCommand
+     * @see MAX_BATCH_REPLY_COUNT
      */
     unsigned int arg_cnt = 0;
 
@@ -120,6 +138,7 @@ class PCSX2Ipc {
      * sent by FinalizeBatch.
      * @see FinalizeBatch
      * @see IPCCommand
+     * @see MAX_BATCH_REPLY_COUNT
      */
     unsigned int *batch_arg_place;
 
@@ -147,7 +166,7 @@ class PCSX2Ipc {
      * Each one of them is what we call an "opcode" or "tag" and is the
      * first byte sent by the IPC to differentiate between results.
      */
-    enum IPCResult {
+    enum IPCResult : unsigned char {
         IPC_OK = 0,     /**< IPC command successfully completed. */
         IPC_FAIL = 0xFF /**< IPC command failed to complete. */
     };
@@ -176,6 +195,17 @@ class PCSX2Ipc {
         return *(T *)(arr + i);
     }
 
+    /**
+     * Ensures a batch IPC message isn't too big.
+     */
+    auto BatchSafetyChecks() -> void {
+        // we do not really care about wasting cycles when building batch
+        // packets, so let's just do sanity checks for the sake of it.
+        if (batch_len >= MAX_IPC_SIZE || reply_len >= MAX_IPC_RETURN_SIZE ||
+            arg_cnt >= MAX_BATCH_REPLY_COUNT)
+            throw OutOfMemory;
+    }
+
   public:
     /**
      * IPC Command messages opcodes. @n
@@ -183,7 +213,7 @@ class PCSX2Ipc {
      * Each one of them is what we call an "opcode" and is the first
      * byte sent by the IPC to differentiate between commands.
      */
-    enum IPCCommand {
+    enum IPCCommand : unsigned char {
         MsgRead8 = 0,          /**< Read 8 bit value to memory. */
         MsgRead16 = 1,         /**< Read 16 bit value to memory. */
         MsgRead32 = 2,         /**< Read 32 bit value to memory. */
@@ -251,9 +281,11 @@ class PCSX2Ipc {
      * on the state of the result of an IPC command.
      */
     enum IPCStatus {
-        Fail,    /**< IPC command failed to execute. */
-        Success, /**< IPC command successfully completed. */
-        Unknown  /**< Unknown if the command completed successfully or not. */
+        Fail,          /**< IPC command failed to execute. */
+        Success,       /**< IPC command successfully completed. */
+        OutOfMemory,   /**< IPC command too big to send. */
+        Unimplemented, /**< Unimplemented IPC command. */
+        Unknown /**< Unknown if the command completed successfully or not. */
     };
 
     /**
@@ -288,7 +320,7 @@ class PCSX2Ipc {
         else if constexpr (T == MsgRead64)
             return FromArray<uint64_t>(buf, loc);
         else
-            throw Fail;
+            throw Unimplemented;
     }
 
     /**
@@ -360,7 +392,7 @@ class PCSX2Ipc {
         }
         close(sock);
 
-        if (ret.buffer[0] == (char)IPC_FAIL) {
+        if ((unsigned char)ret.buffer[0] == IPC_FAIL) {
             throw Fail;
         }
     }
@@ -458,12 +490,13 @@ class PCSX2Ipc {
                 case 8:
                     return MsgRead64;
                 default:
-                    throw Fail;
+                    throw Unimplemented;
             }
         }();
 
         // batch mode
         if constexpr (T) {
+            BatchSafetyChecks();
             char *cmd = FormatBeginning(&ipc_buffer[batch_len], address, tag);
             batch_len += 5;
             batch_arg_place[arg_cnt] = reply_len;
@@ -508,12 +541,13 @@ class PCSX2Ipc {
                 case 8:
                     return MsgWrite64;
                 default:
-                    throw Fail;
+                    throw Unimplemented;
             }
         }();
 
         // batch mode
         if constexpr (T) {
+            BatchSafetyChecks();
             char *cmd = ToArray<Y>(
                 FormatBeginning(&ipc_buffer[batch_len], address, tag), value,
                 5);
@@ -540,14 +574,11 @@ class PCSX2Ipc {
         WSADATA wsa;
         WSAStartup(MAKEWORD(2, 2), &wsa);
 #endif
-        // for the sake of speed we malloc once a return buffer and reuse it by
-        // just cropping its size when needed, it is 450k long which is the size
-        // of 50k MsgWrite64 replies, should be good enough even if we implement
-        // batch IPC processing. Coincidentally 650k is the size of 50k
-        // MsgWrite64 REQUESTS so we just allocate a 1mb buffer in the end, lul
-        ret_buffer = new char[450000];
-        ipc_buffer = new char[650000];
-        batch_arg_place = new unsigned int[50000];
+        // we allocate once buffers to not have to do mallocs for each IPC
+        // request, as malloc is expansive when we optimize for µs.
+        ret_buffer = new char[MAX_IPC_RETURN_SIZE];
+        ipc_buffer = new char[MAX_IPC_SIZE];
+        batch_arg_place = new unsigned int[MAX_BATCH_REPLY_COUNT];
     }
 
     /**
