@@ -23,6 +23,8 @@ maybe later:
 other ideas:  
 * input
 * renderer hooks
+* stored procedures for even faster batch processing?
+* MsgReadXX < for bigger blocks
 
 
 
