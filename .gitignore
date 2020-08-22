@@ -8,3 +8,5 @@ release.zip
 *.so
 *.dll
 build/
+bin/
+obj/
