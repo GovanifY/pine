@@ -518,6 +518,7 @@ class PCSX2Ipc {
      * @see GetReply
      * @param address The address to read.
      * @param T Flag to enable batch processing or not.
+     * @param Y The type of the variable to read (eg uint8_t).
      * @return The value read in memory. If in batch mode the IPC message.
      */
     template <typename Y, bool T = false>
@@ -576,6 +577,7 @@ class PCSX2Ipc {
      * @param address The address to write to.
      * @param value The value to write.
      * @param T Flag to enable batch processing or not.
+     * @param Y The type of the variable to write (eg uint8_t).
      * @return If in batch mode the IPC message otherwise void.
      */
     template <typename Y, bool T = false>

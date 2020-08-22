@@ -15,4 +15,6 @@ cp -rf latex/refman.pdf release/docs
 find release -type d -name build -prune -exec rm -rf {} \;
 find release -type d -name bin -prune -exec rm -rf {} \;
 find release -type d -name obj -prune -exec rm -rf {} \;
+find release -type d -name libpcsx2_ipc_c.so -prune -exec rm -rf {} \;
+find release -type d -name target -prune -exec rm -rf {} \;
 zip -r release.zip release

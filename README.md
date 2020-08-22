@@ -1,33 +1,27 @@
-PCSX2 IPC Client Example
+PCSX2 IPC Client-Side Reference API
 ======
 You'll find [here](https://code.govanify.com/govanify/pcsx2_ipc/)
-the reference implementation of PCSX2 IPC Socket client-side C++ API.    
+the reference implementation of PCSX2 IPC Socket client-side C++ API, along with
+different language bindings and examples.    
 
-Here is a list of files included in this repository:
+A small C++ client example is provided along with the API. It can be compiled
+by executing the command `meson build && cd build && ninja` in the folder
+"example" that is included in the releases.  
 
-
-* .clang-format: A syntax formatting definition for this project files.  
-* .gitignore: A file to avoid commiting unnecessary files.  
-* Doxyfile: Doxygen configuration to automatically generate our documentation.  
-* meson.build: The file that is used to define how to build the
-  program.  
-* README.md: Take a wild guess.  
-* windows\_qt.pro: A Qt build definition file. Useful if you want to compile
-  this example on Windows with Qt Creator.  
-* bindings/: A folder containing bindings for multiple popular languages.
-
-
-A small client example is provided along with the API. It can be compiled on
-by using the command `meson build && cd build && ninja`. Please
-refer to [meson documentation](https://mesonbuild.com/Using-with-Visual-Studio.html) if you want
-to use another generator, say, Visual Studio, instead of ninja.  
+Meson and ninja ARE portable across OSes as-is and shouldn't require any tinkering. Please
+refer to [the meson documentation](https://mesonbuild.com/Using-with-Visual-Studio.html) 
+if you really want to use another generator, say, Visual Studio, instead of ninja.   
 Alternatively, loading the "windows-qt.pro" on Windows with Qt Creator will work just fine if you're lazy.  
-Once it builds just hack on it and make whatever you want!   
 If you dislike C++
 [bindings in popular languages are
 available](https://code.govanify.com/govanify/pcsx2_ipc/src/branch/master/bindings/).
 
-On Doxygen you can find the documentation of the API [here](@ref PCSX2Ipc).  
+On Doxygen you can find the documentation of the C++ API [here](@ref PCSX2Ipc).  
+The C API is documented [here](@ref bindings/c/c_ffi.h) and is probably what you
+want to read if you use language bindings.
+
+Language bindings will require you to compile the C bindings library for the OS
+you target. Please refer to `binding/c` documentation for building it.
 
 Have fun!  
 -Gauvain "GovanifY" Roussel-Tarbouriech, 2020
