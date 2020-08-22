@@ -15,6 +15,8 @@ pkgs.mkShell {
     pkgs.dotnet-sdk_3
     pkgs.pythonPackages.pip
     pkgs.cargo
+    pkgs.rustc
+    pkgs.luajit
   ];
     # clang is pretty nice
     shellHook = ''
