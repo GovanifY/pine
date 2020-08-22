@@ -29,7 +29,6 @@ namespace csharp
         [DllImport(libipc)]
         static extern UInt32 GetError(IntPtr v);
 
-
         static void Main(string[] args)
         {
             // we get our ipc object
@@ -40,6 +39,9 @@ namespace csharp
 
             // we check for errors
             Console.WriteLine("Error (if any): {0}", GetError(ipc));
+
+            // we delete the object and free the resources
+            deletePCSX2Ipc(ipc);
 
             // for more infos check out the C bindings documentation :D !
         }

@@ -10,3 +10,5 @@ release.zip
 build/
 bin/
 obj/
+target/
+Cargo.lock

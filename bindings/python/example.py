@@ -27,5 +27,7 @@ print(libipc.Read(ipc, 0x00347D34, 0, False))
 # we check for errors
 print("Error (if any): " + str(libipc.GetError(ipc)))
 
+# we delete the object and free the resources
+libipc.deletePCSX2Ipc(ipc)
 
 # for more infos check out the C bindings documentation :D !

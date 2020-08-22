@@ -14,9 +14,11 @@ pkgs.mkShell {
     newunicodechar etoc; })
     pkgs.dotnet-sdk_3
     pkgs.pythonPackages.pip
+    pkgs.cargo
   ];
     # clang is pretty nice
     shellHook = ''
       export CXX="clang++"
+      export CARGO_HOME=$HOME/.cache/cargo
     '';
 }
