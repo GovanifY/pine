@@ -1,7 +1,7 @@
 From f0e93d9edc93ce52425b18a34ceca33d7056c5b6 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sat, 8 Aug 2020 08:43:41 +0200
-Subject: [PATCH 01/35] some simple unix socket example
+Subject: [PATCH 01/38] some simple unix socket example
 
 ---
  pcsx2/IPC.cpp                  | 69 ++++++++++++++++++++++++++++++++++
@@ -119,7 +119,7 @@ index d69e5014a..fb6f390d3 100644
 From c528a27c8d8e4f9b0082f865fe59dcf9c907fedd Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sat, 8 Aug 2020 10:13:18 +0200
-Subject: [PATCH 02/35] SocketIPC implemented inside SysCoreThread,
+Subject: [PATCH 02/38] SocketIPC implemented inside SysCoreThread,
  initialization in constructor is probably useless, will have to check later.
  threading to implement in IPC.cpp
 
@@ -279,7 +279,7 @@ index 6ddf09fad..d94f5973f 100644
 From 0b6c3fceadace20130d836d4ccb694b1a1e9adc4 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sat, 8 Aug 2020 20:26:34 +0200
-Subject: [PATCH 03/35] working socketipc implem
+Subject: [PATCH 03/38] working socketipc implem
 
 ---
  pcsx2/CMakeLists.txt      |  2 ++
@@ -482,7 +482,7 @@ index d94f5973f..552d133cd 100644
 From 48b4498607b916dd83147db8a48048c55497ffb5 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 04:42:59 +0200
-Subject: [PATCH 04/35] good to test
+Subject: [PATCH 04/38] good to test
 
 ---
  pcsx2/IPC.cpp | 35 +++++++++++++++++++++++++++++++----
@@ -566,7 +566,7 @@ index afb2b2c38..4f239bfc7 100644
 From 79a9a4aaa04d54dd1df25230c5ba3764ed90735d Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 09:52:18 +0200
-Subject: [PATCH 05/35] SocketIPC: working implem
+Subject: [PATCH 05/38] SocketIPC: working implem
 
 ---
  pcsx2/IPC.cpp                  | 193 ++++++++++++++++++++++++---------
@@ -867,7 +867,7 @@ index 0760cf88e..d117f2769 100644
 From 902dbeb288dff0b96e171d7c8e200a59c3eb5e6a Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 10:30:45 +0200
-Subject: [PATCH 06/35] SocketIPC: correct implementation
+Subject: [PATCH 06/38] SocketIPC: correct implementation
 
 ---
  build.sh      |  2 +-
@@ -986,7 +986,7 @@ index ac26ab18e..66d3d3a4f 100644
 From 19406e4ef40eaf147941efd96552d9ad0bf73afd Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 18:18:53 +0200
-Subject: [PATCH 07/35] threading _mostly_ implemented, still need to find a
+Subject: [PATCH 07/38] threading _mostly_ implemented, still need to find a
  way to kill the thread
 
 ---
@@ -1133,7 +1133,7 @@ index 66d3d3a4f..26e9f0cf3 100644
 From b55ce1bd68feddf216fa0b16a3bfa7f2d82a4106 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 9 Aug 2020 18:52:11 +0200
-Subject: [PATCH 08/35] well here we are
+Subject: [PATCH 08/38] well here we are
 
 ---
  pcsx2/IPC.cpp | 7 ++-----
@@ -1177,7 +1177,7 @@ index 0841351e2..07f0e8cc3 100644
 From 8b7ea980be5337ce969dd29158c7cf01d3c12917 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 04:05:55 +0200
-Subject: [PATCH 09/35] did i mention i hate windows
+Subject: [PATCH 09/38] did i mention i hate windows
 
 ---
  pcsx2/IPC.cpp                                 | 237 +++++++++++-------
@@ -1789,7 +1789,7 @@ index ab93bc2d0..f1add60a3 100644
 From 6a81ef3df69b01387463cc5d04792d6924cb4e5b Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 04:30:56 +0200
-Subject: [PATCH 10/35] cleanup
+Subject: [PATCH 10/38] cleanup
 
 ---
  build.sh | 2 +-
@@ -1815,7 +1815,7 @@ index 2c11fca48..15aedc7a7 100755
 From e671e69488ca717d963963c66ee6bbd0dd771c36 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 13:54:33 +0200
-Subject: [PATCH 11/35] threading that actually works + state cleanup
+Subject: [PATCH 11/38] threading that actually works + state cleanup
 
 ---
  pcsx2/IPC.cpp                  | 71 ++++++++++++++--------------------
@@ -2143,7 +2143,7 @@ index 7f8341768..cd509eb80 100644
 From f16d4d40b9a484b84451042af22a5d835533f083 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 14:58:23 +0200
-Subject: [PATCH 12/35] good looking code!
+Subject: [PATCH 12/38] good looking code!
 
 ---
  pcsx2/IPC.cpp | 104 ++++++++++++++++++++++++++------------------------
@@ -2372,7 +2372,7 @@ index 9ee3b5364..35ca147ae 100644
 From 0b72941acad704e5c123d064bd39e7ae716e1c0b Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 16:43:54 +0200
-Subject: [PATCH 13/35] copyright header + bugfix, next on the list is passing
+Subject: [PATCH 13/38] copyright header + bugfix, next on the list is passing
  the state of SysCore to SocketIPC
 
 ---
@@ -2457,7 +2457,7 @@ index cd509eb80..7f8341768 100644
 From 91e7055509057c6c0480e39389e8eede9fc58aa1 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 18:37:32 +0200
-Subject: [PATCH 14/35] safety checks in place and handle to main vm integrated
+Subject: [PATCH 14/38] safety checks in place and handle to main vm integrated
 
 ---
  pcsx2/IPC.cpp                  | 48 ++++++++++++++++++++--------------
@@ -2685,7 +2685,7 @@ index 552d133cd..5b4c7f90f 100644
 From dd86832d46916954c85524e5b74f7ea736e9e968 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 20:55:23 +0200
-Subject: [PATCH 15/35] TMP goodness
+Subject: [PATCH 15/38] TMP goodness
 
 ---
  pcsx2/IPC.cpp | 37 ++++---------------------------------
@@ -2798,7 +2798,7 @@ index 0b5f02191..abcebb8e6 100644
 From a4842e7e690acf15e4461592857cd37f02cb3c9f Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 21:11:20 +0200
-Subject: [PATCH 16/35] pre merge cleanup
+Subject: [PATCH 16/38] pre merge cleanup
 
 ---
  pcsx2/CMakeLists.txt           | 4 ++--
@@ -2925,7 +2925,7 @@ index 5b4c7f90f..e9c79a2b6 100644
 From f62ede2c6e00f53e227c33bf4038af733a0a1563 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 22:05:13 +0200
-Subject: [PATCH 17/35] more template fun
+Subject: [PATCH 17/38] more template fun
 
 ---
  pcsx2/IPC.cpp | 21 ++++++++++-----------
@@ -3094,7 +3094,7 @@ index 6cc5863e0..f37aa65d4 100644
 From 7b593fc9dc8482c750d2327738c1eec0369b1411 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 22:29:56 +0200
-Subject: [PATCH 18/35] new menu option, next step: find out how to link it to
+Subject: [PATCH 18/38] new menu option, next step: find out how to link it to
  SysCoreThread
 
 ---
@@ -3209,7 +3209,7 @@ index e8161a666..52f7be094 100644
 From 65ed90d296cf9a328cbabff9e72f72fb9596993e Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 10 Aug 2020 23:22:33 +0200
-Subject: [PATCH 19/35] the setting is done
+Subject: [PATCH 19/38] the setting is done
 
 ---
  pcsx2/System/SysCoreThread.cpp | 6 ++++--
@@ -3265,7 +3265,7 @@ index e9c79a2b6..5d000539a 100644
 From 838287ef3e36331b80d9b7a59b0205716f3199ce Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 11:43:36 +0200
-Subject: [PATCH 20/35] clang-format
+Subject: [PATCH 20/38] clang-format
 
 ---
  pcsx2/IPC.cpp | 407 +++++++++++++++++++++++++++++---------------------
@@ -3894,7 +3894,7 @@ index f37aa65d4..0b513219e 100644
 From a0f5d15547926979a74fac3b85b58b8cc389edd4 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 11:48:17 +0200
-Subject: [PATCH 21/35] SysThread styling cleanup
+Subject: [PATCH 21/38] SysThread styling cleanup
 
 ---
  pcsx2/System/SysThreads.h | 13 +++++++------
@@ -3931,7 +3931,7 @@ index 5d000539a..56642ed51 100644
 From e3664ea782a524486fd93ce6a26d7fd13aaff098 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 11:50:17 +0200
-Subject: [PATCH 22/35] SysCoreThread restyling
+Subject: [PATCH 22/38] SysCoreThread restyling
 
 ---
  pcsx2/System/SysCoreThread.cpp | 9 +++++----
@@ -3964,7 +3964,7 @@ index 3a78e5828..5d1e34526 100644
 From 2413a12bc55ee2a631094376dd4e45cfa99345c4 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 11:51:49 +0200
-Subject: [PATCH 23/35] systhread additional cleanup
+Subject: [PATCH 23/38] systhread additional cleanup
 
 ---
  pcsx2/System/SysThreads.h | 4 ++--
@@ -3992,7 +3992,7 @@ index 56642ed51..790f47f37 100644
 From 45af6fb5686d34a58d874bf46fe86ef306d6b735 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 11:57:28 +0200
-Subject: [PATCH 24/35] one-line bracket inline
+Subject: [PATCH 24/38] one-line bracket inline
 
 ---
  pcsx2/IPC.cpp | 65 +++++++++++++--------------------------------------
@@ -4159,7 +4159,7 @@ index 0b513219e..5236c8bcf 100644
 From 1fef677ca47a26025690ab1ad1b15ee068d5778f Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 12:13:22 +0200
-Subject: [PATCH 25/35] bracketless if
+Subject: [PATCH 25/38] bracketless if
 
 ---
  pcsx2/IPC.cpp | 47 ++++++++++++++++++++++++-----------------------
@@ -4276,7 +4276,7 @@ index 64dfbeba2..3049a88d8 100644
 From 020ce3b57a4c8a066d7c7d378d8b88c9801e9f63 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 12:16:11 +0200
-Subject: [PATCH 26/35] implicit if
+Subject: [PATCH 26/38] implicit if
 
 ---
  pcsx2/IPC.cpp | 16 ++++++++--------
@@ -4365,7 +4365,7 @@ index 3049a88d8..00ed65932 100644
 From d15f90a321f3502938762bf71a081893132239d2 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 11 Aug 2020 12:27:12 +0200
-Subject: [PATCH 27/35] clang-format and bracketless for
+Subject: [PATCH 27/38] clang-format and bracketless for
 
 ---
  pcsx2/IPC.h | 6 ++----
@@ -4404,7 +4404,7 @@ index 5236c8bcf..e9edc5ba7 100644
 From 69d41a53e2035377b60e3bdb1811c4fe169a263f Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Fri, 14 Aug 2020 23:13:35 +0200
-Subject: [PATCH 28/35] increase the possible socket queue
+Subject: [PATCH 28/38] increase the possible socket queue
 
 ---
  pcsx2/IPC.cpp | 4 ++--
@@ -4432,7 +4432,7 @@ index 00ed65932..7eecc062d 100644
 From b9ef45d7622f338b9eaf39a7ae78547503a13bba Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 16 Aug 2020 10:50:17 +0200
-Subject: [PATCH 29/35] IPC: optimized the array processing
+Subject: [PATCH 29/38] IPC: optimized the array processing
 
 ---
  pcsx2/IPC.h | 8 ++------
@@ -4471,7 +4471,7 @@ index e9edc5ba7..70a8c251b 100644
 From 5dce49bbe5371688924b162b72ca1fa5c6977ed2 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 16 Aug 2020 11:35:16 +0200
-Subject: [PATCH 30/35] IPC: even more optimization!
+Subject: [PATCH 30/38] IPC: even more optimization!
 
 ---
  pcsx2/IPC.cpp | 104 ++++++++++++++++++++++----------------------------
@@ -4730,7 +4730,7 @@ index 70a8c251b..1d095d866 100644
 From 26dcce22592e54d9330c1faeae07416b25726697 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 16 Aug 2020 11:55:04 +0200
-Subject: [PATCH 31/35] IPC: some readability changes
+Subject: [PATCH 31/38] IPC: some readability changes
 
 ---
  pcsx2/IPC.cpp | 19 +++++++------------
@@ -4797,7 +4797,7 @@ index f5c89ffad..366a62316 100644
 From d1f4ba451117c6beda0c685c1370f77114228496 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Sun, 16 Aug 2020 15:45:45 +0200
-Subject: [PATCH 32/35] IPC: performance + fix memory leak if we were to
+Subject: [PATCH 32/38] IPC: performance + fix memory leak if we were to
  restart an IPC thread
 
 ---
@@ -4868,7 +4868,7 @@ index 1d095d866..fba77683f 100644
 From 66c5033518294014d786689493c26d00027ce5fd Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Mon, 17 Aug 2020 16:29:16 +0200
-Subject: [PATCH 33/35] IPC: Implement batch command processing
+Subject: [PATCH 33/38] IPC: Implement batch command processing
 
 ---
  pcsx2/IPC.cpp | 157 +++++++++++++++++++++++++++-----------------------
@@ -5091,7 +5091,7 @@ index fba77683f..6f63f4157 100644
 From c80c30e3cace0f45038379c84f218d750fc711ae Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 18 Aug 2020 06:26:01 +0200
-Subject: [PATCH 34/35] IPC: Better looking code and C++ idioms
+Subject: [PATCH 34/38] IPC: Better looking code and C++ idioms
 
 ---
  pcsx2/IPC.cpp | 18 +++++++++---------
@@ -5202,7 +5202,7 @@ index 6f63f4157..e5eee1e2b 100644
 From a506a7cc2d8050152ca9ada0758487a9f29e42a8 Mon Sep 17 00:00:00 2001
 From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
 Date: Tue, 18 Aug 2020 06:50:21 +0200
-Subject: [PATCH 35/35] IPC: adhere to PCSX2 naming convention of field members
+Subject: [PATCH 35/38] IPC: adhere to PCSX2 naming convention of field members
 
 ---
  pcsx2/IPC.cpp | 12 ++++++------
@@ -5281,6 +5281,519 @@ index e5eee1e2b..e8c44cf80 100644
  
  	/**
       * IPC Command messages opcodes.  
+-- 
+2.25.4
+
+
+From 84be14e8da4658de6e9e6f5bfa1fd258c98eba71 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Thu, 20 Aug 2020 06:20:10 +0200
+Subject: [PATCH 36/38] IPC: cleanup and comments
+
+---
+ pcsx2/IPC.cpp | 30 ++++++++++++++++++++----------
+ pcsx2/IPC.h   | 40 ++++++++++++++++++++++++++++++++++------
+ 2 files changed, 54 insertions(+), 16 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 166b3b0bf..e48b8b4c7 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -105,13 +105,11 @@ SocketIPC::SocketIPC(SysCoreThread* vm)
+ void SocketIPC::ExecuteTaskInThread()
+ {
+ 	int msgsock = 0;
+-	// for the sake of speed we malloc once a return buffer and reuse it by just
+-	// cropping its size when needed, it is 450k long which is the size of 50k
+-	// MsgWrite64 replies, should be good enough even if we implement batch IPC
+-	// processing. Coincidentally 650k is the size of 50k MsgWrite64 REQUESTS so
+-	// we just allocate a 1mb buffer in the end, lul
+-	m_ret_buffer = new char[450000];
+-	m_ipc_buffer = new char[650000];
++
++	// we allocate once buffers to not have to do mallocs for each IPC
++	// request, as malloc is expansive when we optimize for µs.
++	m_ret_buffer = new char[MAX_IPC_RETURN_SIZE];
++	m_ipc_buffer = new char[MAX_IPC_SIZE];
+ 	while (true)
+ 	{
+ 		msgsock = accept(m_sock, 0, 0);
+@@ -158,13 +156,13 @@ SocketIPC::~SocketIPC()
+ 
+ char* SocketIPC::MakeOkIPC(char* ret_buffer)
+ {
+-	ret_buffer[0] = (unsigned char)IPC_OK;
++	ret_buffer[0] = IPC_OK;
+ 	return ret_buffer;
+ }
+ 
+ char* SocketIPC::MakeFailIPC(char* ret_buffer)
+ {
+-	ret_buffer[0] = (unsigned char)IPC_FAIL;
++	ret_buffer[0] = IPC_FAIL;
+ 	return ret_buffer;
+ }
+ 
+@@ -179,7 +177,7 @@ SocketIPC::IPCBuffer SocketIPC::ParseCommand(char* buf, char* ret_buffer)
+ 
+ 	u16 batch = 1;
+ 	u32 ret_cnt = 1;
+-	if ((IPCCommand)(unsigned char)buf[0] == MsgMultiCommand)
++	if ((IPCCommand)buf[0] == MsgMultiCommand)
+ 	{
+ 		batch = FromArray<u16>(buf, 1);
+ 		buf += 3;
+@@ -199,6 +197,18 @@ SocketIPC::IPCBuffer SocketIPC::ParseCommand(char* buf, char* ret_buffer)
+ 		//        |  return value (VLE)
+ 		//        |  |
+ 		// reply: XX ZZ ZZ ZZ ZZ
++		//
++		// NB: memory safety checking would be very expansive in our case,
++		// implemented per command and simply a mess. As our threat model is
++		// nonexistant, knowing we can disable the IPC at any time and having
++		// checks client-side it simply makes more sense to not do check
++		// server-side, as bad as this sounds.
++		// Re security threat model: we control the entire emulated memory of
++		// the emulated game, we can DoS our emulator easily by abusing the IPC
++		// features already, and regardless of where you read this there's
++		// probably no sandbox implemented, so simply being able to write to the
++		// game memory code region would make us control the JIT and have probably
++		// full access over the host machine.
+ 		switch ((IPCCommand)buf[0])
+ 		{
+ 			case MsgRead8:
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index e8c44cf80..ad3248e03 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -26,6 +26,7 @@ using namespace Threading;
+ class SocketIPC : public pxThread
+ {
+ 
++	// parent thread
+ 	typedef pxThread _parent;
+ 
+ protected:
+@@ -41,8 +42,30 @@ protected:
+ 	int m_sock = 0;
+ #endif
+ 
+-	// buffers that store the ipc request and reply messages.
++
++	/**
++     * Maximum memory used by an IPC message request.
++     * Equivalent to 50,000 Write64 requests.
++     */
++	const unsigned int MAX_IPC_SIZE = 650000;
++
++	/**
++     * Maximum memory used by an IPC message reply.
++     * Equivalent to 50,000 Read64 replies.
++     */
++	const unsigned int MAX_IPC_RETURN_SIZE = 450000;
++
++	/**
++     * IPC return buffer.
++     * A preallocated buffer used to store all IPC replies.
++     * to the size of 50.000 MsgWrite64 IPC calls.
++     */
+ 	char* m_ret_buffer;
++
++	/**
++     * IPC messages buffer.
++     * A preallocated buffer used to store all IPC messages.
++     */
+ 	char* m_ipc_buffer;
+ 
+ 	/**
+@@ -51,7 +74,7 @@ protected:
+      * Each one of them is what we call an "opcode" and is the first
+      * byte sent by the IPC to differentiate between commands.  
+      */
+-	enum IPCCommand
++	enum IPCCommand : unsigned char
+ 	{
+ 		MsgRead8 = 0,          /**< Read 8 bit value to memory. */
+ 		MsgRead16 = 1,         /**< Read 16 bit value to memory. */
+@@ -75,11 +98,16 @@ protected:
+ 		char* buffer; /**< Buffer. */
+ 	};
+ 
+-	// possible result codes
+-	enum IPCResult
++	/**
++     * IPC result codes.
++     * A list of possible result codes the IPC can send back.
++     * Each one of them is what we call an "opcode" or "tag" and is the
++     * first byte sent by the IPC to differentiate between results.
++     */
++	enum IPCResult : unsigned char
+ 	{
+-		IPC_OK = 0,
+-		IPC_FAIL = 0xFF
++		IPC_OK = 0,     /**< IPC command successfully completed. */
++		IPC_FAIL = 0xFF /**< IPC command failed to complete. */
+ 	};
+ 
+ 	// handle to the main vm thread
+-- 
+2.25.4
+
+
+From caeccf6af36fc5bc3c23b6623b61a8f2be9365d6 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Thu, 20 Aug 2020 07:33:27 +0200
+Subject: [PATCH 37/38] IPC: perform memory checks, virtually no perf hit
+
+---
+ pcsx2/IPC.cpp | 65 +++++++++++++++++++++++++++------------------------
+ pcsx2/IPC.h   | 18 +++++++++++---
+ 2 files changed, 50 insertions(+), 33 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index e48b8b4c7..0a1de5bb5 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -169,24 +169,24 @@ char* SocketIPC::MakeFailIPC(char* ret_buffer)
+ SocketIPC::IPCBuffer SocketIPC::ParseCommand(char* buf, char* ret_buffer)
+ {
+ 	// currently all our instructions require a running VM so we check once
+-	// here, will help perf when/if we implement multi-ipc processing in one
+-	// socket roundtrip.
++	// here, slightly helps performance
+ 	if (!m_vm->HasActiveMachine())
+ 		return IPCBuffer{1, MakeFailIPC(ret_buffer)};
+ 
+ 
+ 	u16 batch = 1;
+ 	u32 ret_cnt = 1;
++	u32 buf_cnt = 0;
+ 	if ((IPCCommand)buf[0] == MsgMultiCommand)
+ 	{
+-		batch = FromArray<u16>(buf, 1);
+-		buf += 3;
++		batch = FromArray<u16>(&buf[buf_cnt], 1);
++		buf_cnt += 3;
+ 	}
+ 
+ 	for (u16 i = 0; i < batch; i++)
+ 	{
+ 		// YY YY YY YY from schema below
+-		u32 a = FromArray<u32>(buf, 1);
++		u32 a = FromArray<u32>(&buf[buf_cnt], 1);
+ 
+ 		//         IPC Message event (1 byte)
+ 		//         |  Memory address (4 byte)
+@@ -197,82 +197,87 @@ SocketIPC::IPCBuffer SocketIPC::ParseCommand(char* buf, char* ret_buffer)
+ 		//        |  return value (VLE)
+ 		//        |  |
+ 		// reply: XX ZZ ZZ ZZ ZZ
+-		//
+-		// NB: memory safety checking would be very expansive in our case,
+-		// implemented per command and simply a mess. As our threat model is
+-		// nonexistant, knowing we can disable the IPC at any time and having
+-		// checks client-side it simply makes more sense to not do check
+-		// server-side, as bad as this sounds.
+-		// Re security threat model: we control the entire emulated memory of
+-		// the emulated game, we can DoS our emulator easily by abusing the IPC
+-		// features already, and regardless of where you read this there's
+-		// probably no sandbox implemented, so simply being able to write to the
+-		// game memory code region would make us control the JIT and have probably
+-		// full access over the host machine.
+-		switch ((IPCCommand)buf[0])
++		switch ((IPCCommand)buf[buf_cnt])
+ 		{
+ 			case MsgRead8:
+ 			{
++				if (!SafetyChecks(buf_cnt, 5, ret_cnt, 1))
++					goto error;
+ 				u8 res;
+ 				res = memRead8(a);
+ 				ToArray(ret_buffer, res, ret_cnt);
+ 				ret_cnt += 1;
+-				buf += 5;
++				buf_cnt += 5;
+ 				break;
+ 			}
+ 			case MsgRead16:
+ 			{
++				if (!SafetyChecks(buf_cnt, 5, ret_cnt, 2))
++					goto error;
+ 				u16 res;
+ 				res = memRead16(a);
+ 				ToArray(ret_buffer, res, ret_cnt);
+ 				ret_cnt += 2;
+-				buf += 5;
++				buf_cnt += 5;
+ 				break;
+ 			}
+ 			case MsgRead32:
+ 			{
++				if (!SafetyChecks(buf_cnt, 5, ret_cnt, 4))
++					goto error;
+ 				u32 res;
+ 				res = memRead32(a);
+ 				ToArray(ret_buffer, res, ret_cnt);
+ 				ret_cnt += 4;
+-				buf += 5;
++				buf_cnt += 5;
+ 				break;
+ 			}
+ 			case MsgRead64:
+ 			{
++				if (!SafetyChecks(buf_cnt, 5, ret_cnt, 8))
++					goto error;
+ 				u64 res;
+ 				memRead64(a, &res);
+ 				ToArray(ret_buffer, res, ret_cnt);
+ 				ret_cnt += 8;
+-				buf += 5;
++				buf_cnt += 5;
+ 				break;
+ 			}
+ 			case MsgWrite8:
+ 			{
+-				memWrite8(a, FromArray<u8>(buf, 5));
+-				buf += 6;
++				if (!SafetyChecks(buf_cnt, 6, ret_cnt))
++					goto error;
++				memWrite8(a, FromArray<u8>(&buf[buf_cnt], 5));
++				buf_cnt += 6;
+ 				break;
+ 			}
+ 			case MsgWrite16:
+ 			{
+-				memWrite16(a, FromArray<u16>(buf, 5));
+-				buf += 7;
++				if (!SafetyChecks(buf_cnt, 7, ret_cnt))
++					goto error;
++				memWrite16(a, FromArray<u16>(&buf[buf_cnt], 5));
++				buf_cnt += 7;
+ 				break;
+ 			}
+ 			case MsgWrite32:
+ 			{
+-				memWrite32(a, FromArray<u32>(buf, 5));
+-				buf += 9;
++				if (!SafetyChecks(buf_cnt, 9, ret_cnt))
++					goto error;
++				memWrite32(a, FromArray<u32>(&buf[buf_cnt], 5));
++				buf_cnt += 9;
+ 				break;
+ 			}
+ 			case MsgWrite64:
+ 			{
+-				memWrite64(a, FromArray<u64>(buf, 5));
+-				buf += 13;
++				if (!SafetyChecks(buf_cnt, 13, ret_cnt))
++					goto error;
++				memWrite64(a, FromArray<u64>(&buf[buf_cnt], 5));
++				buf_cnt += 13;
+ 				break;
+ 			}
+ 			default:
+ 			{
++			error:
+ 				return IPCBuffer{1, MakeFailIPC(ret_buffer)};
+ 			}
+ 		}
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index ad3248e03..c5749a02d 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -42,18 +42,17 @@ protected:
+ 	int m_sock = 0;
+ #endif
+ 
+-
+ 	/**
+      * Maximum memory used by an IPC message request.
+      * Equivalent to 50,000 Write64 requests.
+      */
+-	const unsigned int MAX_IPC_SIZE = 650000;
++#define MAX_IPC_SIZE 650000
+ 
+ 	/**
+      * Maximum memory used by an IPC message reply.
+      * Equivalent to 50,000 Read64 replies.
+      */
+-	const unsigned int MAX_IPC_RETURN_SIZE = 450000;
++#define MAX_IPC_RETURN_SIZE 450000
+ 
+ 	/**
+      * IPC return buffer.
+@@ -154,6 +153,19 @@ protected:
+ 		return *(T*)(arr + i);
+ 	}
+ 
++	/**
++     * Ensures an IPC message isn't too big.
++     * return value: false if checks failed, true otherwise.
++     */
++	static inline bool SafetyChecks(u32 command_len, int command_size, u32 reply_len, int reply_size = 0)
++	{
++		bool res = ((command_len + command_size) >= MAX_IPC_SIZE ||
++					(reply_len + reply_size) >= MAX_IPC_RETURN_SIZE);
++		if (unlikely(res))
++			return false;
++		return true;
++	}
++
+ public:
+ 	/* Initializers */
+ 	SocketIPC(SysCoreThread* vm);
+-- 
+2.25.4
+
+
+From b8e4648334269240cd1ec0724a5b73a2b8f69a63 Mon Sep 17 00:00:00 2001
+From: Gauvain 'GovanifY' Roussel-Tarbouriech <gauvain@govanify.com>
+Date: Fri, 21 Aug 2020 22:13:03 +0200
+Subject: [PATCH 38/38] IPC: better error handling and fix fd exhaustion
+
+---
+ pcsx2/IPC.cpp                  | 40 +++++++++++++++++++++++++++++-----
+ pcsx2/IPC.h                    | 16 ++++++++++++++
+ pcsx2/System/SysCoreThread.cpp |  2 ++
+ 3 files changed, 52 insertions(+), 6 deletions(-)
+
+diff --git a/pcsx2/IPC.cpp b/pcsx2/IPC.cpp
+index 0a1de5bb5..dc91ad3d6 100644
+--- a/pcsx2/IPC.cpp
++++ b/pcsx2/IPC.cpp
+@@ -92,8 +92,10 @@ SocketIPC::SocketIPC(SysCoreThread* vm)
+ 	}
+ #endif
+ 
+-	// maximum queue of SOMAXCONN commands before refusing, which stops the thread
+-	listen(m_sock, SOMAXCONN);
++	// maximum queue of 4096 commands before refusing, approximated to the
++	// nearest legal value. We do not use SOMAXCONN as windows have this idea
++	// that a "reasonable" value is 5, which is not.
++	listen(m_sock, 4096);
+ 
+ 	// we save a handle of the main vm object
+ 	m_vm = vm;
+@@ -105,6 +107,7 @@ SocketIPC::SocketIPC(SysCoreThread* vm)
+ void SocketIPC::ExecuteTaskInThread()
+ {
+ 	int msgsock = 0;
++	m_end = false;
+ 
+ 	// we allocate once buffers to not have to do mallocs for each IPC
+ 	// request, as malloc is expansive when we optimize for µs.
+@@ -115,28 +118,53 @@ void SocketIPC::ExecuteTaskInThread()
+ 		msgsock = accept(m_sock, 0, 0);
+ 		if (msgsock == -1)
+ 		{
+-			return;
++			if ((m_error_count > MAX_SOCKET_ERRORS) || m_end)
++				break;
++			else
++				m_error_count++;
+ 		}
+ 		else
+ 		{
+-			if (read_portable(msgsock, m_ipc_buffer, 650000) < 0)
++			if (read_portable(msgsock, m_ipc_buffer, MAX_IPC_SIZE) < 0)
+ 			{
+-				return;
++				if ((m_error_count > MAX_SOCKET_ERRORS) || m_end)
++					break;
++				else
++				{
++					m_error_count++;
++					if (write_portable(msgsock, MakeFailIPC(m_ipc_buffer), 1) < 0)
++						m_error_count++;
++				}
+ 			}
+ 			else
+ 			{
+ 				auto res = ParseCommand(m_ipc_buffer, m_ret_buffer);
+ 				if (write_portable(msgsock, res.buffer, res.size) < 0)
+ 				{
+-					return;
++					if ((m_error_count > MAX_SOCKET_ERRORS) || m_end)
++						break;
++					else
++					{
++						m_error_count++;
++					}
++				}
++				else
++				{
++					// phew, one correct socket connection
++					m_error_count = 0;
+ 				}
+ 			}
+ 		}
++		close(msgsock);
+ 	}
++	close(msgsock);
++	m_end = true;
++	return;
+ }
+ 
+ SocketIPC::~SocketIPC()
+ {
++	m_end = true;
+ #ifdef _WIN32
+ 	closesocket(m_sock);
+ 	WSACleanup();
+diff --git a/pcsx2/IPC.h b/pcsx2/IPC.h
+index c5749a02d..f2513869c 100644
+--- a/pcsx2/IPC.h
++++ b/pcsx2/IPC.h
+@@ -54,6 +54,11 @@ protected:
+      */
+ #define MAX_IPC_RETURN_SIZE 450000
+ 
++	/**
++     * Maximum number of socket errors in a row before the thread stops.
++     */
++#define MAX_SOCKET_ERRORS 600
++
+ 	/**
+      * IPC return buffer.
+      * A preallocated buffer used to store all IPC replies.
+@@ -67,6 +72,12 @@ protected:
+      */
+ 	char* m_ipc_buffer;
+ 
++	/**
++     * Number of errors in a row in the socket processing thread.
++     */
++	int m_error_count = 0;
++
++
+ 	/**
+      * IPC Command messages opcodes.  
+      * A list of possible operations possible by the IPC.  
+@@ -167,6 +178,11 @@ protected:
+ 	}
+ 
+ public:
++	/**
++     * Whether the socket processing thread should stop executing/is stopped.
++     */
++	bool m_end = false;
++
+ 	/* Initializers */
+ 	SocketIPC(SysCoreThread* vm);
+ 	virtual ~SocketIPC();
+diff --git a/pcsx2/System/SysCoreThread.cpp b/pcsx2/System/SysCoreThread.cpp
+index 5d1e34526..3440eedad 100644
+--- a/pcsx2/System/SysCoreThread.cpp
++++ b/pcsx2/System/SysCoreThread.cpp
+@@ -245,6 +245,8 @@ void SysCoreThread::GameStartingInThread()
+ 		m_IpcState = ON;
+ 		m_socketIpc = std::make_unique<SocketIPC>(this);
+ 	}
++	if (m_IpcState == ON && m_socketIpc->m_end)
++		m_socketIpc->Start();
+ }
+ 
+ bool SysCoreThread::StateCheckInThread()
 -- 
 2.25.4
 
