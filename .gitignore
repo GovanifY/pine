@@ -7,3 +7,4 @@ release.zip
 *.o
 *.so
 *.dll
+build/

@@ -74,26 +74,40 @@ void Write(PCSX2Ipc *v, uint32_t address, uint8_t val, PCSX2Ipc::IPCCommand msg,
         switch (msg) {
             case PCSX2Ipc::MsgWrite8:
                 v->Write<uint8_t>(address, val);
+                break;
             case PCSX2Ipc::MsgWrite16:
                 v->Write<uint16_t>(address, val);
+                break;
             case PCSX2Ipc::MsgWrite32:
                 v->Write<uint32_t>(address, val);
+                break;
             case PCSX2Ipc::MsgWrite64:
                 v->Write<uint64_t>(address, val);
+                break;
+            default:
+                break;
         }
     } else {
         switch (msg) {
             case PCSX2Ipc::MsgWrite8:
                 v->Write<uint8_t, true>(address, val);
+                break;
             case PCSX2Ipc::MsgWrite16:
                 v->Write<uint16_t, true>(address, val);
+                break;
             case PCSX2Ipc::MsgWrite32:
                 v->Write<uint32_t, true>(address, val);
+                break;
             case PCSX2Ipc::MsgWrite64:
                 v->Write<uint64_t, true>(address, val);
+                break;
+            default:
+                break;
         }
     }
 }
+
+PCSX2Ipc::IPCStatus GetError(PCSX2Ipc *v) { return v->GetError(); }
 
 void deletePCSX2Ipc(PCSX2Ipc *v) { delete v; }
 }

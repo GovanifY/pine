@@ -71,7 +71,7 @@ class PCSX2Ipc {
      * @see MAX_IPC_RETURN_SIZE
      * @see MAX_BATCH_REPLY_COUNT
      */
-    const unsigned int MAX_IPC_SIZE = 650000;
+    const int MAX_IPC_SIZE = 650000;
 
     /**
      * Maximum memory used by an IPC message reply.
@@ -200,14 +200,13 @@ class PCSX2Ipc {
      * @param command_size Additional size required for the message.
      * @param reply_size Additional size required for the reply.
      */
-    auto BatchSafetyChecks(int command_size, int reply_size = 0) -> void {
+    auto BatchSafetyChecks(int command_size, int reply_size = 0) -> bool {
         // we do not really care about wasting cycles when building batch
         // packets, so let's just do sanity checks for the sake of it.
         // TODO: go back when clang has implemented C++20 [[unlikely]]
-        if ((batch_len + command_size) >= MAX_IPC_SIZE ||
-            (reply_len + reply_size) >= MAX_IPC_RETURN_SIZE ||
-            arg_cnt + 1 >= MAX_BATCH_REPLY_COUNT)
-            throw OutOfMemory;
+        return ((batch_len + command_size) >= MAX_IPC_SIZE ||
+                (reply_len + reply_size) >= MAX_IPC_RETURN_SIZE ||
+                arg_cnt + 1 >= MAX_BATCH_REPLY_COUNT);
     }
 
   public:
@@ -218,35 +217,18 @@ class PCSX2Ipc {
      * byte sent by the IPC to differentiate between commands.
      */
     enum IPCCommand : unsigned char {
-        MsgRead8 = 0,          /**< Read 8 bit value to memory. */
-        MsgRead16 = 1,         /**< Read 16 bit value to memory. */
-        MsgRead32 = 2,         /**< Read 32 bit value to memory. */
-        MsgRead64 = 3,         /**< Read 64 bit value to memory. */
-        MsgWrite8 = 4,         /**< Write 8 bit value to memory. */
-        MsgWrite16 = 5,        /**< Write 16 bit value to memory. */
-        MsgWrite32 = 6,        /**< Write 32 bit value to memory. */
-        MsgWrite64 = 7,        /**< Write 64 bit value to memory. */
-        MsgMultiCommand = 0xFF /**< Treats multiple IPC commands in batch. */
+        MsgRead8 = 0,           /**< Read 8 bit value to memory. */
+        MsgRead16 = 1,          /**< Read 16 bit value to memory. */
+        MsgRead32 = 2,          /**< Read 32 bit value to memory. */
+        MsgRead64 = 3,          /**< Read 64 bit value to memory. */
+        MsgWrite8 = 4,          /**< Write 8 bit value to memory. */
+        MsgWrite16 = 5,         /**< Write 16 bit value to memory. */
+        MsgWrite32 = 6,         /**< Write 32 bit value to memory. */
+        MsgWrite64 = 7,         /**< Write 64 bit value to memory. */
+        MsgUnimplemented,       /**< Unimplemented IPC message. */
+        MsgMultiCommand = 0xFF, /**< Treats multiple IPC commands in batch. */
     };
 
-  protected:
-    /**
-     * Formats an IPC buffer. @n
-     * Creates a new buffer with IPC opcode set and first address argument
-     * currently used for memory IPC commands.
-     * @param size The size of the array to allocate.
-     * @param address The address to put as an argument of the IPC command.
-     * @param command The IPC message tag(opcode).
-     * @see IPCCommand
-     * @return The IPC buffer.
-     */
-    auto FormatBeginning(char *cmd, uint32_t address, IPCCommand command)
-        -> char * {
-        cmd[0] = (unsigned char)command;
-        return ToArray(cmd, address, 1);
-    }
-
-  public:
     /**
      * IPC message buffer. @n
      * A list of all needed fields to store an IPC message.
@@ -284,13 +266,64 @@ class PCSX2Ipc {
      * A list of result codes that should be returned, or thrown, depending
      * on the state of the result of an IPC command.
      */
-    enum IPCStatus {
-        Fail,          /**< IPC command failed to execute. */
-        Success,       /**< IPC command successfully completed. */
-        OutOfMemory,   /**< IPC command too big to send. */
-        Unimplemented, /**< Unimplemented IPC command. */
-        Unknown /**< Unknown if the command completed successfully or not. */
+    enum IPCStatus : unsigned int {
+        Success = 0,       /**< IPC command successfully completed. */
+        Fail = 1,          /**< IPC command failed to execute. */
+        OutOfMemory = 2,   /**< IPC command too big to send. */
+        Unimplemented = 3, /**< Unimplemented IPC command. */
+        Unknown = 4        /**< Unknown status. */
     };
+
+  protected:
+    /**
+     * Formats an IPC buffer. @n
+     * Creates a new buffer with IPC opcode set and first address argument
+     * currently used for memory IPC commands.
+     * @param size The size of the array to allocate.
+     * @param address The address to put as an argument of the IPC command.
+     * @param command The IPC message tag(opcode).
+     * @see IPCCommand
+     * @return The IPC buffer.
+     */
+    auto FormatBeginning(char *cmd, uint32_t address, IPCCommand command)
+        -> char * {
+        cmd[0] = (unsigned char)command;
+        return ToArray(cmd, address, 1);
+    }
+
+#if defined(C_FFI) || defined(DOXYGEN)
+    /**
+     * Error number. @n
+     * Result code of the last executed function. @n
+     * Used instead of exceptions on the C library bindings.
+     */
+    IPCStatus ipc_errno = Success;
+#endif
+
+    /**
+     * Sets the error code for the last operation. @n
+     * On C++, throws an exception, on C, sets the error code. @n
+     * @param err The error to set.
+     */
+    auto SetError(IPCStatus err) -> void {
+#ifdef C_FFI
+        ipc_errno = err;
+#else
+        throw err;
+#endif
+    }
+
+  public:
+#if defined(C_FFI) || defined(DOXYGEN)
+    /**
+     * Gets the last error code set.
+     */
+    auto GetError() -> IPCStatus {
+        IPCStatus copy = ipc_errno;
+        ipc_errno = Success;
+        return copy;
+    }
+#endif
 
     /**
      * Returns the reply of an IPC command. @n
@@ -323,8 +356,10 @@ class PCSX2Ipc {
             return FromArray<uint32_t>(buf, loc);
         else if constexpr (T == MsgRead64)
             return FromArray<uint64_t>(buf, loc);
-        else
-            throw Unimplemented;
+        else {
+            SetError(Unimplemented);
+            return;
+        }
     }
 
     /**
@@ -354,7 +389,8 @@ class PCSX2Ipc {
 
         sock = socket(AF_INET, SOCK_STREAM, 0);
         if (sock < 0) {
-            throw Fail;
+            SetError(Fail);
+            return;
         }
 
         // Prepare the sockaddr_in structure
@@ -365,7 +401,8 @@ class PCSX2Ipc {
 
         if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
             close(sock);
-            throw Fail;
+            SetError(Fail);
+            return;
         }
 
 #else
@@ -374,7 +411,8 @@ class PCSX2Ipc {
 
         sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if (sock < 0) {
-            throw Fail;
+            SetError(Fail);
+            return;
         }
         server.sun_family = AF_UNIX;
         strcpy(server.sun_path, SOCKET_NAME);
@@ -382,22 +420,26 @@ class PCSX2Ipc {
         if (connect(sock, (struct sockaddr *)&server,
                     sizeof(struct sockaddr_un)) < 0) {
             close(sock);
-            throw Fail;
+            SetError(Fail);
+            return;
         }
 
 #endif
 
         if (write_portable(sock, command.buffer, command.size) < 0) {
-            throw Fail;
+            SetError(Fail);
+            return;
         }
 
         if (read_portable(sock, ret.buffer, ret.size) < 0) {
-            throw Fail;
+            SetError(Fail);
+            return;
         }
         close(sock);
 
         if ((unsigned char)ret.buffer[0] == IPC_FAIL) {
-            throw Fail;
+            SetError(Fail);
+            return;
         }
     }
 
@@ -494,13 +536,20 @@ class PCSX2Ipc {
                 case 8:
                     return MsgRead64;
                 default:
-                    throw Unimplemented;
+                    return MsgUnimplemented;
             }
         }();
+        if constexpr (tag == MsgUnimplemented) {
+            SetError(Unimplemented);
+            return;
+        }
 
         // batch mode
         if constexpr (T) {
-            BatchSafetyChecks(5, sizeof(Y));
+            if (BatchSafetyChecks(5, sizeof(Y))) {
+                SetError(OutOfMemory);
+                return (char *)0;
+            }
             char *cmd = FormatBeginning(&ipc_buffer[batch_len], address, tag);
             batch_len += 5;
             batch_arg_place[arg_cnt] = reply_len;
@@ -545,13 +594,20 @@ class PCSX2Ipc {
                 case 8:
                     return MsgWrite64;
                 default:
-                    throw Unimplemented;
+                    return MsgUnimplemented;
             }
         }();
+        if constexpr (tag == MsgUnimplemented) {
+            SetError(Unimplemented);
+            return;
+        }
 
         // batch mode
         if constexpr (T) {
-            BatchSafetyChecks(5 + sizeof(Y));
+            if (BatchSafetyChecks(5 + sizeof(Y))) {
+                SetError(OutOfMemory);
+                return (char *)0;
+            }
             char *cmd = ToArray<Y>(
                 FormatBeginning(&ipc_buffer[batch_len], address, tag), value,
                 5);

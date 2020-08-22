@@ -10,7 +10,7 @@ Here is a list of files included in this repository:
 * .clang-format: A syntax formatting definition for this project files.  
 * .gitignore: A file to avoid commiting unnecessary files.  
 * Doxyfile: Doxygen configuration to automatically generate our documentation.  
-* Makefile: The file that is used on unix-like system to define how to build the
+* meson.build: The file that is used to define how to build the
   program.  
 * README.md: Take a wild guess.  
 * client.cpp: An example client file using PCSX2 IPC C++ Reference API.
@@ -20,15 +20,22 @@ Here is a list of files included in this repository:
   merged into master, you can track the status of this PR
   [here](https://github.com/PCSX2/pcsx2/pull/3591).
 * windows\_qt.pro: A Qt build definition file. Useful if you want to compile
-  this example on Windows.  
+  this example on Windows with Qt Creator.  
 * default.nix: A file to setup the environment necessary to compile, run scripts
   and generate documentation on NixOS. Just run `nix-shell`.
-* bindings/: a folder containing bindings for multiple popular languages.
+* bindings/: A folder containing bindings for multiple popular languages.
+* build-release.sh: A script used to generate the release zip files.
 
 
 A small client example is provided along with the API. It can be compiled on
-Linux and MacOs by using `make` and on Windows by loading "windows-qt.pro" with
-Qt Creator.  
+by using the command `meson build && cd build && ninja`. Please
+refer to [meson documentation](https://mesonbuild.com/Using-with-Visual-Studio.html) if you want
+to use another generator, say, Visual Studio, instead of ninja.  
+Alternatively, loading the "windows-qt.pro" on Windows with Qt Creator will work just fine if you're lazy.  
+Once it builds just hack on it and make whatever you want!   
+If you dislike C++
+[bindings in popular languages are
+available](https://code.govanify.com/govanify/pcsx2_ipc/src/branch/master/bindings/).
 
 On Doxygen you can find the documentation of the API [here](@ref PCSX2Ipc).  
 
