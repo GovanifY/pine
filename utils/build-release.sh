@@ -1,4 +1,5 @@
 #!/bin/sh
+cd .
 mkdir release
 cp -rf pcsx2_ipc.h release/
 mkdir -p release/example
