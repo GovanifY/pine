@@ -12,6 +12,7 @@ pkgs.mkShell {
     (pkgs.texlive.combine { inherit (pkgs.texlive) scheme-medium varwidth
     multirow hanging adjustbox collectbox stackengine sectsty tocloft
     newunicodechar etoc; })
+    pkgs.pythonPackages.pip
   ];
     # clang is pretty nice
     shellHook = ''

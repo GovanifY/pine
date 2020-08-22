@@ -3,3 +3,7 @@ html/*
 latex/*
 release/*
 release.zip
+.venv/*
+*.o
+*.so
+*.dll

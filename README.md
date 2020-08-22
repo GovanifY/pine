@@ -23,6 +23,7 @@ Here is a list of files included in this repository:
   this example on Windows.  
 * default.nix: A file to setup the environment necessary to compile, run scripts
   and generate documentation on NixOS. Just run `nix-shell`.
+* bindings/: a folder containing bindings for multiple popular languages.
 
 
 A small client example is provided along with the API. It can be compiled on
