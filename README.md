@@ -12,8 +12,6 @@ Here is a list of files included in this repository:
 * meson.build: The file that is used to define how to build the
   program.  
 * README.md: Take a wild guess.  
-* client.cpp: An example client file using PCSX2 IPC C++ Reference API.
-* pcsx2\_ipc.h: The reference implementation of PCSX2 IPC C++ API.  
 * windows\_qt.pro: A Qt build definition file. Useful if you want to compile
   this example on Windows with Qt Creator.  
 * bindings/: A folder containing bindings for multiple popular languages.
