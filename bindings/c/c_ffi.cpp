@@ -6,15 +6,17 @@
 #include "c_ffi.h"
 
 extern "C" {
-PCSX2Ipc *newPCSX2Ipc() { return new PCSX2Ipc(); }
+PCSX2Ipc *pcsx2ipc_new() { return new PCSX2Ipc(); }
 
-void InitializeBatch(PCSX2Ipc *v) { return v->InitializeBatch(); }
+void pcsx2ipc_initialize_batch(PCSX2Ipc *v) { return v->InitializeBatch(); }
 
-PCSX2Ipc::BatchCommand FinalizeBatch(PCSX2Ipc *v) { return v->FinalizeBatch(); }
+PCSX2Ipc::BatchCommand pcsx2ipc_finalize_batch(PCSX2Ipc *v) {
+    return v->FinalizeBatch();
+}
 
 /* We always cast as uint64_t to make the bindings easier to make/use */
-uint64_t GetReplyRead(PCSX2Ipc *v, PCSX2Ipc::BatchCommand cmd, int place,
-                      PCSX2Ipc::IPCCommand msg) {
+uint64_t pcsx2ipc_get_reply_read(PCSX2Ipc *v, PCSX2Ipc::BatchCommand cmd,
+                                 int place, PCSX2Ipc::IPCCommand msg) {
     switch (msg) {
         case PCSX2Ipc::MsgRead8:
             return (uint64_t)v->GetReply<PCSX2Ipc::MsgRead8>(cmd, place);
@@ -29,12 +31,12 @@ uint64_t GetReplyRead(PCSX2Ipc *v, PCSX2Ipc::BatchCommand cmd, int place,
     }
 }
 
-void SendCommand(PCSX2Ipc *v, PCSX2Ipc::BatchCommand cmd) {
+void pcsx2ipc_send_command(PCSX2Ipc *v, PCSX2Ipc::BatchCommand cmd) {
     return v->SendCommand(cmd);
 }
 
-uint64_t Read(PCSX2Ipc *v, uint32_t address, PCSX2Ipc::IPCCommand msg,
-              bool batch) {
+uint64_t pcsx2ipc_read(PCSX2Ipc *v, uint32_t address, PCSX2Ipc::IPCCommand msg,
+                       bool batch) {
     if (batch == false) {
         switch (msg) {
             case PCSX2Ipc::MsgRead8:
@@ -68,8 +70,8 @@ uint64_t Read(PCSX2Ipc *v, uint32_t address, PCSX2Ipc::IPCCommand msg,
     }
 }
 
-void Write(PCSX2Ipc *v, uint32_t address, uint8_t val, PCSX2Ipc::IPCCommand msg,
-           bool batch) {
+void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint8_t val,
+                    PCSX2Ipc::IPCCommand msg, bool batch) {
     if (batch == false) {
         switch (msg) {
             case PCSX2Ipc::MsgWrite8:
@@ -107,7 +109,7 @@ void Write(PCSX2Ipc *v, uint32_t address, uint8_t val, PCSX2Ipc::IPCCommand msg,
     }
 }
 
-PCSX2Ipc::IPCStatus GetError(PCSX2Ipc *v) { return v->GetError(); }
+PCSX2Ipc::IPCStatus pcsx2ipc_get_error(PCSX2Ipc *v) { return v->GetError(); }
 
-void deletePCSX2Ipc(PCSX2Ipc *v) { delete v; }
+void pcsx2ipc_delete(PCSX2Ipc *v) { delete v; }
 }
