@@ -33,84 +33,91 @@ auto open_pcsx2() -> void {
 }
 
 #ifdef _WIN32
- auto kill_pcsx2() -> void { system("tskill PCSX2"); }
+auto kill_pcsx2() -> void { system("tskill PCSX2"); }
 #else
 auto kill_pcsx2() -> void { system("pkill PCSX2"); }
 #endif
 
-TEST_CASE("Errors", "[errors]") {
-    PCSX2Ipc *ipc = new PCSX2Ipc();
+SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
 
-    try {
-        ipc->Write<u64>(0x00347D34, 5);
-        REQUIRE(0 == 1);
-    } catch (...) {}
+    WHEN("PCSX2 is not started") {
+        PCSX2Ipc *ipc = new PCSX2Ipc();
+        THEN("Errors should happen") {
+            try {
+                ipc->Write<u64>(0x00347D34, 5);
+                REQUIRE(0 == 1);
+            } catch (...) {}
 
-    try {
-        ipc->Write<u128>(0x00347D34, 5);
-        REQUIRE(0 == 1);
-    } catch (...) {}
+            try {
+                ipc->Write<u128>(0x00347D34, 5);
+                REQUIRE(0 == 1);
+            } catch (...) {}
 
-    try {
-        ipc->Read<u128>(0x00347D34);
-        REQUIRE(0 == 1);
-    } catch (...) {}
-}
-
-TEST_CASE("Read and Write operations", "[mem_rw]") {
-    PCSX2Ipc *ipc = new PCSX2Ipc();
-
-    open_pcsx2();
-    msleep(5000);
-
-    try {
-        ipc->Write<u64>(0x00347D34, 5);
-        ipc->Write<u32>(0x00347D44, 6);
-        ipc->Write<u16>(0x00347D54, 7);
-        ipc->Write<u8>(0x00347D64, 8);
-        REQUIRE(ipc->Read<u64>(0x00347D34) == 5);
-        REQUIRE(ipc->Read<u32>(0x00347D44) == 6);
-        REQUIRE(ipc->Read<u16>(0x00347D54) == 7);
-        REQUIRE(ipc->Read<u8>(0x00347D64) == 8);
-    } catch (...) {
-        // we shouldn't throw an exception, ever
-        REQUIRE(0 == 1);
+            try {
+                ipc->Read<u128>(0x00347D34);
+                REQUIRE(0 == 1);
+            } catch (...) {}
+        }
     }
 
-    kill_pcsx2();
-}
+    GIVEN("PCSX2 with IPC started") {
 
-TEST_CASE("Batch operations", "[batch_op]") {
-    PCSX2Ipc *ipc = new PCSX2Ipc();
+        open_pcsx2();
+        msleep(5000);
 
-    open_pcsx2();
-    msleep(5000);
+        WHEN("We want to read/write to the memory") {
+            THEN("The read/writes are consistent") {
+                PCSX2Ipc *ipc = new PCSX2Ipc();
 
-    try {
-        ipc->InitializeBatch();
-        ipc->Write<u64>(0x00347E34, 5);
-        ipc->Write<u32>(0x00347E44, 6);
-        ipc->Write<u16>(0x00347E54, 7);
-        ipc->Write<u8>(0x00347E64, 8);
-        ipc->SendCommand(ipc->FinalizeBatch());
+                try {
+                    ipc->Write<u64>(0x00347D34, 5);
+                    ipc->Write<u32>(0x00347D44, 6);
+                    ipc->Write<u16>(0x00347D54, 7);
+                    ipc->Write<u8>(0x00347D64, 8);
+                    REQUIRE(ipc->Read<u64>(0x00347D34) == 5);
+                    REQUIRE(ipc->Read<u32>(0x00347D44) == 6);
+                    REQUIRE(ipc->Read<u16>(0x00347D54) == 7);
+                    REQUIRE(ipc->Read<u8>(0x00347D64) == 8);
+                } catch (...) {
+                    // we shouldn't throw an exception, ever
+                    REQUIRE(0 == 1);
+                }
 
-        msleep(1);
-        ipc->InitializeBatch();
-        ipc->Read<u64, true>(0x00347E34);
-        ipc->Read<u32, true>(0x00347E44);
-        ipc->Read<u16, true>(0x00347E54);
-        ipc->Read<u8, true>(0x00347E64);
-        auto resr = ipc->FinalizeBatch();
-        ipc->SendCommand(resr);
+                kill_pcsx2();
+            }
+        }
 
-        REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead8>(resr, 3) == 8);
-        REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead16>(resr, 2) == 7);
-        REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead32>(resr, 1) == 6);
-        REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead64>(resr, 0) == 5);
-    } catch (...) {
-        // we shouldn't throw an exception, ever
-        REQUIRE(0 == 1);
+        WHEN("We want to execute multiple operations in a row") {
+            THEN("The operations get executed successfully and consistently") {
+                PCSX2Ipc *ipc = new PCSX2Ipc();
+
+                try {
+                    ipc->InitializeBatch();
+                    ipc->Write<u64>(0x00347E34, 5);
+                    ipc->Write<u32>(0x00347E44, 6);
+                    ipc->Write<u16>(0x00347E54, 7);
+                    ipc->Write<u8>(0x00347E64, 8);
+                    ipc->SendCommand(ipc->FinalizeBatch());
+
+                    msleep(1);
+                    ipc->InitializeBatch();
+                    ipc->Read<u64, true>(0x00347E34);
+                    ipc->Read<u32, true>(0x00347E44);
+                    ipc->Read<u16, true>(0x00347E54);
+                    ipc->Read<u8, true>(0x00347E64);
+                    auto resr = ipc->FinalizeBatch();
+                    ipc->SendCommand(resr);
+
+                    REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead8>(resr, 3) == 8);
+                    REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead16>(resr, 2) == 7);
+                    REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead32>(resr, 1) == 6);
+                    REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead64>(resr, 0) == 5);
+                } catch (...) {
+                    // we shouldn't throw an exception, ever
+                    REQUIRE(0 == 1);
+                }
+                kill_pcsx2();
+            }
+        }
     }
-
-    kill_pcsx2();
 }

@@ -10,8 +10,10 @@ executable('client', src, dependencies : [thread_dep, winsock])
 
 catch2 = dependency('Catch2', required : false)
 test_src = ['src/tests.cpp']
-e = executable('tests', test_src, dependencies : [catch2, thread_dep, winsock])
-test('tests', e)
+if catch2.found()
+  e = executable('tests', test_src, dependencies : [catch2, winsock])
+  test('tests', e)
+endif
 
 
 cleaner = find_program('clang-format', required : false)
