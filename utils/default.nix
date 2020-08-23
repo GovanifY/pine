@@ -17,10 +17,13 @@ pkgs.mkShell {
     pkgs.cargo
     pkgs.rustc
     pkgs.luajit
+    pkgs.catch2
+    pkgs.gcovr
   ];
-    # clang is pretty nice
+
     shellHook = ''
       export CXX="clang++"
       export CARGO_HOME=$HOME/.cache/cargo
+      export PCSX2_TEST="/tmp/pcsx2_debug/bin/PCSX2 --nogui ~/Documents/projects/programming/hacking/games/KINGDOM_HEARTS/KH2FM/KH2FM.ISO"
     '';
 }

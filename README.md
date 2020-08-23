@@ -21,7 +21,7 @@ The C API is documented [here](@ref bindings/c/c_ffi.h) and is probably what you
 want to read if you use language bindings.
 
 Language bindings will require you to compile the C bindings library for the OS
-you target. Please refer to `binding/c` documentation for building it.
+you target. Please refer to `bindings/c` documentation for building it.
 
 Have fun!  
 -Gauvain "GovanifY" Roussel-Tarbouriech, 2020

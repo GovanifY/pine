@@ -316,7 +316,8 @@ class PCSX2Ipc {
   public:
 #if defined(C_FFI) || defined(DOXYGEN)
     /**
-     * Gets the last error code set.
+     * Gets the last error code set. @n
+     * Only for C bindings.
      */
     auto GetError() -> IPCStatus {
         IPCStatus copy = ipc_errno;

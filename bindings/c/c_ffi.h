@@ -5,12 +5,11 @@
 #pragma once
 
 #include "pcsx2_ipc.h"
+#include <vector>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef class PCSX2Ipc PCSX2Ipc;
 
 /**
  * @see PCSX2Ipc::PCSX2Ipc
@@ -25,19 +24,19 @@ void pcsx2ipc_initialize_batch(PCSX2Ipc *v);
 /**
  * @see PCSX2Ipc::FinalizeBatch
  */
-PCSX2Ipc::BatchCommand pcsx2ipc_finalize_batch(PCSX2Ipc *v);
+int pcsx2ipc_finalize_batch(PCSX2Ipc *v);
 
 /**
  * We always cast as uint64_t to make the bindings easier to make/use.
  * @see PCSX2Ipc::GetReply
  */
-uint64_t pcsx2ipc_get_reply_read(PCSX2Ipc *v, PCSX2Ipc::BatchCommand cmd,
-                                 int place, PCSX2Ipc::IPCCommand msg);
+uint64_t pcsx2ipc_get_reply_read(PCSX2Ipc *v, int cmd, int place,
+                                 PCSX2Ipc::IPCCommand msg);
 
 /**
  * @see PCSX2Ipc::SendCommand
  */
-void pcsx2ipc_send_command(PCSX2Ipc *v, PCSX2Ipc::BatchCommand cmd);
+void pcsx2ipc_send_command(PCSX2Ipc *v, int cmd);
 
 /**
  * @see PCSX2Ipc::Read

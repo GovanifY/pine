@@ -6,33 +6,40 @@
 #include "c_ffi.h"
 
 extern "C" {
+
+static std::vector<PCSX2Ipc::BatchCommand> batch_commands;
+
 PCSX2Ipc *pcsx2ipc_new() { return new PCSX2Ipc(); }
 
 void pcsx2ipc_initialize_batch(PCSX2Ipc *v) { return v->InitializeBatch(); }
 
-PCSX2Ipc::BatchCommand pcsx2ipc_finalize_batch(PCSX2Ipc *v) {
-    return v->FinalizeBatch();
+int pcsx2ipc_finalize_batch(PCSX2Ipc *v) {
+    batch_commands.push_back(v->FinalizeBatch());
+    return batch_commands.size() - 1;
 }
 
 /* We always cast as uint64_t to make the bindings easier to make/use */
-uint64_t pcsx2ipc_get_reply_read(PCSX2Ipc *v, PCSX2Ipc::BatchCommand cmd,
-                                 int place, PCSX2Ipc::IPCCommand msg) {
+uint64_t pcsx2ipc_get_reply_read(PCSX2Ipc *v, int cmd, int place,
+                                 PCSX2Ipc::IPCCommand msg) {
     switch (msg) {
         case PCSX2Ipc::MsgRead8:
-            return (uint64_t)v->GetReply<PCSX2Ipc::MsgRead8>(cmd, place);
+            return (uint64_t)v->GetReply<PCSX2Ipc::MsgRead8>(
+                batch_commands[cmd], place);
         case PCSX2Ipc::MsgRead16:
-            return (uint64_t)v->GetReply<PCSX2Ipc::MsgRead16>(cmd, place);
+            return (uint64_t)v->GetReply<PCSX2Ipc::MsgRead16>(
+                batch_commands[cmd], place);
         case PCSX2Ipc::MsgRead32:
-            return (uint64_t)v->GetReply<PCSX2Ipc::MsgRead32>(cmd, place);
+            return (uint64_t)v->GetReply<PCSX2Ipc::MsgRead32>(
+                batch_commands[cmd], place);
         case PCSX2Ipc::MsgRead64:
-            return v->GetReply<PCSX2Ipc::MsgRead64>(cmd, place);
+            return v->GetReply<PCSX2Ipc::MsgRead64>(batch_commands[cmd], place);
         default:
             return 0;
     }
 }
 
-void pcsx2ipc_send_command(PCSX2Ipc *v, PCSX2Ipc::BatchCommand cmd) {
-    return v->SendCommand(cmd);
+void pcsx2ipc_send_command(PCSX2Ipc *v, int cmd) {
+    return v->SendCommand(batch_commands[cmd]);
 }
 
 uint64_t pcsx2ipc_read(PCSX2Ipc *v, uint32_t address, PCSX2Ipc::IPCCommand msg,
