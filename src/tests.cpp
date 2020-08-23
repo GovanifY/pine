@@ -65,6 +65,24 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
         open_pcsx2();
         msleep(5000);
 
+        WHEN("We want to communicate with PCSX2") {
+            THEN("It returns errors on invalid commands") {
+                PCSX2Ipc *ipc = new PCSX2Ipc();
+
+                try {
+                    char c_cmd[1];
+                    // if we ever implement this opcode this command won't fail
+                    c_cmd[0] = 0xFE;
+                    char c_ret[1];
+                    ipc->SendCommand(PCSX2Ipc::IPCBuffer{ 1, c_cmd },
+                                     PCSX2Ipc::IPCBuffer{ 1, c_ret });
+                    REQUIRE(0 == 1);
+                } catch (...) {}
+
+                kill_pcsx2();
+            }
+        }
+
         WHEN("We want to read/write to the memory") {
             THEN("The read/writes are consistent") {
                 PCSX2Ipc *ipc = new PCSX2Ipc();
@@ -93,10 +111,10 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
 
                 try {
                     ipc->InitializeBatch();
-                    ipc->Write<u64>(0x00347E34, 5);
-                    ipc->Write<u32>(0x00347E44, 6);
-                    ipc->Write<u16>(0x00347E54, 7);
-                    ipc->Write<u8>(0x00347E64, 8);
+                    ipc->Write<u64, true>(0x00347E34, 5);
+                    ipc->Write<u32, true>(0x00347E44, 6);
+                    ipc->Write<u16, true>(0x00347E54, 7);
+                    ipc->Write<u8, true>(0x00347E64, 8);
                     ipc->SendCommand(ipc->FinalizeBatch());
 
                     msleep(1);
@@ -116,8 +134,33 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
                     // we shouldn't throw an exception, ever
                     REQUIRE(0 == 1);
                 }
-                kill_pcsx2();
             }
+
+            THEN("We error out when packets are too big") {
+                PCSX2Ipc *ipc = new PCSX2Ipc();
+
+                try {
+                    ipc->InitializeBatch();
+                    for (int i = 0; i < 60000; i++) {
+                        ipc->Write<u64, true>(0x00347E34, 5);
+                    }
+                    ipc->SendCommand(ipc->FinalizeBatch());
+
+                    REQUIRE(0 == 1);
+                } catch (...) {}
+
+                try {
+                    ipc->InitializeBatch();
+                    for (int i = 0; i < 60000; i++) {
+                        ipc->Read<u64, true>(0x00347E34);
+                    }
+                    ipc->SendCommand(ipc->FinalizeBatch());
+
+                    REQUIRE(0 == 1);
+                } catch (...) {}
+            }
+
+            kill_pcsx2();
         }
     }
 }
