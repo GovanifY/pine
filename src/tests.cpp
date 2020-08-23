@@ -8,13 +8,9 @@
 #define u64 uint64_t
 #define u128 __int128
 
-// TODO: port the testcase for windows
-
-
 /* Test case suite for the PCSX2 IPC API
- * This is known to work on MacOS and Linux.
- * You will probably need to set PCSX2_TEST to be able
- * to boot some ISO for all of this to run. Refer to utils/default.nix for an
+ * You will probably need to set environment variables to be able
+ * to boot emulator(s) with some ISO for all of this to run. Refer to utils/default.nix for an
  * example on how to do that.
  */
 
@@ -40,7 +36,11 @@ auto open_pcsx2() -> void {
     }
 }
 
+#ifdef _WIN32
+auto kill_pcsx2() -> void { system("tskill PCSX2"); }
+#else
 auto kill_pcsx2() -> void { system("pkill PCSX2"); }
+#endif
 
 TEST_CASE("Errors", "[errors]") {
     PCSX2Ipc *ipc = new PCSX2Ipc();
