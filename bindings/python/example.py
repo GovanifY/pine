@@ -21,6 +21,7 @@ libipc = ctypes.CDLL(os.path.join(os.path.dirname(os.path.abspath(__file__)),lib
 # we create a new PCSX2Ipc object
 ipc = libipc.pcsx2ipc_new()
 
+# TODO: fix the batchcommand handles in the bindings
 libipc.pcsx2ipc_initialize_batch(ipc)
 libipc.write(ipc, 0x00347D34, 0xFF, 4, True)
 res = libipc.pcsx2ipc_finalize_batch(ipc)

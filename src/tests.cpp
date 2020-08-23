@@ -1,6 +1,7 @@
 #include "pcsx2_ipc.h"
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
+#include <climits>
 
 #define u8 uint8_t
 #define u16 uint16_t
@@ -28,14 +29,25 @@ auto open_pcsx2() -> void {
         char pcsx2_path[4096];
         strcpy(pcsx2_path, env_p);
         strcat(pcsx2_path, " &");
-        (void)system(pcsx2_path);
+        if (system(pcsx2_path) != 0) {
+            printf("PCSX2 failed to execute!\n");
+        }
     }
 }
 
 #ifdef _WIN32
-[[maybe_unused]] auto kill_pcsx2() -> void { (void)system("tskill PCSX2"); }
+[[maybe_unused]] auto kill_pcsx2() -> void {
+    if (system("tskill PCSX2") != 0) {
+        printf("Failed to kill PCSX2!\n");
+    }
+}
 #else
-[[maybe_unused]] auto kill_pcsx2() -> void { (void)system("pkill PCSX2"); }
+[[maybe_unused]] auto kill_pcsx2() -> void {
+    if (system("pkill PCSX2") != 0) {
+        printf("Failed to kill PCSX2!\n");
+    }
+}
+
 #endif
 
 SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
@@ -45,16 +57,6 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
         THEN("Errors should happen") {
             try {
                 ipc->Write<u64>(0x00347D34, 5);
-                REQUIRE(0 == 1);
-            } catch (...) {}
-
-            try {
-                ipc->Write<u128>(0x00347D34, 5);
-                REQUIRE(0 == 1);
-            } catch (...) {}
-
-            try {
-                ipc->Read<u128>(0x00347D34);
                 REQUIRE(0 == 1);
             } catch (...) {}
         }
@@ -70,6 +72,7 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
                 PCSX2Ipc *ipc = new PCSX2Ipc();
 
                 try {
+                    // unknown opcode test
                     char c_cmd[1];
                     // if we ever implement this opcode this command won't fail
                     c_cmd[0] = 0xFE;
@@ -77,6 +80,42 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
                     ipc->SendCommand(PCSX2Ipc::IPCBuffer{ 1, c_cmd },
                                      PCSX2Ipc::IPCBuffer{ 1, c_ret });
                     REQUIRE(0 == 1);
+                } catch (...) {}
+
+                try {
+                    // write fail test
+                    char c_cmd[1];
+                    c_cmd[0] = 0xFE;
+                    char c_ret[1];
+                    ipc->SendCommand(PCSX2Ipc::IPCBuffer{ INT_MAX, c_cmd },
+                                     PCSX2Ipc::IPCBuffer{ 1, c_ret });
+                    REQUIRE(0 == 1);
+                } catch (...) {}
+
+                try {
+                    ipc->Write<u128>(0x00347D34, 5);
+                    REQUIRE(0 == 1);
+                } catch (...) {}
+
+                try {
+                    ipc->Read<u128>(0x00347D34);
+                    REQUIRE(0 == 1);
+                } catch (...) {}
+                kill_pcsx2();
+            }
+
+            THEN("It returns errors when socket issues happen") {
+                PCSX2Ipc *ipc = new PCSX2Ipc();
+
+                try {
+                    // read fail test
+                    char c_cmd[1];
+                    c_cmd[0] = 0xFE;
+                    ipc->SendCommand(
+                        PCSX2Ipc::IPCBuffer{ 1, c_cmd },
+                        PCSX2Ipc::IPCBuffer{ INT_MAX, (char *)0x00 });
+                    REQUIRE(0 == 1);
+
                 } catch (...) {}
 
                 kill_pcsx2();
@@ -159,7 +198,6 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
                     REQUIRE(0 == 1);
                 } catch (...) {}
             }
-
             kill_pcsx2();
         }
     }

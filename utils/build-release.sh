@@ -27,7 +27,8 @@ find release -type d -name target -prune -exec rm -rf {} \;
 # and code coverage because why not :D
 meson build -Db_coverage=true
 cd build
-ninja test
+# pcsx2 takes time to start up D:
+meson test --timeout-multiplier=10
 ninja coverage-html
 mkdir -p release/tests
 cp -rf meson-logs/coveragereport/ ../release/tests

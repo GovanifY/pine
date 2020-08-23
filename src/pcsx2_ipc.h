@@ -47,6 +47,8 @@
  * -Gauvain "GovanifY" Roussel-Tarbouriech, 2020
  */
 class PCSX2Ipc {
+
+    // allow test suite to poke internals
   protected:
 #if defined(_WIN32) || defined(DOXYGEN)
     /**
@@ -71,7 +73,7 @@ class PCSX2Ipc {
      * @see MAX_IPC_RETURN_SIZE
      * @see MAX_BATCH_REPLY_COUNT
      */
-    const int MAX_IPC_SIZE = 650000;
+#define MAX_IPC_SIZE 650000
 
     /**
      * Maximum memory used by an IPC message reply.
@@ -79,14 +81,14 @@ class PCSX2Ipc {
      * @see MAX_IPC_SIZE
      * @see MAX_BATCH_REPLY_COUNT
      */
-    const unsigned int MAX_IPC_RETURN_SIZE = 450000;
+#define MAX_IPC_RETURN_SIZE 450000
 
     /**
      * Maximum number of commands sent in a batch message.
      * @see MAX_IPC_RETURN_SIZE
      * @see MAX_IPC_SIZE
      */
-    const unsigned int MAX_BATCH_REPLY_COUNT = 50000;
+#define MAX_BATCH_REPLY_COUNT 50000
 
     /**
      * IPC return buffer. @n
@@ -111,7 +113,7 @@ class PCSX2Ipc {
      * @see IPCCommand
      * @see MAX_IPC_SIZE
      */
-    uint16_t batch_len = 0;
+    unsigned int batch_len = 0;
 
     /**
      * Length of the reply of the batch IPC request. @n
@@ -340,8 +342,8 @@ class PCSX2Ipc {
      */
     template <IPCCommand T, typename Y>
     auto GetReply(const Y &cmd, int place) {
-        char *buf;
-        int loc;
+        [[maybe_unused]] char *buf;
+        [[maybe_unused]] int loc;
         if constexpr (std::is_same<Y, BatchCommand>::value) {
             buf = cmd.ipc_return.buffer;
             loc = cmd.return_locations[place];
@@ -389,10 +391,6 @@ class PCSX2Ipc {
         struct sockaddr_in server;
 
         sock = socket(AF_INET, SOCK_STREAM, 0);
-        if (sock < 0) {
-            SetError(Fail);
-            return;
-        }
 
         // Prepare the sockaddr_in structure
         server.sin_family = AF_INET;
@@ -411,10 +409,6 @@ class PCSX2Ipc {
         struct sockaddr_un server;
 
         sock = socket(AF_UNIX, SOCK_STREAM, 0);
-        if (sock < 0) {
-            SetError(Fail);
-            return;
-        }
         server.sun_family = AF_UNIX;
         strcpy(server.sun_path, SOCKET_NAME);
 
@@ -471,7 +465,10 @@ class PCSX2Ipc {
     }
 
     /**
-     * Finalizes a MsgMultiCommand IPC message.
+     * Finalizes a MsgMultiCommand IPC message. @n
+     * WARNING: You will ALWAYS have to call a FinalizeBatch, even on
+     * exceptions, once an InitializeBatch has been called overthise the class
+     * will deadlock.
      * @return A BatchCommand with:
      *         * The IPCBuffer of the message.
      *         * The IPCBuffer of the return.
@@ -561,9 +558,10 @@ class PCSX2Ipc {
         } else {
             // we are already locked in batch mode
             std::lock_guard<std::mutex> lock(ipc_blocking);
-            SendCommand(
-                IPCBuffer{ 5, FormatBeginning(ipc_buffer, address, tag) },
-                IPCBuffer{ 1 + sizeof(Y), ret_buffer });
+            IPCBuffer cmd =
+                IPCBuffer{ 5, FormatBeginning(ipc_buffer, address, tag) };
+            IPCBuffer ret = IPCBuffer{ 1 + sizeof(Y), ret_buffer };
+            SendCommand(cmd, ret);
             return GetReply<tag>(ret_buffer, 1);
         }
     }
