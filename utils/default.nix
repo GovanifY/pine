@@ -3,11 +3,11 @@
 pkgs.mkShell {
   name = "pcsx2ipc";
   nativeBuildInputs = [
-    pkgs.catch2
   ];
   buildInputs = [
     pkgs.doxygen
     pkgs.gnumake
+    pkgs.gcc
     pkgs.clang
     pkgs.python3
     pkgs.zip
@@ -21,11 +21,11 @@ pkgs.mkShell {
     pkgs.rustc
     pkgs.luajit
     pkgs.gcovr
-    pkgs.pkg-config
+    pkgs.catch2
+    pkgs.pkgconfig
   ];
 
     shellHook = ''
-      export CXX="clang++"
       export CARGO_HOME=$HOME/.cache/cargo
       export PCSX2_TEST="/tmp/pcsx2_debug/bin/PCSX2 --nogui ~/Documents/projects/programming/hacking/games/KINGDOM_HEARTS/KH2FM/KH2FM.ISO"
     '';

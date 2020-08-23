@@ -7,6 +7,10 @@ different language bindings and examples.
 A small C++ client example is provided along with the API. It can be compiled
 by executing the command `meson build && cd build && ninja` in the folder
 "example" that is included in the releases.  
+If you want to run the tests you'll have to do 
+`meson build && cd build && meson test`. This will require you to set
+environment variables to correctly startup the emulator(s). Refer to `src/tests.cpp`
+to see which ones.
 
 Meson and ninja ARE portable across OSes as-is and shouldn't require any tinkering. Please
 refer to [the meson documentation](https://mesonbuild.com/Using-with-Visual-Studio.html) 

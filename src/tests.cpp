@@ -28,14 +28,14 @@ auto open_pcsx2() -> void {
         char pcsx2_path[4096];
         strcpy(pcsx2_path, env_p);
         strcat(pcsx2_path, " &");
-        system(pcsx2_path);
+        (void)system(pcsx2_path);
     }
 }
 
 #ifdef _WIN32
-auto kill_pcsx2() -> void { system("tskill PCSX2"); }
+[[maybe_unused]] auto kill_pcsx2() -> void { (void)system("tskill PCSX2"); }
 #else
-auto kill_pcsx2() -> void { system("pkill PCSX2"); }
+[[maybe_unused]] auto kill_pcsx2() -> void { (void)system("pkill PCSX2"); }
 #endif
 
 SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {

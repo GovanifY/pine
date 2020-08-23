@@ -23,11 +23,17 @@ find release -type d -name obj -prune -exec rm -rf {} \;
 find release -type d -name libpcsx2_ipc_c.so -prune -exec rm -rf {} \;
 find release -type d -name target -prune -exec rm -rf {} \;
 
-# make the release zip
-zip -r release.zip release
-
 # test cases, to see if we've broken something between releases
-meson build
+# and code coverage because why not :D
+meson build -Db_coverage=true
 cd build
-meson test
+ninja test
+ninja coverage-html
+mkdir -p release/tests
+cp -rf meson-logs/coveragereport/ ../release/tests
+python ../utils/pretty-tests.py meson-logs/testlog.json > release/tests/result.txt
 cd ..
+
+
+# make the release zip
+zip -r release.zip release &> /dev/null
