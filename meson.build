@@ -6,8 +6,11 @@ thread_dep = dependency('threads')
 src = ['src/client.cpp', 'src/pcsx2_ipc.h']
 executable('client', src, dependencies : [thread_dep, winsock])
 
+
+
+catch2 = dependency('Catch2', required : false)
 test_src = ['src/tests.cpp']
-e = executable('tests', test_src)
+e = executable('tests', test_src, dependencies : [catch2, thread_dep, winsock])
 test('tests', e)
 
 

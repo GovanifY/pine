@@ -2,6 +2,9 @@
 }:
 pkgs.mkShell {
   name = "pcsx2ipc";
+  nativeBuildInputs = [
+    pkgs.catch2
+  ];
   buildInputs = [
     pkgs.doxygen
     pkgs.gnumake
@@ -17,8 +20,8 @@ pkgs.mkShell {
     pkgs.cargo
     pkgs.rustc
     pkgs.luajit
-    pkgs.catch2
     pkgs.gcovr
+    pkgs.pkg-config
   ];
 
     shellHook = ''

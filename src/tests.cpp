@@ -10,11 +10,9 @@
 
 /* Test case suite for the PCSX2 IPC API
  * You will probably need to set environment variables to be able
- * to boot emulator(s) with some ISO for all of this to run. Refer to utils/default.nix for an
- * example on how to do that.
+ * to boot emulator(s) with some ISO for all of this to run. Refer to
+ * utils/default.nix for an example on how to do that.
  */
-
-
 
 // a portable sleep function
 auto msleep(int sleepMs) -> void {
@@ -24,8 +22,6 @@ auto msleep(int sleepMs) -> void {
     usleep(sleepMs * 1000);
 #endif
 }
-
-
 
 auto open_pcsx2() -> void {
     if (const char *env_p = std::getenv("PCSX2_TEST")) {
@@ -37,7 +33,7 @@ auto open_pcsx2() -> void {
 }
 
 #ifdef _WIN32
-auto kill_pcsx2() -> void { system("tskill PCSX2"); }
+ auto kill_pcsx2() -> void { system("tskill PCSX2"); }
 #else
 auto kill_pcsx2() -> void { system("pkill PCSX2"); }
 #endif
