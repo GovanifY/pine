@@ -1,8 +1,3 @@
-/* WARNING: C FFI bindings are not really documented, you should read this
- * binding file and the documentation of the main header file in order to
- * understand the C bindings! As this is very much thought out like a C++
- * library the bindings will get pretty repetitive... */
-
 #include "c_ffi.h"
 
 extern "C" {
@@ -31,9 +26,8 @@ int pcsx2ipc_finalize_batch(PCSX2Ipc *v) {
     return batch_commands.size() - 1;
 }
 
-/* We always cast as uint64_t to make the bindings easier to make/use */
-uint64_t pcsx2ipc_get_reply_read(PCSX2Ipc *v, int cmd, int place,
-                                 PCSX2Ipc::IPCCommand msg) {
+uint64_t pcsx2ipc_get_reply_int(PCSX2Ipc *v, int cmd, int place,
+                                PCSX2Ipc::IPCCommand msg) {
     auto lcmd = pcsx2ipc_internal_to_batch(batch_commands[cmd]);
     switch (msg) {
         case PCSX2Ipc::MsgRead8:
@@ -129,9 +123,18 @@ void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint8_t val,
 
 PCSX2Ipc::IPCStatus pcsx2ipc_get_error(PCSX2Ipc *v) { return v->GetError(); }
 
+void pcsx2ipc_free_batch_command(int cmd) {
+    if (batch_commands[cmd] != NULL) {
+        delete[] batch_commands[cmd]->ipc_message.buffer;
+        delete[] batch_commands[cmd]->ipc_return.buffer;
+        delete[] batch_commands[cmd]->return_locations;
+        delete batch_commands[cmd];
+        batch_commands[cmd] = NULL;
+    }
+}
 void pcsx2ipc_delete(PCSX2Ipc *v) {
-    for (auto &i : batch_commands)
-        delete i;
+    for (int i = 0; i < batch_commands.size(); i++)
+        pcsx2ipc_free_batch_command(i);
     delete v;
 }
 }

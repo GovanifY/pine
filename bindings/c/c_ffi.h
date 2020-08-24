@@ -1,8 +1,13 @@
-/* WARNING: C FFI bindings are not really documented, you should read this
- * binding file and the documentation of the main header file in order to
- * understand the C bindings! As this is very much thought out like a C++
- * library the bindings will get pretty repetitive... */
 #pragma once
+
+/** \file c_ffi.h
+ * This is the C bindings definition of the PCSX2 IPC API. @n
+ * The C bindings of the API are inherently unsafe. You _can_ shoot yourself in
+ * the foot, and probably will. @n
+ * I encourage you to carefully read the documentation for the C++
+ * library on top of the C bindings to have a proper understanding of what each
+ * function does, and how the binding differs from the source material.
+ */
 
 #include "pcsx2_ipc.h"
 #include <vector>
@@ -22,18 +27,26 @@ PCSX2Ipc *pcsx2ipc_new();
 void pcsx2ipc_initialize_batch(PCSX2Ipc *v);
 
 /**
+ * In contrast to the C++ library this returns a handle to a struct. @n
+ * This requires you to free handles by yourself, see
+ * pcsx2ipc_free_batch_command.
+ * @see pcsx2ipc_free_batch_command
+ * @return PCSX2Ipc::BatchCommand handle.
  * @see PCSX2Ipc::FinalizeBatch
  */
 int pcsx2ipc_finalize_batch(PCSX2Ipc *v);
 
+/**
+ * Internal undocumented function. Do not use or include into your bindings!
+ */
 PCSX2Ipc::BatchCommand pcsx2ipc_internal_to_batch(PCSX2Ipc::BatchCommand *arg);
 
 /**
- * We always cast as uint64_t to make the bindings easier to make/use.
+ * Variant of PCSX2Ipc::GetReply that exclusively deals with integers replies.
  * @see PCSX2Ipc::GetReply
  */
-uint64_t pcsx2ipc_get_reply_read(PCSX2Ipc *v, int cmd, int place,
-                                 PCSX2Ipc::IPCCommand msg);
+uint64_t pcsx2ipc_get_reply_int(PCSX2Ipc *v, int cmd, int place,
+                                PCSX2Ipc::IPCCommand msg);
 
 /**
  * @see PCSX2Ipc::SendCommand
@@ -57,6 +70,13 @@ void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint8_t val,
  */
 void pcsx2ipc_delete(PCSX2Ipc *v);
 
+/**
+ * Frees given PCSX2Ipc::BatchCommand through its int handle. @n
+ * As the C bindings handle structures for you, you have to tell them when to
+ * free the batch commands if you want to free memory.
+ * @param cmd PCSX2Ipc::BatchCommand handle.
+ */
+void pcsx2ipc_free_batch_command(int cmd);
 /**
  * @see PCSX2Ipc::GetError
  */
