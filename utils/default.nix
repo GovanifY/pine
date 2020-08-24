@@ -2,8 +2,6 @@
 }:
 pkgs.mkShell {
   name = "pcsx2ipc";
-  nativeBuildInputs = [
-  ];
   buildInputs = [
     pkgs.doxygen
     pkgs.gnumake
@@ -23,10 +21,16 @@ pkgs.mkShell {
     pkgs.gcovr
     pkgs.catch2
     pkgs.pkgconfig
+    pkgs.xorg.xorgserver
   ];
 
-    shellHook = ''
+  # about PCSX2_TEST:
+  # probably a good idea to configure PCSX2 beforehand with the plugins and
+  # enable console to stdio. I use Xvfb to make PCSX2 run headlessly 
+  # on linux, I run it in build-release.sh
+  shellHook = ''
+      export DISPLAY=:99
       export CARGO_HOME=$HOME/.cache/cargo
-      export PCSX2_TEST="/tmp/pcsx2_debug/bin/PCSX2 --nogui ~/Documents/projects/programming/hacking/games/KINGDOM_HEARTS/KH2FM/KH2FM.ISO"
+      export PCSX2_TEST="/tmp/pcsx2_debug/bin/PCSX2 ~/Documents/projects/programming/hacking/games/KINGDOM_HEARTS/KH2FM/KH2FM.ISO"
     '';
 }

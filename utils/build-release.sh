@@ -3,6 +3,7 @@
 # organize folders
 cd ..
 rm -rf release
+rm -rf build
 mkdir -p release/example
 cp -rf src/pcsx2_ipc.h release/
 cp -rf windows-qt.pro meson.build src/ release/example/
@@ -23,18 +24,32 @@ find release -type d -name obj -prune -exec rm -rf {} \;
 find release -type d -name libpcsx2_ipc_c.so -prune -exec rm -rf {} \;
 find release -type d -name target -prune -exec rm -rf {} \;
 
+# we restart our virtual X server for test cases, our test cases kill it.
+killall Xvfb
+Xvfb :99 &
 # test cases, to see if we've broken something between releases
-# and code coverage because why not :D
 meson build -Db_coverage=true
 cd build
-# pcsx2 takes time to start up D:
-meson test --timeout-multiplier=10
-ninja coverage-html
-mkdir -p release/tests
-cp -rf meson-logs/coveragereport/ ../release/tests
-python ../utils/pretty-tests.py meson-logs/testlog.json > release/tests/result.txt
-cd ..
+if meson test; then
+    echo "Tests ran successfully, time to build the release!"
+else
+    RED='\033[0;31m'
+    NC='\033[0m' # No Color
+    echo -e "${RED}TESTS FAILED!!!\nYou broke it, PEBKAC${NC}"
+    # make sure i don't forget to read the logs
+    rm -rf ../release
+    rm -rf ../release.zip
+    exit 1
+fi
 
+# we build the coverage report and finish the release folder
+ninja coverage-html
+mkdir -p ../release/tests
+cp -rf meson-logs/coveragereport/ ../release/tests
+python ../utils/pretty-tests.py meson-logs/testlog.json > ../release/tests/result.txt
+cp -rf ../LICENSE ../release/
+cp -rf ../RELEASE_README.md ../release/README.md
+cd ..
 
 # make the release zip
 zip -r release.zip release &> /dev/null

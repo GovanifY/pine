@@ -219,16 +219,16 @@ class PCSX2Ipc {
      * byte sent by the IPC to differentiate between commands.
      */
     enum IPCCommand : unsigned char {
-        MsgRead8 = 0,           /**< Read 8 bit value to memory. */
-        MsgRead16 = 1,          /**< Read 16 bit value to memory. */
-        MsgRead32 = 2,          /**< Read 32 bit value to memory. */
-        MsgRead64 = 3,          /**< Read 64 bit value to memory. */
-        MsgWrite8 = 4,          /**< Write 8 bit value to memory. */
-        MsgWrite16 = 5,         /**< Write 16 bit value to memory. */
-        MsgWrite32 = 6,         /**< Write 32 bit value to memory. */
-        MsgWrite64 = 7,         /**< Write 64 bit value to memory. */
-        MsgUnimplemented,       /**< Unimplemented IPC message. */
-        MsgMultiCommand = 0xFF, /**< Treats multiple IPC commands in batch. */
+        MsgRead8 = 0,            /**< Read 8 bit value to memory. */
+        MsgRead16 = 1,           /**< Read 16 bit value to memory. */
+        MsgRead32 = 2,           /**< Read 32 bit value to memory. */
+        MsgRead64 = 3,           /**< Read 64 bit value to memory. */
+        MsgWrite8 = 4,           /**< Write 8 bit value to memory. */
+        MsgWrite16 = 5,          /**< Write 16 bit value to memory. */
+        MsgWrite32 = 6,          /**< Write 32 bit value to memory. */
+        MsgWrite64 = 7,          /**< Write 64 bit value to memory. */
+        MsgUnimplemented = 0xFE, /**< Unimplemented IPC message. */
+        MsgMultiCommand = 0xFF,  /**< Treats multiple IPC commands in batch. */
     };
 
     /**
