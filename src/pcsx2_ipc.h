@@ -253,6 +253,8 @@ class PCSX2Ipc {
         IPCBuffer ipc_return;           /**< IPC return fields. */
         unsigned int *return_locations; /**< Location of arguments in IPC return
                                            fields. */
+        // C bindings handle manually the freeing of such resources.
+#ifndef C_FFI
         /**
          * BatchCommand Destructor.
          */
@@ -261,6 +263,7 @@ class PCSX2Ipc {
             delete[] ipc_return.buffer;
             delete[] return_locations;
         }
+#endif
     };
 
     /**

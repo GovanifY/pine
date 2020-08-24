@@ -26,6 +26,8 @@ void pcsx2ipc_initialize_batch(PCSX2Ipc *v);
  */
 int pcsx2ipc_finalize_batch(PCSX2Ipc *v);
 
+PCSX2Ipc::BatchCommand pcsx2ipc_internal_to_batch(PCSX2Ipc::BatchCommand *arg);
+
 /**
  * We always cast as uint64_t to make the bindings easier to make/use.
  * @see PCSX2Ipc::GetReply
