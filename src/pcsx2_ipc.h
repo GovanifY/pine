@@ -11,10 +11,12 @@
 #ifdef _WIN32
 #define read_portable(a, b, c) (recv(a, b, c, 0))
 #define write_portable(a, b, c) (send(a, b, c, 0))
+#define close_portable(a) (closesocket(a))
 #include <windows.h>
 #else
 #define read_portable(a, b, c) (read(a, b, c))
 #define write_portable(a, b, c) (write(a, b, c))
+#define close_portable(a) (close(a))
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -402,7 +404,7 @@ class PCSX2Ipc {
         server.sin_port = htons(PORT);
 
         if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
-            close(sock);
+            close_portable(sock);
             SetError(Fail);
             return;
         }
@@ -417,7 +419,7 @@ class PCSX2Ipc {
 
         if (connect(sock, (struct sockaddr *)&server,
                     sizeof(struct sockaddr_un)) < 0) {
-            close(sock);
+            close_portable(sock);
             SetError(Fail);
             return;
         }
@@ -433,7 +435,7 @@ class PCSX2Ipc {
             SetError(Fail);
             return;
         }
-        close(sock);
+        close_portable(sock);
 
         if ((unsigned char)ret.buffer[0] == IPC_FAIL) {
             SetError(Fail);
