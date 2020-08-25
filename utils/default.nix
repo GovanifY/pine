@@ -1,5 +1,15 @@
 { pkgs ? import <nixpkgs> {}
 }:
+let 
+  pcsx2-ipc = pkgs.pcsx2.overrideAttrs (oldAttrs: rec {
+        src = pkgs.fetchFromGitHub {
+            owner = "GovanifY";
+            repo = "pcsx2";
+            rev = "a5927cb780b84b8056a019aff5b1a4cf92f7df60";
+            sha256 = "1lvqm8fsnzddb13q5x61crh7wvbssk5jnz56s0708hqqi0y1808g";
+          };
+      });
+  in
 pkgs.mkShell {
   name = "pcsx2ipc";
   buildInputs = [
@@ -23,15 +33,42 @@ pkgs.mkShell {
     pkgs.pkgconfig
     pkgs.xorg.xorgserver
     pkgs.meson
+    pcsx2-ipc
   ];
 
   # about PCSX2_TEST:
   # probably a good idea to configure PCSX2 beforehand with the plugins and
   # enable console to stdio. I use Xvfb to make PCSX2 run headlessly 
   # on linux, I run it in build-release.sh
+
+  # first wget is from v , second is manually handcrafted pcsx2 config hell
+  # https://github.com/ps2homebrew/Open-PS2-Loader/releases/tag/0.9.3
+  # TODO: can't boot pcsx2 without an iso as a schema, find an iso hb?
+  # TODO: this uses ~/.config/PCSX2 which might not be very cool if we are a
+  # normal user, use another path
   shellHook = ''
-      export DISPLAY=:99
+      # we download some homebrew for later
+      wget https://cloud.govanify.com/index.php/s/2i2ksHCHApotNnW/download
+      mv download /tmp/opl.elf
+      
+      # we download pcsx2 conf
+      wget https://cloud.govanify.com/index.php/s/ZMZoqcSCtBN7i2N/download
+      mv download conf.zip
+      rm -rf ~/.config/PCSX2
+      rm -rf PCSX2
+      unzip conf.zip
+      rm -rf conf.zip
+      mv PCSX2 ~/.config/
+
+      # we set it up
+      find ~/.config/PCSX2 -exec sed -i -e "s'NIXSTR'${pcsx2-ipc}'g" {} \;
+      find ~/.config/PCSX2 -exec sed -i -e "s'/root'$HOME'g" {} \;
+
+      # rust binding
       export CARGO_HOME=$HOME/.cache/cargo
-      export PCSX2_TEST="/tmp/pcsx2_debug/bin/PCSX2 ~/Documents/projects/programming/hacking/games/KINGDOM_HEARTS/KH2FM/KH2FM.ISO"
+
+      # pcsx2 headless things
+      export DISPLAY=:99
+      export PCSX2_TEST="${pcsx2-ipc}/bin/PCSX2 --elf=/tmp/opl.elf"
     '';
 }
