@@ -22,6 +22,7 @@ pkgs.mkShell {
     pkgs.catch2
     pkgs.pkgconfig
     pkgs.xorg.xorgserver
+    pkgs.meson
   ];
 
   # about PCSX2_TEST:
