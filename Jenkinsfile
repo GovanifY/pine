@@ -1,10 +1,9 @@
 pipeline {
-    agent { docker { image 'meson' } }
+    agent { docker { image 'nixos/nix' } }
     stages {
         stage('build') {
             steps {
-                sh 'meson --version'
-                sh 'ninja --version'
+                sh 'nix --version'
             }
         }
     }
