@@ -3,7 +3,14 @@ pipeline {
     stages {
         stage('build') {
             steps {
-                sh 'nix --version'
+                sh '''
+                cd utils/
+                nix-shell
+                cd ../
+                meson build
+                cd build
+                ninja
+                '''
             }
         }
     }
