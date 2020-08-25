@@ -41,15 +41,14 @@ pkgs.mkShell {
   # enable console to stdio. I use Xvfb to make PCSX2 run headlessly 
   # on linux, I run it in build-release.sh
 
-  # first wget is from v , second is manually handcrafted pcsx2 config hell
+  # first wget is ISO built from v , second is manually handcrafted pcsx2 config hell
   # https://github.com/ps2homebrew/Open-PS2-Loader/releases/tag/0.9.3
-  # TODO: can't boot pcsx2 without an iso as a schema, find an iso hb?
   # TODO: this uses ~/.config/PCSX2 which might not be very cool if we are a
   # normal user, use another path
   shellHook = ''
       # we download some homebrew for later
-      wget https://cloud.govanify.com/index.php/s/2i2ksHCHApotNnW/download
-      mv download /tmp/opl.elf
+      wget https://cloud.govanify.com/index.php/s/NN4wfkLwD6HFSgS/download
+      mv download /tmp/opl.iso
       
       # we download pcsx2 conf
       wget https://cloud.govanify.com/index.php/s/ZMZoqcSCtBN7i2N/download
@@ -69,6 +68,6 @@ pkgs.mkShell {
 
       # pcsx2 headless things
       export DISPLAY=:99
-      export PCSX2_TEST="${pcsx2-ipc}/bin/PCSX2 --elf=/tmp/opl.elf"
+      export PCSX2_TEST="${pcsx2-ipc}/bin/PCSX2 /tmp/opl.iso"
     '';
 }
