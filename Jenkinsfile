@@ -2,7 +2,7 @@ pipeline {
     agent { 
         docker { 
         image 'nixos/nix' 
-        args '-u root --privileged -v $HOME:/nix/store' 
+        args '-u root --privileged -v /nix' 
         } 
     }
     stages {
