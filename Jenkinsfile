@@ -12,11 +12,7 @@ pipeline {
                 nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
                 nix-channel --update
                 cd utils/
-                nix-shell
-                cd ../
-                meson build
-                cd build
-                ninja
+                nix-shell --run "cd ../ && meson build && cd build && ninja"
                 '''
             }
         }
