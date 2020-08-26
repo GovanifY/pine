@@ -59,6 +59,7 @@ pkgs.mkShell {
       fi
       rm -rf ~/.config/PCSX2
       rm -rf PCSX2
+      mkdir ~/.config
       unzip /tmp/conf.zip
       mv PCSX2 ~/.config
 
