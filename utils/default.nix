@@ -30,7 +30,7 @@ pkgs.mkShell {
     pkgs.cargo
     pkgs.rustc
     pkgs.luajit
-    pkgs.gcovr
+    pkgs.llvm-binutils
     pkgs.catch2
     pkgs.pkgconfig
     pkgs.xorg.xorgserver
