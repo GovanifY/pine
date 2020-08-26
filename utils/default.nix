@@ -33,6 +33,7 @@ pkgs.mkShell {
     pkgs.pkgconfig
     pkgs.xorg.xorgserver
     pkgs.meson
+    pkgs.ninja
     pcsx2-ipc
   ];
 
