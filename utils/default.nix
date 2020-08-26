@@ -36,6 +36,7 @@ pkgs.mkShell {
     pkgs.xorg.xorgserver
     pkgs.meson
     pkgs.ninja
+    pkgs.gcovr
   ];
 
   # about PCSX2_TEST:
