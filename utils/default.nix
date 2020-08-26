@@ -18,7 +18,6 @@ pkgs.mkShell {
     pcsx2-ipc
     pkgs.doxygen
     pkgs.gnumake
-    pkgs.gcc
     pkgs.clang
     pkgs.python3
     pkgs.zip
@@ -47,6 +46,7 @@ pkgs.mkShell {
   # first wget is ISO built from v , second is manually handcrafted pcsx2 config hell
   # https://github.com/ps2homebrew/Open-PS2-Loader/releases/tag/0.9.3
   shellHook = ''
+      export CXX=clang++
       # we download some homebrew for later
       if [[ ! -f "/tmp/opl.iso" ]]; then
           wget https://cloud.govanify.com/index.php/s/NN4wfkLwD6HFSgS/download
@@ -54,7 +54,6 @@ pkgs.mkShell {
       fi
             
       # we download pcsx2 conf
-
       if [[ ! -f "/tmp/conf.zip" ]]; then
           wget https://cloud.govanify.com/index.php/s/r2etFXb7C2ifQri/download
           mv download /tmp/conf.zip

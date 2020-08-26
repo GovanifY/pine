@@ -45,6 +45,7 @@ fi
 
 # we build the coverage report and finish the release folder
 ninja coverage-html
+ninja coverage-xml
 mkdir -p ../release/tests
 cp -rf meson-logs/coveragereport/ ../release/tests
 python ../utils/pretty-tests.py meson-logs/testlog.json > ../release/tests/result.txt
