@@ -23,7 +23,7 @@ pipeline {
             steps {
                 sh '''
                 cd utils/
-                nix-shell --run "cd ../ && meson build && cd build && ./tests -r junit -o /tmp/pcsx2.junit"
+                nix-shell --run "cd ../ && meson build && cd build && ./tests -r junit -o /tmp/reports/pcsx2.junit"
                 '''
             }
         }
