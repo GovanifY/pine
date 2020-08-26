@@ -1,18 +1,19 @@
 pipeline {
     agent { 
         docker { 
-        image 'nixos/nix' 
-        args '-u root --privileged' 
+            image 'nixos/nix' 
+            args '-u root --privileged' 
         } 
     }
-    stages {
      cache(maxCacheSize: 7000, caches: [
      [$class: 'ArbitraryFileCache', excludes: '', includes: '**/*', path: '/nix']]) {
+    stages {
 
         stage('build') {
             steps {
                 sh '''
                 rm -rf /tmp/reports
+                mkdir /tmp/reports
                 nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
                 nix-channel --update
                 cd utils/
@@ -26,7 +27,7 @@ pipeline {
             steps {
                 sh '''
                 cd utils/
-                nix-shell --run "cd ../ && meson build && cd build && ./tests -r junit -o /tmp/reports/pcsx2.junit"
+                nix-shell --run "cd build && ./tests -r junit -o /tmp/reports/pcsx2.junit"
                 '''
             }
         }
