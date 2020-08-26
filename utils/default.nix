@@ -43,21 +43,19 @@ pkgs.mkShell {
 
   # first wget is ISO built from v , second is manually handcrafted pcsx2 config hell
   # https://github.com/ps2homebrew/Open-PS2-Loader/releases/tag/0.9.3
-  # TODO: this uses ~/.config/PCSX2 which might not be very cool if we are a
-  # normal user, use another path
   shellHook = ''
       # we download some homebrew for later
       wget https://cloud.govanify.com/index.php/s/NN4wfkLwD6HFSgS/download
       mv download /tmp/opl.iso
       
       # we download pcsx2 conf
-      wget https://cloud.govanify.com/index.php/s/ZMZoqcSCtBN7i2N/download
+      wget https://cloud.govanify.com/index.php/s/r2etFXb7C2ifQri/download
       mv download conf.zip
       rm -rf ~/.config/PCSX2
       rm -rf PCSX2
       unzip conf.zip
       rm -rf conf.zip
-      mv PCSX2 ~/.config/
+      mv PCSX2 ~/.config
 
       # we set it up
       find ~/.config/PCSX2 -exec sed -i -e "s'NIXSTR'${pcsx2-ipc}'g" {} \;
@@ -67,6 +65,8 @@ pkgs.mkShell {
       export CARGO_HOME=$HOME/.cache/cargo
 
       # pcsx2 headless things
+      killall Xvfb
+      Xvfb :99 &
       export DISPLAY=:99
       export PCSX2_TEST="${pcsx2-ipc}/bin/PCSX2 /tmp/opl.iso"
     '';
