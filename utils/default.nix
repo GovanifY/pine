@@ -10,18 +10,11 @@ let
           };
         cmakeFlags =  oldAttrs.cmakeFlags ++ ["-DEXTRA_PLUGINS=TRUE"];
       });
-
-  pypkgs = python-packages: with python-packages; [
-    setuptools
-  ]; 
-  python-ipc = pkgs.python3.withPackages pypkgs;
-
-  in
+in
 pkgs.mkShell {
   name = "pcsx2ipc";
   buildInputs = [
     pcsx2-ipc
-    python-ipc
     pkgs.doxygen
     pkgs.gnumake
     pkgs.clang
