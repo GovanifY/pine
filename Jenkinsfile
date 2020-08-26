@@ -2,7 +2,7 @@ pipeline {
     agent { 
         docker { 
             image 'nixos/nix' 
-            args '-u root --privileged' 
+            args '-u root --privileged -v $HOME/nix-cache:/nix' 
         } 
     }
     stages {
@@ -11,10 +11,6 @@ pipeline {
                 sh '''
                 rm -rf /tmp/reports
                 mkdir /tmp/reports
-                if [ -d nix-cache ]
-                then
-                    rm -rf /nix && ln -s nix-cache /nix
-                fi
                 nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
                 nix-channel --update
                 cd utils/
@@ -28,7 +24,7 @@ pipeline {
             steps {
                 sh '''
                 cd utils/
-                nix-shell --run "cd ../build && ./tests -r junit -o /tmp/reports/pcsx2.junit"
+                nix-shell --run "cd ../build && ./tests -r junit -o /tmp/reports/pcsx2.xml"
                 '''
             }
         }
@@ -43,14 +39,8 @@ pipeline {
     }
     post {
         always {
-            sh '''
-            if [ ! -d nix-cache ]
-            then
-                mv /nix nix-cache
-            fi
-            '''
             archiveArtifacts artifacts: 'release/*', fingerprint: true
-            junit '/tmp/reports/*.junit'
+            junit '/tmp/reports/pcsx2.xml'
         }
     }
 }
