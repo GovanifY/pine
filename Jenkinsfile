@@ -11,7 +11,7 @@ pipeline {
                 sh '''
                 rm -rf /tmp/reports
                 mkdir /tmp/reports
-                [[ -f nix-cache ]] && rm -rf /nix && mv nix-cache /nix
+                rm -rf /nix && mv nix-cache /nix
                 nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
                 nix-channel --update
                 cd utils/
