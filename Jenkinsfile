@@ -19,7 +19,7 @@ pipeline {
         }
         // we could probably test the IPC with different emulators here in
         // parallel when that's a thing
-        stage('test') {
+        stage('tests') {
             steps {
                 sh '''
                 cd utils/
@@ -38,8 +38,8 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: 'release', fingerprint: true
-            junit '/tmp/reports/*.xml'
+            archiveArtifacts artifacts: 'release/*', fingerprint: true
+            junit '/tmp/reports/*.junit'
         }
     }
 }

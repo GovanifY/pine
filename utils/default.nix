@@ -65,6 +65,7 @@ pkgs.mkShell {
       # we set it up
       find ~/.config/PCSX2 -exec sed -i -e "s'NIXSTR'${pcsx2-ipc}'g" {} \;
       find ~/.config/PCSX2 -exec sed -i -e "s'/root'$HOME'g" {} \;
+      find ~/.config/PCSX2 -exec sed -i -e "s'/ConsoleToStdio=disabled'ConsoleToStdio=enabled'g" {} \;
 
       # rust binding
       export CARGO_HOME=$HOME/.cache/cargo
