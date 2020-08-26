@@ -13,6 +13,7 @@ let
 pkgs.mkShell {
   name = "pcsx2ipc";
   buildInputs = [
+    pcsx2-ipc
     pkgs.doxygen
     pkgs.gnumake
     pkgs.gcc
@@ -34,7 +35,6 @@ pkgs.mkShell {
     pkgs.xorg.xorgserver
     pkgs.meson
     pkgs.ninja
-    pcsx2-ipc
   ];
 
   # about PCSX2_TEST:
@@ -46,16 +46,20 @@ pkgs.mkShell {
   # https://github.com/ps2homebrew/Open-PS2-Loader/releases/tag/0.9.3
   shellHook = ''
       # we download some homebrew for later
-      wget https://cloud.govanify.com/index.php/s/NN4wfkLwD6HFSgS/download
-      mv download /tmp/opl.iso
-      
+      if [[ ! -f "/tmp/opl.iso" ]]; then
+          wget https://cloud.govanify.com/index.php/s/NN4wfkLwD6HFSgS/download
+          mv download /tmp/opl.iso
+      fi
+            
       # we download pcsx2 conf
-      wget https://cloud.govanify.com/index.php/s/r2etFXb7C2ifQri/download
-      mv download conf.zip
+
+      if [[ ! -f "/tmp/conf.zip" ]]; then
+          wget https://cloud.govanify.com/index.php/s/r2etFXb7C2ifQri/download
+          mv download /tmp/conf.zip
+      fi
       rm -rf ~/.config/PCSX2
       rm -rf PCSX2
-      unzip conf.zip
-      rm -rf conf.zip
+      unzip /tmp/conf.zip
       mv PCSX2 ~/.config
 
       # we set it up

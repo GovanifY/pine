@@ -9,6 +9,7 @@ pipeline {
         stage('build') {
             steps {
                 sh '''
+                rm -rf /tmp/reports
                 nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
                 nix-channel --update
                 cd utils/
@@ -16,5 +17,29 @@ pipeline {
                 '''
             }
         }
+        stage('test') {
+            steps {
+                sh '''
+                cd utils/
+                nix-shell --run "cd ../ && meson build && cd build && ./tests -r junit -o /tmp/pcsx2.junit"
+                '''
+            }
+        }
+        stage('release') {
+            steps {
+                sh '''
+                cd utils/
+                nix-shell --run "sh -c ./build-release.sh"
+                '''
+            }
+        }
+        post {
+            always {
+                archiveArtifacts release: 'release.zip', fingerprint: true
+                archiveArtifacts build: 'build', fingerprint: true
+                junit '/tmp/reports/*.xml'
+            }
+        }
+
     }
 }
