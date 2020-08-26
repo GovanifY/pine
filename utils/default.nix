@@ -69,12 +69,12 @@ pkgs.mkShell {
       find ~/.config/PCSX2 -exec sed -i -e "s'NIXSTR'${pcsx2-ipc}'g" {} \;
       find ~/.config/PCSX2 -exec sed -i -e "s'/root'$HOME'g" {} \;
       find ~/.config/PCSX2 -exec sed -i -e "s'ConsoleToStdio=disabled'ConsoleToStdio=enabled'g" {} \;
-      find ~/.config/PCSX2 -exec sed -i -e "s'libGSdx-AVX2\.so'libGSnull.so'g" {} \;
 
       # rust binding
       export CARGO_HOME=$HOME/.cache/cargo
 
       # pcsx2 headless things
+      find ~/.config/PCSX2 -exec sed -i -e "s'libGSdx-AVX2\.so'libGSnull.so'g" {} \;
       killall Xvfb
       Xvfb :99 &
       export DISPLAY=:99

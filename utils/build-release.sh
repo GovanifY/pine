@@ -28,6 +28,7 @@ find release -type d -name target -prune -exec rm -rf {} \;
 killall Xvfb
 Xvfb :99 &
 # test cases, to see if we've broken something between releases
+rm -rf build
 meson build -Db_coverage=true
 cd build
 if meson test; then
