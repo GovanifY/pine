@@ -11,7 +11,10 @@ pipeline {
                 sh '''
                 rm -rf /tmp/reports
                 mkdir /tmp/reports
-                rm -rf /nix && mv nix-cache /nix
+                if [ -d nix-cache ]
+                then
+                    rm -rf /nix && ln -s nix-cache /nix
+                fi
                 nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
                 nix-channel --update
                 cd utils/
@@ -40,7 +43,12 @@ pipeline {
     }
     post {
         always {
-            sh "mv /nix nix-cache"
+            sh '''
+            if [ ! -d nix-cache ]
+            then
+                mv /nix nix-cache
+            fi
+            '''
             archiveArtifacts artifacts: 'release/*', fingerprint: true
             junit '/tmp/reports/*.junit'
         }
