@@ -1,5 +1,10 @@
 PCSX2 IPC Client-Side Reference API
 ======
+
+![build](https://img.shields.io/jenkins/build?jobUrl=https%3A%2F%2Fci.govanify.com%2Fjob%2Fgovanify%2Fjob%2Fpcsx2_ipc%2Fjob%2Fci-test)
+![tests](https://img.shields.io/jenkins/tests?compact_message&jobUrl=https%3A%2F%2Fci.govanify.com%2Fjob%2Fgovanify%2Fjob%2Fpcsx2_ipc%2Fjob%2Fci-test%2F)
+![coverage](https://img.shields.io/jenkins/coverage/api?jobUrl=https%3A%2F%2Fci.govanify.com%2Fjob%2Fgovanify%2Fjob%2Fpcsx2_ipc%2Fjob%2Fci-test%2F)
+
 You'll find [here](https://code.govanify.com/govanify/pcsx2_ipc/)
 the reference implementation of PCSX2 IPC Socket client-side C++ API, along with
 different language bindings and examples.    
