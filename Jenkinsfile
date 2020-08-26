@@ -9,8 +9,8 @@ pipeline {
         stage('build') {
             steps {
                 sh '''
-                rm -rf /tmp/reports
-                mkdir /tmp/reports
+                rm -rf reports
+                mkdir reports
                 nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
                 nix-channel --update
                 cd utils/
@@ -24,7 +24,7 @@ pipeline {
             steps {
                 sh '''
                 cd utils/
-                nix-shell --run "cd ../build && ./tests -r junit -o /tmp/reports/pcsx2.xml"
+                nix-shell --run "cd ../build && ./tests -r junit -o reports/pcsx2.xml"
                 '''
             }
         }
@@ -39,8 +39,8 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: 'release/*', fingerprint: true
-            junit '/tmp/reports/*.xml'
+            archiveArtifacts artifacts: 'release.zip', fingerprint: true
+            junit 'reports/*.xml'
         }
     }
 }
