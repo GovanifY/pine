@@ -2,10 +2,13 @@ pipeline {
     agent { 
         docker { 
         image 'nixos/nix' 
-        args '-u root --privileged -v /nix' 
+        args '-u root --privileged' 
         } 
     }
     stages {
+     cache(maxCacheSize: 7000, caches: [
+     [$class: 'ArbitraryFileCache', excludes: '', includes: '**/*', path: '/nix']]) {
+
         stage('build') {
             steps {
                 sh '''
@@ -36,6 +39,7 @@ pipeline {
             }
         }
     }
+}
     post {
         always {
             archiveArtifacts artifacts: 'release/*', fingerprint: true
