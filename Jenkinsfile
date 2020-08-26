@@ -24,7 +24,7 @@ pipeline {
             steps {
                 sh '''
                 cd utils/
-                nix-shell --run "../build/tests -r junit -o reports/pcsx2.xml"
+                nix-shell --run "../build/tests -r junit -o ../reports/pcsx2.xml"
                 '''
             }
         }
