@@ -8,7 +8,9 @@ let
             rev = "a5927cb780b84b8056a019aff5b1a4cf92f7df60";
             sha256 = "1lvqm8fsnzddb13q5x61crh7wvbssk5jnz56s0708hqqi0y1808g";
           };
+        cmakeFlags =  oldAttrs.cmakeFlags ++ ["-DEXTRA_PLUGINS=TRUE"];
       });
+
   in
 pkgs.mkShell {
   name = "pcsx2ipc";
@@ -67,6 +69,7 @@ pkgs.mkShell {
       find ~/.config/PCSX2 -exec sed -i -e "s'NIXSTR'${pcsx2-ipc}'g" {} \;
       find ~/.config/PCSX2 -exec sed -i -e "s'/root'$HOME'g" {} \;
       find ~/.config/PCSX2 -exec sed -i -e "s'ConsoleToStdio=disabled'ConsoleToStdio=enabled'g" {} \;
+      find ~/.config/PCSX2 -exec sed -i -e "s'libGSdx-AVX2\.so'libGSnull.so'g" {} \;
 
       # rust binding
       export CARGO_HOME=$HOME/.cache/cargo
