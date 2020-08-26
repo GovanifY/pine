@@ -5,15 +5,13 @@ pipeline {
             args '-u root --privileged' 
         } 
     }
-     cache(maxCacheSize: 7000, caches: [
-     [$class: 'ArbitraryFileCache', excludes: '', includes: '**/*', path: '/nix']]) {
     stages {
-
         stage('build') {
             steps {
                 sh '''
                 rm -rf /tmp/reports
                 mkdir /tmp/reports
+                [[ -f nix-cache ]] && rm -rf /nix && mv nix-cache /nix
                 nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs
                 nix-channel --update
                 cd utils/
@@ -40,9 +38,9 @@ pipeline {
             }
         }
     }
-}
     post {
         always {
+            sh "mv /nix nix-cache"
             archiveArtifacts artifacts: 'release/*', fingerprint: true
             junit '/tmp/reports/*.junit'
         }
