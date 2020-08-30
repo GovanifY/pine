@@ -701,8 +701,9 @@ class PCSX2Ipc {
         // fallback in case macOS or other OSes don't implement the XDG base
         // spec
         if (runtime_dir == NULL)
-            runtime_dir = (char *)"/tmp";
-        SOCKET_NAME = strcat(runtime_dir, "/pcsx2.sock");
+            SOCKET_NAME = (char *)"/tmp/pcsx2.sock";
+        else
+            SOCKET_NAME = strcat(runtime_dir, "/pcsx2.sock");
 #endif
         // we allocate once buffers to not have to do mallocs for each IPC
         // request, as malloc is expansive when we optimize for µs.
