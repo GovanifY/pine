@@ -66,7 +66,7 @@ class PCSX2Ipc {
      * The name of the unix socket used on platforms with unix socket support.
      * @n Currently everything except Windows.
      */
-    const char *SOCKET_NAME = "/tmp/pcsx2.sock";
+    char *SOCKET_NAME;
 #endif
 
     /**
@@ -694,6 +694,15 @@ class PCSX2Ipc {
 #ifdef _WIN32
         WSADATA wsa;
         WSAStartup(MAKEWORD(2, 2), &wsa);
+#else
+        // XXX: go back whenever we want to have multiple IPC instances with
+        // multiple emulators running and make this a folder
+        char *runtime_dir = std::getenv("XDG_RUNTIME_DIR");
+        // fallback in case macOS or other OSes don't implement the XDG base
+        // spec
+        if (runtime_dir == NULL)
+            runtime_dir = (char *)"/tmp";
+        SOCKET_NAME = strcat(runtime_dir, "/pcsx2.sock");
 #endif
         // we allocate once buffers to not have to do mallocs for each IPC
         // request, as malloc is expansive when we optimize for µs.
