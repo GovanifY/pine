@@ -23,6 +23,7 @@
 #include <sys/un.h>
 #endif
 
+
 /**
  * The PCSX2Ipc API. @n
  * This is the client side implementation of PCSX2 IPC. @n
@@ -119,7 +120,7 @@ class PCSX2Ipc {
 
     /**
      * Length of the reply of the batch IPC request. @n
-     * This is used when chaining multiple IPC commands in one go 
+     * This is used when chaining multiple IPC commands in one go
      * to store the length of the reply of the IPC message.
      * @see IPCCommand
      * @see MAX_IPC_RETURN_SIZE
@@ -128,7 +129,7 @@ class PCSX2Ipc {
 
     /**
      * Number of IPC messages of the batch IPC request. @n
-     * This is used when chaining multiple IPC commands in one go 
+     * This is used when chaining multiple IPC commands in one go
      * to store the number of IPC messages chained together.
      * @see IPCCommand
      * @see MAX_BATCH_REPLY_COUNT
