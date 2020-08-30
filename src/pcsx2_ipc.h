@@ -23,7 +23,6 @@
 #include <sys/un.h>
 #endif
 
-
 /**
  * The PCSX2Ipc API. @n
  * This is the client side implementation of PCSX2 IPC. @n
@@ -416,6 +415,7 @@ class PCSX2Ipc {
             SetError(Fail);
             return;
         }
+        DWORD tv = 10 * 1000; // 10 seconds
 
 #else
         int sock;
@@ -431,21 +431,66 @@ class PCSX2Ipc {
             SetError(Fail);
             return;
         }
-
+        struct timeval tv;
+        tv.tv_sec = 10;
+        tv.tv_usec = 0;
 #endif
+
+        // socket timeout
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
+        setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char *)&tv, sizeof tv);
 
         if (write_portable(sock, command.buffer, command.size) < 0) {
             SetError(Fail);
             return;
         }
 
-        if (read_portable(sock, ret.buffer, ret.size) < 0) {
+        // either int or ssize_t depending on the platform, so we have to
+        // use a bunch of auto
+        auto receive_length = read_portable(sock, ret.buffer, ret.size);
+        if (receive_length > 0) {
+            // if we already received at least the length then we read it
+            auto end_length = 4;
+            if (receive_length >= end_length) {
+                end_length = FromArray<uint32_t>(ret.buffer, 0);
+            }
+
+            // while we haven't received the entire packet, maybe due to
+            // socket datagram splittage, we continue to read
+            while (receive_length < end_length &&
+                   receive_length < MAX_IPC_RETURN_SIZE) {
+                auto tmp_length =
+                    read_portable(sock, &ret.buffer[receive_length], ret.size);
+
+                // we close the connection if an error happens
+                if (tmp_length <= 0) {
+                    receive_length = 0;
+                    break;
+                }
+
+                // if we got at least the final size then update
+                if (end_length == 4 && receive_length >= 4)
+                    end_length = FromArray<uint32_t>(ret.buffer, 0);
+
+                receive_length += tmp_length;
+            }
+
+            if (receive_length == 0) {
+                SetError(Fail);
+                return;
+            }
+
+            // we'd like to avoid trying to do OOB
+            if (receive_length > MAX_IPC_RETURN_SIZE)
+                receive_length = MAX_IPC_RETURN_SIZE;
+        } else {
             SetError(Fail);
             return;
         }
+
         close_portable(sock);
 
-        if ((unsigned char)ret.buffer[0] == IPC_FAIL) {
+        if ((unsigned char)ret.buffer[4] == IPC_FAIL) {
             SetError(Fail);
             return;
         }
@@ -473,7 +518,7 @@ class PCSX2Ipc {
         ipc_blocking.lock();
         // 0-3 = header size, 4 = opcode
         batch_len = 4;
-        reply_len = 1;
+        reply_len = 5;
         arg_cnt = 0;
     }
 
@@ -575,9 +620,9 @@ class PCSX2Ipc {
             IPCBuffer cmd =
                 IPCBuffer{ 4 + 5,
                            FormatBeginning(ipc_buffer, address, tag, 4 + 5) };
-            IPCBuffer ret = IPCBuffer{ 1 + sizeof(Y), ret_buffer };
+            IPCBuffer ret = IPCBuffer{ 1 + sizeof(Y) + 4, ret_buffer };
             SendCommand(cmd, ret);
-            return GetReply<tag>(ret_buffer, 1);
+            return GetReply<tag>(ret_buffer, 5);
         }
     }
 
@@ -636,7 +681,7 @@ class PCSX2Ipc {
             int size = 4 + 5 + sizeof(Y);
             char *cmd = ToArray(FormatBeginning(ipc_buffer, address, tag, size),
                                 value, 4 + 5);
-            SendCommand(IPCBuffer{ size, cmd }, IPCBuffer{ 1, ret_buffer });
+            SendCommand(IPCBuffer{ size, cmd }, IPCBuffer{ 1 + 4, ret_buffer });
             return;
         }
     }
