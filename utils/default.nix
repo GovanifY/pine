@@ -5,8 +5,8 @@ let
         src = pkgs.fetchFromGitHub {
             owner = "GovanifY";
             repo = "pcsx2";
-            rev = "83a0d179ad0e597684f50efc9345179355f3322d";
-            sha256 = "1db1na8w59hm7gdsrfr8ba254jg4s113sp0sj0z14irifqszlmii";
+            rev = "6807ce392df8d257c7e54a7489e8affc15343741";
+            sha256 = "0z8ja83ch6yak098ai1594djh5034wyj9sazm2fqc7417fr012j4";
           };
         cmakeFlags =  oldAttrs.cmakeFlags ++ ["-DEXTRA_PLUGINS=TRUE"];
       });

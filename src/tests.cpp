@@ -79,14 +79,15 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
             THEN("It returns errors on invalid commands") {
                 PCSX2Ipc *ipc = new PCSX2Ipc();
 
-                char c_cmd[1];
-                c_cmd[0] = PCSX2Ipc::MsgUnimplemented;
-                char c_ret[1];
+                char c_cmd[5];
+                c_cmd[4] = PCSX2Ipc::MsgUnimplemented;
+                c_cmd[0] = 5;
+                char c_ret[5];
 
                 // send unimplement message to server
                 REQUIRE_THROWS(
-                    ipc->SendCommand(PCSX2Ipc::IPCBuffer{ 1, c_cmd },
-                                     PCSX2Ipc::IPCBuffer{ 1, c_ret }));
+                    ipc->SendCommand(PCSX2Ipc::IPCBuffer{ 5, c_cmd },
+                                     PCSX2Ipc::IPCBuffer{ 5, c_ret }));
 
                 // make unimplemented write
                 REQUIRE_THROWS(ipc->Write<u128>(0x00347D34, 5));
@@ -98,14 +99,14 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
             THEN("It returns errors when socket issues happen") {
                 PCSX2Ipc *ipc = new PCSX2Ipc();
 
-                char c_cmd[1];
-                c_cmd[0] = 0xFE;
+                char c_cmd[5];
+                c_cmd[0] = 5;
 
                 // trying to read from socket with INT_MAX and/or pointer from
                 // an address space that is not yours will return an errno. We
                 // do both to simulate a connection issue.
                 REQUIRE_THROWS(ipc->SendCommand(
-                    PCSX2Ipc::IPCBuffer{ 1, c_cmd },
+                    PCSX2Ipc::IPCBuffer{ 5, c_cmd },
                     PCSX2Ipc::IPCBuffer{ INT_MAX, (char *)0x00 }));
 
                 // trying to write to a socket with INT_MAX and/or pointer from

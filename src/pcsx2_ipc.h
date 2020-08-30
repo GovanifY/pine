@@ -110,8 +110,8 @@ class PCSX2Ipc {
 
     /**
      * Length of the batch IPC request. @n
-     * This is used when chaining multiple IPC commands in one go by using
-     * MsgMultiCommand to store the length of the entire IPC message.
+     * This is used when chaining multiple IPC commands in one go to store the
+     * current size of the packet chain.
      * @see IPCCommand
      * @see MAX_IPC_SIZE
      */
@@ -119,8 +119,8 @@ class PCSX2Ipc {
 
     /**
      * Length of the reply of the batch IPC request. @n
-     * This is used when chaining multiple IPC commands in one go by using
-     * MsgMultiCommand to store the length of the reply of the IPC message.
+     * This is used when chaining multiple IPC commands in one go
+     * to store the length of the reply of the IPC message.
      * @see IPCCommand
      * @see MAX_IPC_RETURN_SIZE
      */
@@ -128,8 +128,8 @@ class PCSX2Ipc {
 
     /**
      * Number of IPC messages of the batch IPC request. @n
-     * This is used when chaining multiple IPC commands in one go by using
-     * MsgMultiCommand to store the number of IPC messages chained together.
+     * This is used when chaining multiple IPC commands in one go
+     * to store the number of IPC messages chained together.
      * @see IPCCommand
      * @see MAX_BATCH_REPLY_COUNT
      */
@@ -137,8 +137,8 @@ class PCSX2Ipc {
 
     /**
      * Position of the batch arguments. @n
-     * This is used when chaining multiple IPC commands in one go by using
-     * MsgMultiCommand. Stores the location of each message reply in the buffer
+     * This is used when chaining multiple IPC commands in one go.
+     * Stores the location of each message reply in the buffer
      * sent by FinalizeBatch.
      * @see FinalizeBatch
      * @see IPCCommand
@@ -148,8 +148,7 @@ class PCSX2Ipc {
 
     /**
      * Sets the state of the batch command building. @n
-     * This is used when chaining multiple IPC commands in one go by using
-     * MsgMultiCommand. @n
+     * This is used when chaining multiple IPC commands in one go. @n
      * As we cannot build multiple batch IPC commands at the same time because
      * of state keeping issues we block the initialization of another batch
      * request until the other ends.
@@ -221,16 +220,15 @@ class PCSX2Ipc {
      * byte sent by the IPC to differentiate between commands.
      */
     enum IPCCommand : unsigned char {
-        MsgRead8 = 0,            /**< Read 8 bit value to memory. */
-        MsgRead16 = 1,           /**< Read 16 bit value to memory. */
-        MsgRead32 = 2,           /**< Read 32 bit value to memory. */
-        MsgRead64 = 3,           /**< Read 64 bit value to memory. */
-        MsgWrite8 = 4,           /**< Write 8 bit value to memory. */
-        MsgWrite16 = 5,          /**< Write 16 bit value to memory. */
-        MsgWrite32 = 6,          /**< Write 32 bit value to memory. */
-        MsgWrite64 = 7,          /**< Write 64 bit value to memory. */
-        MsgUnimplemented = 0xFE, /**< Unimplemented IPC message. */
-        MsgMultiCommand = 0xFF,  /**< Treats multiple IPC commands in batch. */
+        MsgRead8 = 0,           /**< Read 8 bit value to memory. */
+        MsgRead16 = 1,          /**< Read 16 bit value to memory. */
+        MsgRead32 = 2,          /**< Read 32 bit value to memory. */
+        MsgRead64 = 3,          /**< Read 64 bit value to memory. */
+        MsgWrite8 = 4,          /**< Write 8 bit value to memory. */
+        MsgWrite16 = 5,         /**< Write 16 bit value to memory. */
+        MsgWrite32 = 6,         /**< Write 32 bit value to memory. */
+        MsgWrite64 = 7,         /**< Write 64 bit value to memory. */
+        MsgUnimplemented = 0xFF /**< Unimplemented IPC message. */
     };
 
     /**
@@ -289,13 +287,22 @@ class PCSX2Ipc {
      * @param size The size of the array to allocate.
      * @param address The address to put as an argument of the IPC command.
      * @param command The IPC message tag(opcode).
+     * @param T false to make a full packet or true for a part of one, used for
+     * batch commands.
      * @see IPCCommand
      * @return The IPC buffer.
      */
-    auto FormatBeginning(char *cmd, uint32_t address, IPCCommand command)
-        -> char * {
-        cmd[0] = (unsigned char)command;
-        return ToArray(cmd, address, 1);
+    template <bool T = false>
+    auto FormatBeginning(char *cmd, uint32_t address, IPCCommand command,
+                         uint32_t size = 0) -> char * {
+        if constexpr (T) {
+            cmd[0] = (unsigned char)command;
+            return ToArray(cmd, address, 1);
+        } else {
+            ToArray(cmd, size, 0);
+            cmd[4] = (unsigned char)command;
+            return ToArray(cmd, address, 5);
+        }
     }
 
 #if defined(C_FFI) || defined(DOXYGEN)
@@ -408,6 +415,7 @@ class PCSX2Ipc {
             SetError(Fail);
             return;
         }
+        DWORD tv = 10 * 1000; // 10 seconds
 
 #else
         int sock;
@@ -423,28 +431,73 @@ class PCSX2Ipc {
             SetError(Fail);
             return;
         }
-
+        struct timeval tv;
+        tv.tv_sec = 10;
+        tv.tv_usec = 0;
 #endif
+
+        // socket timeout
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
+        setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char *)&tv, sizeof tv);
 
         if (write_portable(sock, command.buffer, command.size) < 0) {
             SetError(Fail);
             return;
         }
 
-        if (read_portable(sock, ret.buffer, ret.size) < 0) {
+        // either int or ssize_t depending on the platform, so we have to
+        // use a bunch of auto
+        auto receive_length = read_portable(sock, ret.buffer, ret.size);
+        if (receive_length > 0) {
+            // if we already received at least the length then we read it
+            auto end_length = 4;
+            if (receive_length >= end_length) {
+                end_length = FromArray<uint32_t>(ret.buffer, 0);
+            }
+
+            // while we haven't received the entire packet, maybe due to
+            // socket datagram splittage, we continue to read
+            while (receive_length < end_length &&
+                   receive_length < MAX_IPC_RETURN_SIZE) {
+                auto tmp_length =
+                    read_portable(sock, &ret.buffer[receive_length], ret.size);
+
+                // we close the connection if an error happens
+                if (tmp_length <= 0) {
+                    receive_length = 0;
+                    break;
+                }
+
+                // if we got at least the final size then update
+                if (end_length == 4 && receive_length >= 4)
+                    end_length = FromArray<uint32_t>(ret.buffer, 0);
+
+                receive_length += tmp_length;
+            }
+
+            if (receive_length == 0) {
+                SetError(Fail);
+                return;
+            }
+
+            // we'd like to avoid trying to do OOB
+            if (receive_length > MAX_IPC_RETURN_SIZE)
+                receive_length = MAX_IPC_RETURN_SIZE;
+        } else {
             SetError(Fail);
             return;
         }
+
         close_portable(sock);
 
-        if ((unsigned char)ret.buffer[0] == IPC_FAIL) {
+        if ((unsigned char)ret.buffer[4] == IPC_FAIL) {
             SetError(Fail);
             return;
         }
     }
 
     /**
-     * Initializes a MsgMultiCommand IPC message.  @n
+     * Initializes a batch command IPC message.  @n
      * Batch IPC messages are preferred when dealing with a lot of IPC messages
      * in a quick fashion. They are _very_ fast, 1000 Write<uint8_t> are as fast
      * as one Read<uint32_t> in non-batch mode, give or take, which is about
@@ -463,14 +516,14 @@ class PCSX2Ipc {
     auto InitializeBatch() -> void {
         batch_blocking.lock();
         ipc_blocking.lock();
-        ipc_buffer[0] = (unsigned char)MsgMultiCommand;
-        batch_len = 3;
-        reply_len = 1;
+        // 0-3 = header size, 4 = opcode
+        batch_len = 4;
+        reply_len = 5;
         arg_cnt = 0;
     }
 
     /**
-     * Finalizes a MsgMultiCommand IPC message. @n
+     * Finalizes a batch command IPC message. @n
      * WARNING: You will ALWAYS have to call a FinalizeBatch, even on
      * exceptions, once an InitializeBatch has been called overthise the class
      * will deadlock.
@@ -488,7 +541,7 @@ class PCSX2Ipc {
      */
     auto FinalizeBatch() -> BatchCommand {
         // save size in IPC message header.
-        ToArray<uint16_t>(ipc_buffer, arg_cnt, 1);
+        ToArray<uint32_t>(ipc_buffer, batch_len, 0);
 
         // we copy our arrays to unblock the IPC class.
         uint16_t bl = batch_len;
@@ -554,7 +607,8 @@ class PCSX2Ipc {
                 SetError(OutOfMemory);
                 return (char *)0;
             }
-            char *cmd = FormatBeginning(&ipc_buffer[batch_len], address, tag);
+            char *cmd =
+                FormatBeginning<true>(&ipc_buffer[batch_len], address, tag);
             batch_len += 5;
             batch_arg_place[arg_cnt] = reply_len;
             reply_len += sizeof(Y);
@@ -564,10 +618,11 @@ class PCSX2Ipc {
             // we are already locked in batch mode
             std::lock_guard<std::mutex> lock(ipc_blocking);
             IPCBuffer cmd =
-                IPCBuffer{ 5, FormatBeginning(ipc_buffer, address, tag) };
-            IPCBuffer ret = IPCBuffer{ 1 + sizeof(Y), ret_buffer };
+                IPCBuffer{ 4 + 5,
+                           FormatBeginning(ipc_buffer, address, tag, 4 + 5) };
+            IPCBuffer ret = IPCBuffer{ 1 + sizeof(Y) + 4, ret_buffer };
             SendCommand(cmd, ret);
-            return GetReply<tag>(ret_buffer, 1);
+            return GetReply<tag>(ret_buffer, 5);
         }
     }
 
@@ -615,18 +670,18 @@ class PCSX2Ipc {
                 return (char *)0;
             }
             char *cmd = ToArray<Y>(
-                FormatBeginning(&ipc_buffer[batch_len], address, tag), value,
-                5);
+                FormatBeginning<true>(&ipc_buffer[batch_len], address, tag),
+                value, 5);
             batch_len += 5 + sizeof(Y);
             arg_cnt += 1;
             return cmd;
         } else {
             // we are already locked in batch mode
             std::lock_guard<std::mutex> lock(ipc_blocking);
-            char *cmd =
-                ToArray(FormatBeginning(ipc_buffer, address, tag), value, 5);
-            SendCommand(IPCBuffer{ 5 + sizeof(Y), cmd },
-                        IPCBuffer{ 1, ret_buffer });
+            int size = 4 + 5 + sizeof(Y);
+            char *cmd = ToArray(FormatBeginning(ipc_buffer, address, tag, size),
+                                value, 4 + 5);
+            SendCommand(IPCBuffer{ size, cmd }, IPCBuffer{ 1 + 4, ret_buffer });
             return;
         }
     }
