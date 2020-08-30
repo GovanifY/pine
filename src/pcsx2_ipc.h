@@ -695,9 +695,13 @@ class PCSX2Ipc {
         WSADATA wsa;
         WSAStartup(MAKEWORD(2, 2), &wsa);
 #else
-        // XXX: go back whenever we want to have multiple IPC instances with
-        // multiple emulators running and make this a folder
+// XXX: go back whenever we want to have multiple IPC instances with
+// multiple emulators running and make this a folder
+#ifdef __APPLE__
+        char *runtime_dir = std::getenv("TMPDIR");
+#else
         char *runtime_dir = std::getenv("XDG_RUNTIME_DIR");
+#endif
         // fallback in case macOS or other OSes don't implement the XDG base
         // spec
         if (runtime_dir == NULL)
