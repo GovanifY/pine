@@ -453,14 +453,16 @@ class PCSX2Ipc {
             auto end_length = 4;
             if (receive_length >= end_length) {
                 end_length = FromArray<uint32_t>(ret.buffer, 0);
+                if (end_length > MAX_IPC_SIZE)
+                    end_length = MAX_IPC_SIZE;
             }
 
             // while we haven't received the entire packet, maybe due to
             // socket datagram splittage, we continue to read
-            while (receive_length < end_length &&
-                   receive_length < MAX_IPC_RETURN_SIZE) {
+            while (receive_length < end_length) {
                 auto tmp_length =
-                    read_portable(sock, &ret.buffer[receive_length], ret.size);
+                    read_portable(sock, &ret.buffer[receive_length],
+                                  ret.size - receive_length);
 
                 // we close the connection if an error happens
                 if (tmp_length <= 0) {
@@ -468,11 +470,14 @@ class PCSX2Ipc {
                     break;
                 }
 
-                // if we got at least the final size then update
-                if (end_length == 4 && receive_length >= 4)
-                    end_length = FromArray<uint32_t>(ret.buffer, 0);
-
                 receive_length += tmp_length;
+
+                // if we got at least the final size then update
+                if (end_length == 4 && receive_length >= 4) {
+                    end_length = FromArray<uint32_t>(ret.buffer, 0);
+                    if (end_length > MAX_IPC_SIZE)
+                        end_length = MAX_IPC_SIZE;
+                }
             }
 
             if (receive_length == 0) {
