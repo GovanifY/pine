@@ -447,48 +447,33 @@ class PCSX2Ipc {
 
         // either int or ssize_t depending on the platform, so we have to
         // use a bunch of auto
-        auto receive_length = read_portable(sock, ret.buffer, ret.size);
-        if (receive_length > 0) {
-            // if we already received at least the length then we read it
-            auto end_length = 4;
-            if (receive_length >= end_length) {
-                end_length = FromArray<uint32_t>(ret.buffer, 0);
-                if (end_length > MAX_IPC_SIZE)
-                    end_length = MAX_IPC_SIZE;
+        auto receive_length = 0;
+        auto end_length = 4;
+
+        // while we haven't received the entire packet, maybe due to
+        // socket datagram splittage, we continue to read
+        while (receive_length < end_length) {
+            auto tmp_length = read_portable(sock, &ret.buffer[receive_length],
+                                            ret.size - receive_length);
+
+            // we close the connection if an error happens
+            if (tmp_length <= 0) {
+                receive_length = 0;
+                break;
             }
 
-            // while we haven't received the entire packet, maybe due to
-            // socket datagram splittage, we continue to read
-            while (receive_length < end_length) {
-                auto tmp_length =
-                    read_portable(sock, &ret.buffer[receive_length],
-                                  ret.size - receive_length);
+            receive_length += tmp_length;
 
-                // we close the connection if an error happens
-                if (tmp_length <= 0) {
+            // if we got at least the final size then update
+            if (end_length == 4 && receive_length >= 4) {
+                end_length = FromArray<uint32_t>(ret.buffer, 0);
+                if (end_length > MAX_IPC_SIZE) {
                     receive_length = 0;
                     break;
                 }
-
-                receive_length += tmp_length;
-
-                // if we got at least the final size then update
-                if (end_length == 4 && receive_length >= 4) {
-                    end_length = FromArray<uint32_t>(ret.buffer, 0);
-                    if (end_length > MAX_IPC_SIZE)
-                        end_length = MAX_IPC_SIZE;
-                }
             }
-
-            if (receive_length == 0) {
-                SetError(Fail);
-                return;
-            }
-
-            // we'd like to avoid trying to do OOB
-            if (receive_length > MAX_IPC_RETURN_SIZE)
-                receive_length = MAX_IPC_RETURN_SIZE;
-        } else {
+        }
+        if (receive_length == 0) {
             SetError(Fail);
             return;
         }
