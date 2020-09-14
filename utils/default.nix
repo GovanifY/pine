@@ -5,7 +5,7 @@ let
         src = pkgs.fetchFromGitHub {
             owner = "GovanifY";
             repo = "pcsx2";
-            rev = "6ff8d50d43afa2bab0c382b16d472db5e010566f";
+            rev = "7da0617909867365f7253c53bfabf3994481b9ef";
             sha256 = "17s8l55sp881q6nriknh9srl9l9ilfiy0l335vaxazg32qq5wq6b";
           };
         cmakeFlags =  oldAttrs.cmakeFlags ++ ["-DEXTRA_PLUGINS=TRUE"];
