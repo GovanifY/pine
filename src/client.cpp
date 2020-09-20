@@ -61,6 +61,7 @@ auto main(int argc, char *argv[]) -> int {
     // in this case we wait 5 seconds before writing to our address
     msleep(5000);
     try {
+        printf("%s\n", ipc->Version());
         // a normal write can be done this way
         ipc->Write<u8>(0x00347D34, 0x5);
 

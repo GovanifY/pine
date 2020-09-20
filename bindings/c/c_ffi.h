@@ -60,6 +60,11 @@ uint64_t pcsx2ipc_read(PCSX2Ipc *v, uint32_t address, PCSX2Ipc::IPCCommand msg,
                        bool batch);
 
 /**
+ * @see PCSX2Ipc::Version
+ */
+char *pcsx2ipc_version(PCSX2Ipc *v, bool batch);
+
+/**
  * @see PCSX2Ipc::Write
  */
 void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint8_t val,

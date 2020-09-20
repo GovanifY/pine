@@ -121,6 +121,8 @@ void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint8_t val,
     }
 }
 
+char *pcsx2ipc_version(PCSX2Ipc *v, bool batch) { return v->Version(); }
+
 PCSX2Ipc::IPCStatus pcsx2ipc_get_error(PCSX2Ipc *v) { return v->GetError(); }
 
 void pcsx2ipc_free_batch_command(int cmd) {

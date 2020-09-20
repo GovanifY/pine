@@ -228,6 +228,7 @@ class PCSX2Ipc {
         MsgWrite16 = 5,         /**< Write 16 bit value to memory. */
         MsgWrite32 = 6,         /**< Write 32 bit value to memory. */
         MsgWrite64 = 7,         /**< Write 64 bit value to memory. */
+        MsgVersion = 8,         /**< Returns PCSX2 version. */
         MsgUnimplemented = 0xFF /**< Unimplemented IPC message. */
     };
 
@@ -371,7 +372,13 @@ class PCSX2Ipc {
             return FromArray<uint32_t>(buf, loc);
         else if constexpr (T == MsgRead64)
             return FromArray<uint64_t>(buf, loc);
-        else {
+        else if constexpr (T == MsgVersion) {
+            // TODO: very small memleak here since we don't ask the user to
+            // delete, how to fix?
+            char *version = new char[256];
+            memcpy(version, &buf[loc], 256);
+            return version;
+        } else {
             SetError(Unimplemented);
             return;
         }
@@ -673,6 +680,46 @@ class PCSX2Ipc {
                                 value, 4 + 5);
             SendCommand(IPCBuffer{ size, cmd }, IPCBuffer{ 1 + 4, ret_buffer });
             return;
+        }
+    }
+
+    /**
+     * Retrieves PCSX2 version. @n
+     * On error throws an IPCStatus. @n
+     * Format: XX @n
+     * Legend: XX = IPC Tag. @n
+     * Return: ZZ * 256 @n
+     * Legend: ZZ = version string.
+     * @see IPCCommand
+     * @see IPCStatus
+     * @param T Flag to enable batch processing or not.
+     * @return If in batch mode the IPC message otherwise the version string.
+     */
+    template <bool T = false>
+    auto Version() {
+        constexpr IPCCommand tag = MsgVersion;
+
+        // batch mode
+        if constexpr (T) {
+            if (BatchSafetyChecks(1)) {
+                SetError(OutOfMemory);
+                return (char *)0;
+            }
+            char *cmd = &ipc_buffer[batch_len];
+            cmd[0] = tag;
+            batch_len += 1;
+            batch_arg_place[arg_cnt] = reply_len;
+            reply_len += 256;
+            arg_cnt += 1;
+            return cmd;
+        } else {
+            // we are already locked in batch mode
+            std::lock_guard<std::mutex> lock(ipc_blocking);
+            ToArray(ipc_buffer, 4 + 1, 0);
+            ipc_buffer[4] = tag;
+            SendCommand(IPCBuffer{ 4 + 1, ipc_buffer },
+                        IPCBuffer{ 256 + 4 + 1, ret_buffer });
+            return GetReply<tag>(ret_buffer, 5);
         }
     }
 
