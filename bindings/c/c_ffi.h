@@ -67,7 +67,7 @@ char *pcsx2ipc_version(PCSX2Ipc *v, bool batch);
 /**
  * @see PCSX2Ipc::Write
  */
-void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint8_t val,
+void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint64_t val,
                     PCSX2Ipc::IPCCommand msg, bool batch);
 
 /**

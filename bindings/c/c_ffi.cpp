@@ -82,18 +82,18 @@ uint64_t pcsx2ipc_read(PCSX2Ipc *v, uint32_t address, PCSX2Ipc::IPCCommand msg,
     }
 }
 
-void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint8_t val,
+void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint64_t val,
                     PCSX2Ipc::IPCCommand msg, bool batch) {
     if (batch == false) {
         switch (msg) {
             case PCSX2Ipc::MsgWrite8:
-                v->Write<uint8_t>(address, val);
+                v->Write<uint8_t>(address, (uint8_t)val);
                 break;
             case PCSX2Ipc::MsgWrite16:
-                v->Write<uint16_t>(address, val);
+                v->Write<uint16_t>(address, (uint16_t)val);
                 break;
             case PCSX2Ipc::MsgWrite32:
-                v->Write<uint32_t>(address, val);
+                v->Write<uint32_t>(address, (uint32_t)val);
                 break;
             case PCSX2Ipc::MsgWrite64:
                 v->Write<uint64_t>(address, val);
@@ -104,13 +104,13 @@ void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint8_t val,
     } else {
         switch (msg) {
             case PCSX2Ipc::MsgWrite8:
-                v->Write<uint8_t, true>(address, val);
+                v->Write<uint8_t, true>(address, (uint8_t)val);
                 break;
             case PCSX2Ipc::MsgWrite16:
-                v->Write<uint16_t, true>(address, val);
+                v->Write<uint16_t, true>(address, (uint16_t)val);
                 break;
             case PCSX2Ipc::MsgWrite32:
-                v->Write<uint32_t, true>(address, val);
+                v->Write<uint32_t, true>(address, (uint32_t)val);
                 break;
             case PCSX2Ipc::MsgWrite64:
                 v->Write<uint64_t, true>(address, val);
