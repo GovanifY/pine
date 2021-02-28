@@ -59,7 +59,22 @@ class PCSX2Ipc {
      * Currently Windows only.
      */
     const uint16_t PORT = 28011;
+
+    /**
+     * Socket handler. @n
+     * On windows it uses the type SOCKET, on linux int.
+     */
+    SOCKET sock;
+#else
+    int sock;
 #endif
+
+    /**
+     * Socket initialization state. @n
+     * True if initialized, false if not or if impossible to connect to.
+     */
+    bool sock_state = false;
+
 #if !defined(_WIN32) || defined(DOXYGEN)
     /**
      * Unix socket name. @n
@@ -212,6 +227,54 @@ class PCSX2Ipc {
                 arg_cnt + 1 >= MAX_BATCH_REPLY_COUNT);
     }
 
+    /**
+     * Initializes the socket IPC connection with the server. @n
+     * @see sock
+     * @see sock_state
+     */
+    auto InitSocket() -> void {
+#ifdef _WIN32
+        struct sockaddr_in server;
+
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+
+        // Prepare the sockaddr_in structure
+        server.sin_family = AF_INET;
+        // localhost only
+        server.sin_addr.s_addr = inet_addr("127.0.0.1");
+        server.sin_port = htons(PORT);
+
+        if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
+            close_portable(sock);
+            sock_state = false;
+            return;
+        }
+        DWORD tv = 10 * 1000; // 10 seconds
+
+#else
+        struct sockaddr_un server;
+
+        sock = socket(AF_UNIX, SOCK_STREAM, 0);
+        server.sun_family = AF_UNIX;
+        strcpy(server.sun_path, SOCKET_NAME);
+
+        if (connect(sock, (struct sockaddr *)&server,
+                    sizeof(struct sockaddr_un)) < 0) {
+            close_portable(sock);
+            sock_state = false;
+            return;
+        }
+        struct timeval tv;
+        tv.tv_sec = 10;
+        tv.tv_usec = 0;
+#endif
+
+        // socket timeout
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
+        setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char *)&tv, sizeof tv);
+        sock_state = true;
+    }
+
   public:
     /**
      * IPC Command messages opcodes. @n
@@ -276,8 +339,9 @@ class PCSX2Ipc {
         Success = 0,       /**< IPC command successfully completed. */
         Fail = 1,          /**< IPC command failed to execute. */
         OutOfMemory = 2,   /**< IPC command too big to send. */
-        Unimplemented = 3, /**< Unimplemented IPC command. */
-        Unknown = 4        /**< Unknown status. */
+        NoConnection = 3,  /**< Cannot connect to the IPC socket. */
+        Unimplemented = 4, /**< Unimplemented IPC command. */
+        Unknown = 5        /**< Unknown status. */
     };
 
   protected:
@@ -398,6 +462,7 @@ class PCSX2Ipc {
     auto SendCommand(const T &cmd, const T &rt = T()) -> void {
         IPCBuffer command;
         IPCBuffer ret;
+
         if constexpr (std::is_same<T, BatchCommand>::value) {
             command = cmd.ipc_message;
             ret = cmd.ipc_return;
@@ -405,50 +470,17 @@ class PCSX2Ipc {
             command = cmd;
             ret = rt;
         }
-#ifdef _WIN32
-        SOCKET sock;
-        struct sockaddr_in server;
 
-        sock = socket(AF_INET, SOCK_STREAM, 0);
-
-        // Prepare the sockaddr_in structure
-        server.sin_family = AF_INET;
-        // localhost only
-        server.sin_addr.s_addr = inet_addr("127.0.0.1");
-        server.sin_port = htons(PORT);
-
-        if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
-            close_portable(sock);
-            SetError(Fail);
-            return;
+        if (!sock_state) {
+            InitSocket();
         }
-        DWORD tv = 10 * 1000; // 10 seconds
-
-#else
-        int sock;
-        struct sockaddr_un server;
-
-        sock = socket(AF_UNIX, SOCK_STREAM, 0);
-        server.sun_family = AF_UNIX;
-        strcpy(server.sun_path, SOCKET_NAME);
-
-        if (connect(sock, (struct sockaddr *)&server,
-                    sizeof(struct sockaddr_un)) < 0) {
-            close_portable(sock);
-            SetError(Fail);
-            return;
-        }
-        struct timeval tv;
-        tv.tv_sec = 10;
-        tv.tv_usec = 0;
-#endif
-
-        // socket timeout
-        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
-        setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char *)&tv, sizeof tv);
 
         if (write_portable(sock, command.buffer, command.size) < 0) {
-            SetError(Fail);
+            // if our write failed, assume the socket connection cannot be
+            // established
+            close_portable(sock);
+            sock_state = false;
+            SetError(NoConnection);
             return;
         }
 
@@ -484,8 +516,6 @@ class PCSX2Ipc {
             SetError(Fail);
             return;
         }
-
-        close_portable(sock);
 
         if ((unsigned char)ret.buffer[4] == IPC_FAIL) {
             SetError(Fail);
@@ -751,6 +781,7 @@ class PCSX2Ipc {
         ret_buffer = new char[MAX_IPC_RETURN_SIZE];
         ipc_buffer = new char[MAX_IPC_SIZE];
         batch_arg_place = new unsigned int[MAX_BATCH_REPLY_COUNT];
+        InitSocket();
     }
 
     /**
