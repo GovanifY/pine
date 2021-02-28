@@ -135,7 +135,7 @@ void pcsx2ipc_free_batch_command(int cmd) {
     }
 }
 void pcsx2ipc_delete(PCSX2Ipc *v) {
-    for (int i = 0; i < batch_commands.size(); i++)
+    for (long unsigned int i = 0; i < batch_commands.size(); i++)
         pcsx2ipc_free_batch_command(i);
     delete v;
 }

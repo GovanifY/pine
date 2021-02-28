@@ -6,7 +6,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <thread>
-#include <unistd.h>
 
 #ifdef _WIN32
 #define read_portable(a, b, c) (recv(a, b, c, 0))
@@ -21,6 +20,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
 #endif
 
 /**

@@ -144,7 +144,7 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
                 // correct and ensure we didn't threw an error.
                 REQUIRE_NOTHROW([&]() {
                     PCSX2Ipc *ipc = new PCSX2Ipc();
-                    char* version = ipc->Version();
+                    char *version = ipc->Version();
                     REQUIRE(strncmp(version, "PCSX2", 5) == 0);
                 }());
             }
@@ -177,7 +177,9 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
                     auto resr = ipc->FinalizeBatch();
                     ipc->SendCommand(resr);
 
-                    REQUIRE(strncmp(ipc->GetReply<PCSX2Ipc::MsgVersion>(resr, 4), "PCSX2", 5) == 0);
+                    REQUIRE(
+                        strncmp(ipc->GetReply<PCSX2Ipc::MsgVersion>(resr, 4),
+                                "PCSX2", 5) == 0);
                     REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead8>(resr, 3) == 8);
                     REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead16>(resr, 2) == 7);
                     REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead32>(resr, 1) == 6);
