@@ -16,15 +16,21 @@
 extern "C" {
 #endif
 
+#ifdef _WIN32
+#define EXPORT_LIB __declspec(dllexport)
+#else
+#define EXPORT_LIB
+#endif
+
 /**
  * @see PCSX2Ipc::PCSX2Ipc
  */
-PCSX2Ipc *pcsx2ipc_new();
+EXPORT_LIB PCSX2Ipc *pcsx2ipc_new();
 
 /**
  * @see PCSX2Ipc::InitializeBatch
  */
-void pcsx2ipc_initialize_batch(PCSX2Ipc *v);
+EXPORT_LIB void pcsx2ipc_initialize_batch(PCSX2Ipc *v);
 
 /**
  * In contrast to the C++ library this returns a handle to a struct. @n
@@ -34,46 +40,47 @@ void pcsx2ipc_initialize_batch(PCSX2Ipc *v);
  * @return PCSX2Ipc::BatchCommand handle.
  * @see PCSX2Ipc::FinalizeBatch
  */
-int pcsx2ipc_finalize_batch(PCSX2Ipc *v);
+EXPORT_LIB int pcsx2ipc_finalize_batch(PCSX2Ipc *v);
 
 /**
  * Internal undocumented function. Do not use or include into your bindings!
  */
-PCSX2Ipc::BatchCommand pcsx2ipc_internal_to_batch(PCSX2Ipc::BatchCommand *arg);
+EXPORT_LIB PCSX2Ipc::BatchCommand
+pcsx2ipc_internal_to_batch(PCSX2Ipc::BatchCommand *arg);
 
 /**
  * Variant of PCSX2Ipc::GetReply that exclusively deals with integers replies.
  * @see PCSX2Ipc::GetReply
  */
-uint64_t pcsx2ipc_get_reply_int(PCSX2Ipc *v, int cmd, int place,
-                                PCSX2Ipc::IPCCommand msg);
+EXPORT_LIB uint64_t pcsx2ipc_get_reply_int(PCSX2Ipc *v, int cmd, int place,
+                                           PCSX2Ipc::IPCCommand msg);
 
 /**
  * @see PCSX2Ipc::SendCommand
  */
-void pcsx2ipc_send_command(PCSX2Ipc *v, int cmd);
+EXPORT_LIB void pcsx2ipc_send_command(PCSX2Ipc *v, int cmd);
 
 /**
  * @see PCSX2Ipc::Read
  */
-uint64_t pcsx2ipc_read(PCSX2Ipc *v, uint32_t address, PCSX2Ipc::IPCCommand msg,
-                       bool batch);
+EXPORT_LIB uint64_t pcsx2ipc_read(PCSX2Ipc *v, uint32_t address,
+                                  PCSX2Ipc::IPCCommand msg, bool batch);
 
 /**
  * @see PCSX2Ipc::Version
  */
-char *pcsx2ipc_version(PCSX2Ipc *v, bool batch);
+EXPORT_LIB char *pcsx2ipc_version(PCSX2Ipc *v, bool batch);
 
 /**
  * @see PCSX2Ipc::Write
  */
-void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint64_t val,
-                    PCSX2Ipc::IPCCommand msg, bool batch);
+EXPORT_LIB void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint64_t val,
+                               PCSX2Ipc::IPCCommand msg, bool batch);
 
 /**
  * @see PCSX2Ipc::~PCSX2Ipc
  */
-void pcsx2ipc_delete(PCSX2Ipc *v);
+EXPORT_LIB void pcsx2ipc_delete(PCSX2Ipc *v);
 
 /**
  * Frees given PCSX2Ipc::BatchCommand through its int handle. @n
@@ -81,11 +88,11 @@ void pcsx2ipc_delete(PCSX2Ipc *v);
  * free the batch commands if you want to free memory.
  * @param cmd PCSX2Ipc::BatchCommand handle.
  */
-void pcsx2ipc_free_batch_command(int cmd);
+EXPORT_LIB void pcsx2ipc_free_batch_command(int cmd);
 /**
  * @see PCSX2Ipc::GetError
  */
-PCSX2Ipc::IPCStatus pcsx2ipc_get_error(PCSX2Ipc *v);
+EXPORT_LIB PCSX2Ipc::IPCStatus pcsx2ipc_get_error(PCSX2Ipc *v);
 
 #ifdef __cplusplus
 }
