@@ -292,9 +292,53 @@ class PCSX2Ipc {
         MsgWrite32 = 6,         /**< Write 32 bit value to memory. */
         MsgWrite64 = 7,         /**< Write 64 bit value to memory. */
         MsgVersion = 8,         /**< Returns PCSX2 version. */
+        MsgSaveState = 9,       /**< Saves a savestate. */
+        MsgLoadState = 0xA,     /**< Loads a savestate. */
         MsgUnimplemented = 0xFF /**< Unimplemented IPC message. */
     };
 
+  protected:
+    /**
+     * Internal function for savestate IPC messages. @n
+     * On error throws an IPCStatus. @n
+     * Format: XX YY @n
+     * Legend: XX = IPC Tag, YY = Slot.
+     * @see IPCCommand
+     * @see IPCStatus
+     * @param slot The savestate slot to use.
+     * @param T Flag to enable batch processing or not.
+     * @param Y IPCCommand to use.
+     * @return If in batch mode the IPC message otherwise void.
+     */
+    template <IPCCommand Y, bool T = false>
+    auto EmuState(uint8_t slot) {
+        // easiest way to get tag into a constexpr is a lambda, necessary for
+        // GetReply
+        // batch mode
+        if constexpr (T) {
+            if (BatchSafetyChecks(2)) {
+                SetError(OutOfMemory);
+                return (char *)0;
+            }
+            char *cmd = &ipc_buffer[batch_len];
+            cmd[0] = Y;
+            cmd[1] = slot;
+            batch_len += 2;
+            arg_cnt += 1;
+            return cmd;
+        } else {
+            // we are already locked in batch mode
+            std::lock_guard<std::mutex> lock(ipc_blocking);
+            ToArray(ipc_buffer, 4 + 2, 0);
+            ipc_buffer[4] = Y;
+            ipc_buffer[5] = slot;
+            SendCommand(IPCBuffer{ 4 + 1 + 1, ipc_buffer },
+                        IPCBuffer{ 4 + 1, ret_buffer });
+            return;
+        }
+    }
+
+  public:
     /**
      * IPC message buffer. @n
      * A list of all needed fields to store an IPC message.
@@ -751,6 +795,40 @@ class PCSX2Ipc {
                         IPCBuffer{ 256 + 4 + 1, ret_buffer });
             return GetReply<tag>(ret_buffer, 5);
         }
+    }
+
+    /**
+     * Asks PCSX2 to save a savestate. @n
+     * On error throws an IPCStatus. @n
+     * Format: XX YY @n
+     * Legend: XX = IPC Tag, YY = Slot.
+     * @see IPCCommand
+     * @see IPCStatus
+     * @param slot The savestate slot to use.
+     * @param T Flag to enable batch processing or not.
+     * @return If in batch mode the IPC message otherwise void.
+     */
+    template <bool T = false>
+    auto SaveState(uint8_t slot) {
+        constexpr IPCCommand tag = MsgSaveState;
+        return EmuState<tag, T>(slot);
+    }
+
+    /**
+     * Asks PCSX2 to load a savestate. @n
+     * On error throws an IPCStatus. @n
+     * Format: XX YY @n
+     * Legend: XX = IPC Tag, YY = Slot.
+     * @see IPCCommand
+     * @see IPCStatus
+     * @param slot The savestate slot to use.
+     * @param T Flag to enable batch processing or not.
+     * @return If in batch mode the IPC message otherwise void.
+     */
+    template <bool T = false>
+    auto LoadState(uint8_t slot) {
+        constexpr IPCCommand tag = MsgLoadState;
+        return EmuState<tag, T>(slot);
     }
 
     /**
