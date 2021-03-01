@@ -249,7 +249,6 @@ class PCSX2Ipc {
             sock_state = false;
             return;
         }
-        DWORD tv = 10 * 1000; // 10 seconds
 
 #else
         struct sockaddr_un server;
@@ -264,14 +263,7 @@ class PCSX2Ipc {
             sock_state = false;
             return;
         }
-        struct timeval tv;
-        tv.tv_sec = 10;
-        tv.tv_usec = 0;
 #endif
-
-        // socket timeout
-        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
-        setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char *)&tv, sizeof tv);
         sock_state = true;
     }
 
