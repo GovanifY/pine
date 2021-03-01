@@ -34,13 +34,15 @@ auto read_background(PCSX2Ipc *ipc) -> void {
             // time of socket IPC, in µs, if you want to have an idea.
 
             // auto t1 = std::chrono::high_resolution_clock::now();
-            uint32_t value = ipc->Read<u32>(0x00347D34);
+            // uint32_t value = ipc->Read<u32>(0x00347D34);
+
+            printf("%s\n", ipc->Version());
             // auto t2 = std::chrono::high_resolution_clock::now();
             // auto duration =
             //    std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1)
             //        .count();
             // std::cout << "execution time: " << duration << std::endl;
-            printf("PCSX2Ipc::Read<uint32_t>(0x00347D34) :  %u\n", value);
+            // printf("PCSX2Ipc::Read<uint32_t>(0x00347D34) :  %u\n", value);
         } catch (...) {
             // if the operation failed
             printf("ERROR!!!!!\n");
