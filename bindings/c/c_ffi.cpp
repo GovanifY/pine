@@ -49,7 +49,7 @@ void pcsx2ipc_send_command(PCSX2Ipc *v, int cmd) {
 
 uint64_t pcsx2ipc_read(PCSX2Ipc *v, uint32_t address, PCSX2Ipc::IPCCommand msg,
                        bool batch) {
-    if (batch == false) {
+    if (!batch) {
         switch (msg) {
             case PCSX2Ipc::MsgRead8:
                 return (uint64_t)v->Read<uint8_t>(address);
@@ -84,7 +84,7 @@ uint64_t pcsx2ipc_read(PCSX2Ipc *v, uint32_t address, PCSX2Ipc::IPCCommand msg,
 
 void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint64_t val,
                     PCSX2Ipc::IPCCommand msg, bool batch) {
-    if (batch == false) {
+    if (!batch) {
         switch (msg) {
             case PCSX2Ipc::MsgWrite8:
                 v->Write<uint8_t>(address, (uint8_t)val);
@@ -121,7 +121,53 @@ void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint64_t val,
     }
 }
 
-char *pcsx2ipc_version(PCSX2Ipc *v, bool batch) { return v->Version(); }
+char *pcsx2ipc_version(PCSX2Ipc *v, bool batch) {
+    if (batch) {
+        return v->Version<true>();
+    } else {
+        return v->Version<false>();
+    }
+}
+
+char *pcsx2ipc_getgametitle(PCSX2Ipc *v, bool batch) {
+    if (batch) {
+        return v->GetGameTitle<true>();
+    } else {
+        return v->GetGameTitle<false>();
+    }
+}
+
+char *pcsx2ipc_getgameid(PCSX2Ipc *v, bool batch) {
+    if (batch) {
+        return v->GetGameID<true>();
+    } else {
+        return v->GetGameID<false>();
+    }
+}
+
+char *pcsx2ipc_getgameuuid(PCSX2Ipc *v, bool batch) {
+    if (batch) {
+        return v->GetGameUUID<true>();
+    } else {
+        return v->GetGameUUID<false>();
+    }
+}
+
+void pcsx2ipc_savestate(PCSX2Ipc *v, uint8_t slot, bool batch) {
+    if (batch) {
+        v->SaveState<true>(slot);
+    } else {
+        v->SaveState<false>(slot);
+    }
+}
+
+void pcsx2ipc_loadstate(PCSX2Ipc *v, uint8_t slot, bool batch) {
+    if (batch) {
+        v->LoadState<true>(slot);
+    } else {
+        v->LoadState<false>(slot);
+    }
+}
 
 PCSX2Ipc::IPCStatus pcsx2ipc_get_error(PCSX2Ipc *v) { return v->GetError(); }
 

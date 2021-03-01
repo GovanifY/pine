@@ -36,7 +36,7 @@ auto read_background(PCSX2Ipc *ipc) -> void {
             // auto t1 = std::chrono::high_resolution_clock::now();
             // uint32_t value = ipc->Read<u32>(0x00347D34);
 
-            printf("%s\n", ipc->Version());
+            printf("%s\n", ipc->GetGameTitle());
             // auto t2 = std::chrono::high_resolution_clock::now();
             // auto duration =
             //    std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1)
