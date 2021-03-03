@@ -52,14 +52,19 @@ class PCSX2Ipc {
 
     // allow test suite to poke internals
   protected:
-#if defined(_WIN32) || defined(DOXYGEN)
     /**
-     * TCP socket port. @n
-     * Used by the IPC on platforms with TCP sockets. @n
-     * Currently Windows only.
+     * IPC Slot identifier. @n
+     * Used by the IPC to identify concurrent sessions.
      */
-    const uint16_t PORT = 28011;
+    uint16_t slot;
 
+    /**
+     * Default IPC Slot. @n
+     * @see slot
+     */
+    static const uint16_t DEFAULT_SLOT = 28011;
+
+#if defined(_WIN32) || defined(DOXYGEN)
     /**
      * Socket handler. @n
      * On windows it uses the type SOCKET, on linux int.
@@ -242,7 +247,7 @@ class PCSX2Ipc {
         server.sin_family = AF_INET;
         // localhost only
         server.sin_addr.s_addr = inet_addr("127.0.0.1");
-        server.sin_port = htons(PORT);
+        server.sin_port = htons(slot);
 
         if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
             close_portable(sock);
@@ -900,15 +905,18 @@ class PCSX2Ipc {
 
     /**
      * PCSX2Ipc Initializer.
+     * @param slot Slot to use for this IPC session.
+     * @see slot
      */
-    PCSX2Ipc() {
-        // We initialize winsock.
+    PCSX2Ipc(unsigned int slot = DEFAULT_SLOT) {
+        // some basic input sanitization
+        if (slot > 65536)
+            throw;
 #ifdef _WIN32
+        // We initialize winsock.
         WSADATA wsa;
         WSAStartup(MAKEWORD(2, 2), &wsa);
 #else
-// XXX: go back whenever we want to have multiple IPC instances with
-// multiple emulators running and make this a folder
 #ifdef __APPLE__
         char *runtime_dir = std::getenv("TMPDIR");
 #else
@@ -920,6 +928,14 @@ class PCSX2Ipc {
             SOCKET_NAME = (char *)"/tmp/pcsx2.sock";
         else
             SOCKET_NAME = strcat(runtime_dir, "/pcsx2.sock");
+
+        if (slot != DEFAULT_SLOT) {
+            // maximum size of .%u
+            char slot_ending[34];
+            sprintf(slot_ending, ".%u", slot);
+            SOCKET_NAME = strcat(SOCKET_NAME, slot_ending);
+        }
+        this->slot = slot;
 #endif
         // we allocate once buffers to not have to do mallocs for each IPC
         // request, as malloc is expansive when we optimize for µs.
