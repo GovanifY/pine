@@ -910,8 +910,10 @@ class PCSX2Ipc {
      */
     PCSX2Ipc(unsigned int slot = DEFAULT_SLOT) {
         // some basic input sanitization
-        if (slot > 65536)
-            throw;
+        if (slot > 65536) {
+            SetError(NoConnection);
+            return;
+        }
 #ifdef _WIN32
         // We initialize winsock.
         WSADATA wsa;
@@ -935,8 +937,8 @@ class PCSX2Ipc {
             sprintf(slot_ending, ".%u", slot);
             SOCKET_NAME = strcat(SOCKET_NAME, slot_ending);
         }
-        this->slot = slot;
 #endif
+        this->slot = slot;
         // we allocate once buffers to not have to do mallocs for each IPC
         // request, as malloc is expansive when we optimize for µs.
         ret_buffer = new char[MAX_IPC_RETURN_SIZE];
