@@ -294,7 +294,19 @@ class PCSX2Ipc {
         MsgTitle = 0xB,         /**< Returns the game title. */
         MsgID = 0xC,            /**< Returns the game ID. */
         MsgUUID = 0xD,          /**< Returns the game UUID. */
+        MsgGameVersion = 0xE,   /**< Returns the game verion. */
+        MsgStatus = 0xF,        /**< Returns the emulator status. */
         MsgUnimplemented = 0xFF /**< Unimplemented IPC message. */
+    };
+
+    /**
+     * Emulator status enum. @n
+     * A list of possible emulator statuses. @n
+     */
+    enum EmuStatus : uint32_t {
+        Running = 0,            /**< Game is running */
+        Paused = 1,             /**< Game is paused */
+        Shutdown = 2,           /**< Game is shutdown */
     };
 
   protected:
@@ -519,8 +531,10 @@ class PCSX2Ipc {
             return FromArray<uint32_t>(buf, loc);
         else if constexpr (T == MsgRead64)
             return FromArray<uint64_t>(buf, loc);
+        else if constexpr (T == MsgStatus)
+            return FromArray<EmuStatus>(buf, loc);
         else if constexpr (T == MsgVersion || T == MsgID || T == MsgTitle ||
-                           T == MsgUUID) {
+                           T == MsgUUID || T == MsgGameVersion) {
             // TODO: very small memleak here since we don't ask the user to
             // delete, how to fix?
             char *version = new char[256];
@@ -816,6 +830,46 @@ class PCSX2Ipc {
     }
 
     /**
+     * Retrieves emulator status. @n
+     * On error throws an IPCStatus. @n
+     * Format: XX @n
+     * Legend: XX = IPC Tag. @n
+     * Return: ZZ ZZ ZZ ZZ @n
+     * Legend: ZZ = emulator status.
+     * @see IPCCommand
+     * @see IPCStatus
+     * @param T Flag to enable batch processing or not.
+     * @return If in batch mode the IPC message otherwise the emulator status.
+     */
+    template <bool T = false>
+    auto Status() {
+        constexpr IPCCommand tag = MsgStatus;
+        // batch mode
+        if constexpr (T) {
+            if (BatchSafetyChecks(1, 4)) {
+                SetError(OutOfMemory);
+                return (char*)0;
+            }
+            char* cmd = &ipc_buffer[batch_len];
+            cmd[0] = tag;
+            batch_len += 1;
+            batch_arg_place[arg_cnt] = reply_len;
+            reply_len += 4;
+            arg_cnt += 1;
+            return cmd;
+        }
+        else {
+            // we are already locked in batch mode
+            std::lock_guard<std::mutex> lock(ipc_blocking);
+            ToArray(ipc_buffer, 4 + 1, 0);
+            ipc_buffer[4] = tag;
+            SendCommand(IPCBuffer{ 4 + 1, ipc_buffer },
+                        IPCBuffer{ 4 + 1 + 4, ret_buffer });
+            return GetReply<tag>(ret_buffer, 5);
+        }
+    }
+
+    /**
      * Retrieves the game title. @n
      * On error throws an IPCStatus. @n
      * Format: XX @n
@@ -866,6 +920,24 @@ class PCSX2Ipc {
     template <bool T = false>
     auto GetGameUUID() {
         constexpr IPCCommand tag = MsgUUID;
+        return StringCommands<tag>();
+    }
+
+    /**
+     * Retrieves the game version. @n
+     * On error throws an IPCStatus. @n
+     * Format: XX @n
+     * Legend: XX = IPC Tag. @n
+     * Return: ZZ * 256 @n
+     * Legend: ZZ = game version string.
+     * @see IPCCommand
+     * @see IPCStatus
+     * @param T Flag to enable batch processing or not.
+     * @return If in batch mode the IPC message otherwise the game version string.
+     */
+    template <bool T = false>
+    auto GetGameVersion() {
+        constexpr IPCCommand tag = MsgGameVersion;
         return StringCommands<tag>();
     }
 
