@@ -135,6 +135,15 @@ char *pcsx2ipc_version(PCSX2Ipc *v, bool batch) {
     }
 }
 
+PCSX2Ipc::EmuStatus pcsx2ipc_status(PCSX2Ipc *v, bool batch) {
+    if (batch) {
+        v->Status<true>();
+        return (PCSX2Ipc::EmuStatus)0;
+    } else {
+        return v->Status<false>();
+    }
+}
+
 char *pcsx2ipc_getgametitle(PCSX2Ipc *v, bool batch) {
     if (batch) {
         v->GetGameTitle<true>();
@@ -159,6 +168,15 @@ char *pcsx2ipc_getgameuuid(PCSX2Ipc *v, bool batch) {
         return nullptr;
     } else {
         return v->GetGameUUID<false>();
+    }
+}
+
+char *pcsx2ipc_getgameversion(PCSX2Ipc *v, bool batch) {
+    if (batch) {
+        v->GetGameVersion<true>();
+        return nullptr;
+    } else {
+        return v->GetGameVersion<false>();
     }
 }
 

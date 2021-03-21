@@ -68,6 +68,11 @@ EXPORT_LIB uint64_t pcsx2ipc_read(PCSX2Ipc *v, uint32_t address,
 EXPORT_LIB char *pcsx2ipc_version(PCSX2Ipc *v, bool batch);
 
 /**
+ * @see PCSX2Ipc::Status
+ */
+EXPORT_LIB PCSX2Ipc::EmuStatus pcsx2ipc_status(PCSX2Ipc* v, bool batch);
+
+/**
  * @see PCSX2Ipc::GetGameTitle
  */
 EXPORT_LIB char *pcsx2ipc_getgametitle(PCSX2Ipc *v, bool batch);
@@ -81,6 +86,11 @@ EXPORT_LIB char *pcsx2ipc_getgameid(PCSX2Ipc *v, bool batch);
  * @see PCSX2Ipc::GetGameUUID
  */
 EXPORT_LIB char *pcsx2ipc_getgameuuid(PCSX2Ipc *v, bool batch);
+
+/**
+ * @see PCSX2Ipc::GetGameVersion
+ */
+EXPORT_LIB char* pcsx2ipc_getgameversion(PCSX2Ipc* v, bool batch);
 
 /**
  * @see PCSX2Ipc::SaveState
