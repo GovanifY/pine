@@ -914,22 +914,27 @@ class PCSX2Ipc {
             SetError(NoConnection);
             return;
         }
+        char *runtime_dir = nullptr;
 #ifdef _WIN32
         // We initialize winsock.
         WSADATA wsa;
         WSAStartup(MAKEWORD(2, 2), &wsa);
 #else
 #ifdef __APPLE__
-        char *runtime_dir = std::getenv("TMPDIR");
+        runtime_dir = std::getenv("TMPDIR");
 #else
-        char *runtime_dir = std::getenv("XDG_RUNTIME_DIR");
+        runtime_dir = std::getenv("XDG_RUNTIME_DIR");
 #endif
         // fallback in case macOS or other OSes don't implement the XDG base
         // spec
-        if (runtime_dir == NULL)
+        if (runtime_dir == nullptr)
             SOCKET_NAME = (char *)"/tmp/pcsx2.sock";
-        else
-            SOCKET_NAME = strcat(runtime_dir, "/pcsx2.sock");
+        else {
+            SOCKET_NAME =
+                new char[strlen(runtime_dir) + strlen("/pcsx2.sock") + 1];
+            strcpy(SOCKET_NAME, runtime_dir);
+            strcat(SOCKET_NAME, "/pcsx2.sock");
+        }
 
         if (slot != DEFAULT_SLOT) {
             // maximum size of .%u
