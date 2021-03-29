@@ -914,12 +914,12 @@ class PCSX2Ipc {
             SetError(NoConnection);
             return;
         }
-        char *runtime_dir = nullptr;
 #ifdef _WIN32
         // We initialize winsock.
         WSADATA wsa;
         WSAStartup(MAKEWORD(2, 2), &wsa);
 #else
+        char *runtime_dir = nullptr;
 #ifdef __APPLE__
         runtime_dir = std::getenv("TMPDIR");
 #else
