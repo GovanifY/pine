@@ -19,10 +19,3 @@ if catch2.found()
     '-DTESTS')
   test('tests', e)
 endif
-
-
-cleaner = find_program('clang-format', required : false)
-if cleaner.found()
-  run_command(cleaner, '-i', src)
-  run_command(cleaner, '-i', test_src)
-endif
