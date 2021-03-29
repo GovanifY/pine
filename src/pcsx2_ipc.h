@@ -86,7 +86,7 @@ class PCSX2Ipc {
      * The name of the unix socket used on platforms with unix socket support.
      * @n Currently everything except Windows.
      */
-    char *SOCKET_NAME;
+    std::string SOCKET_NAME;
 #endif
 
     /**
@@ -260,7 +260,7 @@ class PCSX2Ipc {
 
         sock = socket(AF_UNIX, SOCK_STREAM, 0);
         server.sun_family = AF_UNIX;
-        strcpy(server.sun_path, SOCKET_NAME);
+        strcpy(server.sun_path, SOCKET_NAME.c_str());
 
         if (connect(sock, (struct sockaddr *)&server,
                     sizeof(struct sockaddr_un)) < 0) {
@@ -928,19 +928,14 @@ class PCSX2Ipc {
         // fallback in case macOS or other OSes don't implement the XDG base
         // spec
         if (runtime_dir == nullptr)
-            SOCKET_NAME = (char *)"/tmp/pcsx2.sock";
+            SOCKET_NAME = "/tmp/pcsx2.sock";
         else {
-            SOCKET_NAME =
-                new char[strlen(runtime_dir) + strlen("/pcsx2.sock") + 1];
-            strcpy(SOCKET_NAME, runtime_dir);
-            strcat(SOCKET_NAME, "/pcsx2.sock");
+            SOCKET_NAME = runtime_dir;
+            SOCKET_NAME += "/pcsx2.sock";
         }
 
         if (slot != DEFAULT_SLOT) {
-            // maximum size of .%u
-            char slot_ending[34];
-            sprintf(slot_ending, ".%u", slot);
-            SOCKET_NAME = strcat(SOCKET_NAME, slot_ending);
+            SOCKET_NAME += "." + std::to_string(slot);
         }
 #endif
         this->slot = slot;
