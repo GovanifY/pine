@@ -35,6 +35,13 @@ EXPORT_LIB PCSX2Ipc *pcsx2ipc_new();
 EXPORT_LIB void pcsx2ipc_initialize_batch(PCSX2Ipc *v);
 
 /**
+ * This function frees datastream whose ownership was passed down to you. @n
+ * This is just a fancy wrapper around delete[] that is easier to use through
+ * FFI.
+ */
+EXPORT_LIB void pcsx2ipc_free_datastream(char *data);
+
+/**
  * In contrast to the C++ library this returns a handle to a struct. @n
  * This requires you to free handles by yourself, see
  * pcsx2ipc_free_batch_command.
@@ -70,7 +77,7 @@ EXPORT_LIB char *pcsx2ipc_version(PCSX2Ipc *v, bool batch);
 /**
  * @see PCSX2Ipc::Status
  */
-EXPORT_LIB PCSX2Ipc::EmuStatus pcsx2ipc_status(PCSX2Ipc* v, bool batch);
+EXPORT_LIB PCSX2Ipc::EmuStatus pcsx2ipc_status(PCSX2Ipc *v, bool batch);
 
 /**
  * @see PCSX2Ipc::GetGameTitle
@@ -90,7 +97,7 @@ EXPORT_LIB char *pcsx2ipc_getgameuuid(PCSX2Ipc *v, bool batch);
 /**
  * @see PCSX2Ipc::GetGameVersion
  */
-EXPORT_LIB char* pcsx2ipc_getgameversion(PCSX2Ipc* v, bool batch);
+EXPORT_LIB char *pcsx2ipc_getgameversion(PCSX2Ipc *v, bool batch);
 
 /**
  * @see PCSX2Ipc::SaveState

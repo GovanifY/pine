@@ -8,6 +8,8 @@ PCSX2Ipc *pcsx2ipc_new() { return new PCSX2Ipc(); }
 
 void pcsx2ipc_initialize_batch(PCSX2Ipc *v) { return v->InitializeBatch(); }
 
+void pcsx2ipc_free_datastream(char *data) { delete[] data; }
+
 int pcsx2ipc_finalize_batch(PCSX2Ipc *v) {
     auto p_batch = new PCSX2Ipc::BatchCommand;
     auto batch = v->FinalizeBatch();
