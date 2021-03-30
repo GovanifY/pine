@@ -496,7 +496,10 @@ class PCSX2Ipc {
      * @param place An integer specifying where the argument is
      * in the buffer OR which function to read the reply of in
      * the case of a BatchCommand.
-     * @return The reply, variable type.
+     * @return The reply, variable type. Refer to the documentation of the
+     * standard function. Ownership of datastreams is also passed down to you,
+     * so don't forget to read carefully the documentation and see if you need
+     * to free anything!
      * @see IPCResult
      * @see IPCBuffer
      */
@@ -521,8 +524,6 @@ class PCSX2Ipc {
             return FromArray<uint64_t>(buf, loc);
         else if constexpr (T == MsgVersion || T == MsgID || T == MsgTitle ||
                            T == MsgUUID) {
-            // TODO: very small memleak here since we don't ask the user to
-            // delete, how to fix?
             char *version = new char[256];
             memcpy(version, &buf[loc], 256);
             return version;
@@ -807,7 +808,9 @@ class PCSX2Ipc {
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
-     * @return If in batch mode the IPC message otherwise the version string.
+     * @return If in batch mode the IPC message otherwise the version string. @n
+     * /!\ If not in batch mode this function passes ownership of a datastream
+     * to you, do not forget to free it!
      */
     template <bool T = false>
     auto Version() {
@@ -825,7 +828,9 @@ class PCSX2Ipc {
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
-     * @return If in batch mode the IPC message otherwise the version string.
+     * @return If in batch mode the IPC message otherwise the version string. @n
+     * /!\ If not in batch mode this function passes ownership of a datastream
+     * to you, do not forget to free it!
      */
     template <bool T = false>
     auto GetGameTitle() {
@@ -843,7 +848,9 @@ class PCSX2Ipc {
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
-     * @return If in batch mode the IPC message otherwise the version string.
+     * @return If in batch mode the IPC message otherwise the version string. @n
+     * /!\ If not in batch mode this function passes ownership of a datastream
+     * to you, do not forget to free it!
      */
     template <bool T = false>
     auto GetGameID() {
@@ -861,7 +868,9 @@ class PCSX2Ipc {
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
-     * @return If in batch mode the IPC message otherwise the version string.
+     * @return If in batch mode the IPC message otherwise the version string. @n
+     * /!\ If not in batch mode this function passes ownership of a datastream
+     * to you, do not forget to free it!
      */
     template <bool T = false>
     auto GetGameUUID() {

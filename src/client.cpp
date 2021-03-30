@@ -36,7 +36,12 @@ auto read_background(PCSX2Ipc *ipc) -> void {
             // auto t1 = std::chrono::high_resolution_clock::now();
             // uint32_t value = ipc->Read<u32>(0x00347D34);
 
-            printf("%s\n", ipc->GetGameTitle());
+            // WARNING: all datastreams that are returned by the library changes
+            // ownership, it is your duty to free them after use.
+            char *title = ipc->GetGameTitle();
+            printf("%s\n", title);
+            delete[] title;
+
             // auto t2 = std::chrono::high_resolution_clock::now();
             // auto duration =
             //    std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1)
