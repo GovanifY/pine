@@ -6,7 +6,9 @@
  * the foot, and probably will. @n
  * I encourage you to carefully read the documentation for the C++
  * library on top of the C bindings to have a proper understanding of what each
- * function does, and how the binding differs from the source material.
+ * function does, and how the binding differs from the source material. @n
+ * The function mostly behaves in the same way, with a notable difference that
+ * batch commands will always return 0/nullptr.
  */
 
 #include "pcsx2_ipc.h"
@@ -41,12 +43,6 @@ EXPORT_LIB void pcsx2ipc_initialize_batch(PCSX2Ipc *v);
  * @see PCSX2Ipc::FinalizeBatch
  */
 EXPORT_LIB int pcsx2ipc_finalize_batch(PCSX2Ipc *v);
-
-/**
- * Internal undocumented function. Do not use or include into your bindings!
- */
-EXPORT_LIB PCSX2Ipc::BatchCommand
-pcsx2ipc_internal_to_batch(PCSX2Ipc::BatchCommand *arg);
 
 /**
  * Variant of PCSX2Ipc::GetReply that exclusively deals with integers replies.

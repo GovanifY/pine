@@ -6,14 +6,6 @@ static std::vector<PCSX2Ipc::BatchCommand *> batch_commands;
 
 PCSX2Ipc *pcsx2ipc_new() { return new PCSX2Ipc(); }
 
-PCSX2Ipc::BatchCommand pcsx2ipc_internal_to_batch(PCSX2Ipc::BatchCommand *arg) {
-    return PCSX2Ipc::BatchCommand{
-        PCSX2Ipc::IPCBuffer{ arg->ipc_message.size, arg->ipc_message.buffer },
-        PCSX2Ipc::IPCBuffer{ arg->ipc_return.size, arg->ipc_return.buffer },
-        arg->return_locations
-    };
-}
-
 void pcsx2ipc_initialize_batch(PCSX2Ipc *v) { return v->InitializeBatch(); }
 
 int pcsx2ipc_finalize_batch(PCSX2Ipc *v) {
@@ -28,7 +20,13 @@ int pcsx2ipc_finalize_batch(PCSX2Ipc *v) {
 
 uint64_t pcsx2ipc_get_reply_int(PCSX2Ipc *v, int cmd, int place,
                                 PCSX2Ipc::IPCCommand msg) {
-    auto lcmd = pcsx2ipc_internal_to_batch(batch_commands[cmd]);
+    auto lcmd = PCSX2Ipc::BatchCommand{
+        PCSX2Ipc::IPCBuffer{ batch_commands[cmd]->ipc_message.size,
+                             batch_commands[cmd]->ipc_message.buffer },
+        PCSX2Ipc::IPCBuffer{ batch_commands[cmd]->ipc_return.size,
+                             batch_commands[cmd]->ipc_return.buffer },
+        batch_commands[cmd]->return_locations
+    };
     switch (msg) {
         case PCSX2Ipc::MsgRead8:
             return (uint64_t)v->GetReply<PCSX2Ipc::MsgRead8>(lcmd, place);
@@ -44,7 +42,14 @@ uint64_t pcsx2ipc_get_reply_int(PCSX2Ipc *v, int cmd, int place,
 }
 
 void pcsx2ipc_send_command(PCSX2Ipc *v, int cmd) {
-    return v->SendCommand(pcsx2ipc_internal_to_batch(batch_commands[cmd]));
+    auto lcmd = PCSX2Ipc::BatchCommand{
+        PCSX2Ipc::IPCBuffer{ batch_commands[cmd]->ipc_message.size,
+                             batch_commands[cmd]->ipc_message.buffer },
+        PCSX2Ipc::IPCBuffer{ batch_commands[cmd]->ipc_return.size,
+                             batch_commands[cmd]->ipc_return.buffer },
+        batch_commands[cmd]->return_locations
+    };
+    return v->SendCommand(lcmd);
 }
 
 uint64_t pcsx2ipc_read(PCSX2Ipc *v, uint32_t address, PCSX2Ipc::IPCCommand msg,
@@ -123,7 +128,8 @@ void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint64_t val,
 
 char *pcsx2ipc_version(PCSX2Ipc *v, bool batch) {
     if (batch) {
-        return v->Version<true>();
+        v->Version<true>();
+        return nullptr;
     } else {
         return v->Version<false>();
     }
@@ -131,7 +137,8 @@ char *pcsx2ipc_version(PCSX2Ipc *v, bool batch) {
 
 char *pcsx2ipc_getgametitle(PCSX2Ipc *v, bool batch) {
     if (batch) {
-        return v->GetGameTitle<true>();
+        v->GetGameTitle<true>();
+        return nullptr;
     } else {
         return v->GetGameTitle<false>();
     }
@@ -139,7 +146,8 @@ char *pcsx2ipc_getgametitle(PCSX2Ipc *v, bool batch) {
 
 char *pcsx2ipc_getgameid(PCSX2Ipc *v, bool batch) {
     if (batch) {
-        return v->GetGameID<true>();
+        v->GetGameID<true>();
+        return nullptr;
     } else {
         return v->GetGameID<false>();
     }
@@ -147,7 +155,8 @@ char *pcsx2ipc_getgameid(PCSX2Ipc *v, bool batch) {
 
 char *pcsx2ipc_getgameuuid(PCSX2Ipc *v, bool batch) {
     if (batch) {
-        return v->GetGameUUID<true>();
+        v->GetGameUUID<true>();
+        return nullptr;
     } else {
         return v->GetGameUUID<false>();
     }
