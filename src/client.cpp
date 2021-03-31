@@ -120,5 +120,10 @@ auto main(int argc, char *argv[]) -> int {
     // (while true) so it will never do so.
     first.join();
 
+    // we do not forget to free our IPC object to avoid any memory leak,
+    // although they will technically get automatically freed by the OS at
+    // process shutdown
+    delete ipc;
+
     return 0;
 }
