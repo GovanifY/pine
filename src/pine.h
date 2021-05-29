@@ -371,7 +371,8 @@ class Shared {
             char *cmd = &ipc_buffer[batch_len];
             cmd[0] = Y;
             batch_len += 1;
-            batch_arg_place[arg_cnt] = reply_len;
+            // MSB is used as a flag to warn pine that the reply is a VLE!
+            batch_arg_place[arg_cnt] = (reply_len | 0x80000000);
             reply_len += 256;
             arg_cnt += 1;
             return cmd;
@@ -409,6 +410,7 @@ class Shared {
         IPCBuffer ipc_return;           /**< IPC return fields. */
         unsigned int *return_locations; /**< Location of arguments in IPC return
                                            fields. */
+        unsigned int msg_size;          /**< Number of IPC messages. */
         // C bindings handle manually the freeing of such resources.
 #ifndef C_FFI
         /**
@@ -617,19 +619,39 @@ class Shared {
             SetError(Fail);
             return;
         }
+
+        // batch commands are a bit more complex than you'd expect: some replies
+        // are VLE, so we need to relocate accordingly all future replies by an
+        // offset to ensure GetReply points to the correct buffer location.
+        // We can do it in an O(n) way by storing the global relocation offset
+        // and applying it to all future commands in one go instead of doing it
+        // in an O(n^2) and updating the list every time we encounter an offset
+        // update.
+        if constexpr (std::is_same<T, BatchCommand>::value) {
+            unsigned int reloc_add = 0;
+            for (unsigned int i = 0; i < cmd.msg_size; i++) {
+                cmd.return_locations[i] += reloc_add;
+                if ((cmd.return_locations[i] & 0x80000000) != 0) {
+                    cmd.return_locations[i] =
+                        (cmd_return_locations[i] & ~0x80000000);
+                    reloc_add += FromArray<uint32_t>(
+                        ret.buffer, (cmd.return_locations[i] - 4));
+                }
+            }
+        }
     }
 
     /**
      * Initializes a batch command IPC message.  @n
-     * Batch IPC messages are preferred when dealing with a lot of IPC messages
-     * in a quick fashion. They are _very_ fast, 1000 Write<uint8_t> are as fast
-     * as one Read<uint32_t> in non-batch mode, give or take, which is about
-     * 100µs. @n
-     * You'll have to build the IPC messages in advance, with this function and
-     * FinalizeBatch, and will have to send the command yourself, along with
-     * dealing with the extraction of return values, if need there is.
-     * It is a little bit less convenient than the standard IPC but has, at the
-     * very least, a 1000x speedup on big commands.
+     * Batch IPC messages are preferred when dealing with a lot of IPC
+     * messages in a quick fashion. They are _very_ fast, 1000
+     * Write<uint8_t> are as fast as one Read<uint32_t> in non-batch mode,
+     * give or take, which is about 100µs. @n You'll have to build the IPC
+     * messages in advance, with this function and FinalizeBatch, and will
+     * have to send the command yourself, along with dealing with the
+     * extraction of return values, if need there is. It is a little bit
+     * less convenient than the standard IPC but has, at the very least, a
+     * 1000x speedup on big commands.
      * @see batch_blocking
      * @see batch_len
      * @see reply_len
@@ -648,8 +670,8 @@ class Shared {
     /**
      * Finalizes a batch command IPC message. @n
      * WARNING: You will ALWAYS have to call a FinalizeBatch, even on
-     * exceptions, once an InitializeBatch has been called overthise the class
-     * will deadlock.
+     * exceptions, once an InitializeBatch has been called overthise the
+     * class will deadlock.
      * @return A BatchCommand with:
      *         * The IPCBuffer of the message.
      *         * The IPCBuffer of the return.
@@ -682,7 +704,7 @@ class Shared {
 
         // MultiCommand is done!
         return BatchCommand{ IPCBuffer{ bl, c_cmd }, IPCBuffer{ rl, c_ret },
-                             arg_place };
+                             arg_place, arg_cnt };
     }
 
     /**
@@ -703,8 +725,8 @@ class Shared {
     template <typename Y, bool T = false>
     auto Read(uint32_t address) {
 
-        // easiest way to get tag into a constexpr is a lambda, necessary for
-        // GetReply
+        // easiest way to get tag into a constexpr is a lambda, necessary
+        // for GetReply
         constexpr IPCCommand tag = []() -> IPCCommand {
             switch (sizeof(Y)) {
                 case 1:
@@ -765,8 +787,8 @@ class Shared {
     template <typename Y, bool T = false>
     auto Write(uint32_t address, Y value) {
 
-        // easiest way to get tag into a constexpr is a lambda, necessary for
-        // GetReply
+        // easiest way to get tag into a constexpr is a lambda, necessary
+        // for GetReply
         constexpr IPCCommand tag = []() -> IPCCommand {
             switch (sizeof(Y)) {
                 case 1:
@@ -819,9 +841,10 @@ class Shared {
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
-     * @return If in batch mode the IPC message otherwise the version string. @n
-     * /!\ If not in batch mode this function passes ownership of a datastream
-     * to you, do not forget to free it!
+     * @return If in batch mode the IPC message otherwise the version
+     * string. @n
+     * /!\ If not in batch mode this function passes ownership of a
+     * datastream to you, do not forget to free it!
      */
     template <bool T = false>
     auto Version() {
@@ -839,7 +862,8 @@ class Shared {
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
-     * @return If in batch mode the IPC message otherwise the emulator status.
+     * @return If in batch mode the IPC message otherwise the emulator
+     * status.
      */
     template <bool T = false>
     auto Status() {
@@ -878,9 +902,10 @@ class Shared {
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
-     * @return If in batch mode the IPC message otherwise the version string. @n
-     * /!\ If not in batch mode this function passes ownership of a datastream
-     * to you, do not forget to free it!
+     * @return If in batch mode the IPC message otherwise the version
+     * string. @n
+     * /!\ If not in batch mode this function passes ownership of a
+     * datastream to you, do not forget to free it!
      */
     template <bool T = false>
     auto GetGameTitle() {
@@ -898,9 +923,10 @@ class Shared {
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
-     * @return If in batch mode the IPC message otherwise the version string. @n
-     * /!\ If not in batch mode this function passes ownership of a datastream
-     * to you, do not forget to free it!
+     * @return If in batch mode the IPC message otherwise the version
+     * string. @n
+     * /!\ If not in batch mode this function passes ownership of a
+     * datastream to you, do not forget to free it!
      */
     template <bool T = false>
     auto GetGameID() {
@@ -918,9 +944,10 @@ class Shared {
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
-     * @return If in batch mode the IPC message otherwise the version string. @n
-     * /!\ If not in batch mode this function passes ownership of a datastream
-     * to you, do not forget to free it!
+     * @return If in batch mode the IPC message otherwise the version
+     * string. @n
+     * /!\ If not in batch mode this function passes ownership of a
+     * datastream to you, do not forget to free it!
      */
     template <bool T = false>
     auto GetGameUUID() {
@@ -940,8 +967,8 @@ class Shared {
      * @param T Flag to enable batch processing or not.
      * @return If in batch mode the IPC message otherwise the game version
      * string. @n
-     * /!\ If not in batch mode this function passes ownership of a datastream
-     * to you, do not forget to free it!
+     * /!\ If not in batch mode this function passes ownership of a
+     * datastream to you, do not forget to free it!
      */
     template <bool T = false>
     auto GetGameVersion() {
@@ -987,8 +1014,8 @@ class Shared {
      * Shared Initializer.
      * @param slot Slot to use for this IPC session.
      * @param emulator_name Emulator name to use for this IPC session.
-     * @param default_slot Whether this is the default slot for the emulator or
-     * not.
+     * @param default_slot Whether this is the default slot for the emulator
+     * or not.
      * @see slot
      */
     Shared(const unsigned int slot, const std::string emulator_name,
