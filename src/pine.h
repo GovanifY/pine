@@ -54,17 +54,6 @@ class Shared {
     // allow test suite to poke internals
   protected:
     /**
-     * Default PINE slot for the emulator in use. @n
-     * @see slot
-     */
-    virtual const uint16_t get_emulator_slot() { return 0; }
-
-    /**
-     * Default PINE name for the emulator in use. @n
-     */
-    virtual const std::string get_emulator_name() { return ""; }
-
-    /**
      * IPC Slot identifier. @n
      * Used by the IPC to identify concurrent sessions.
      */
@@ -995,9 +984,13 @@ class Shared {
     /**
      * Shared Initializer.
      * @param slot Slot to use for this IPC session.
+     * @param emulator_name Emulator name to use for this IPC session.
+     * @param default_slot Whether this is the default slot for the emulator or
+     * not.
      * @see slot
      */
-    Shared(unsigned int slot = 0) {
+    Shared(const unsigned int slot, const std::string emulator_name,
+           const bool default_slot) {
         // some basic input sanitization
         if (slot > 65536) {
             SetError(NoConnection);
@@ -1017,21 +1010,16 @@ class Shared {
         // fallback in case macOS or other OSes don't implement the XDG base
         // spec
         if (runtime_dir == nullptr)
-            SOCKET_NAME = "/tmp/" + this->get_emulator_name() + ".sock";
+            SOCKET_NAME = "/tmp/" + emulator_name + ".sock";
         else {
             SOCKET_NAME = runtime_dir;
-            SOCKET_NAME += "/" + this->get_emulator_name() + ".sock";
+            SOCKET_NAME += "/" + emulator_name + ".sock";
         }
 
-        if (slot != 0) {
+        if (!default_slot) {
             SOCKET_NAME += "." + std::to_string(slot);
         }
 #endif
-        if (slot != 0) {
-            this->slot = slot;
-        } else {
-            this->slot = get_emulator_slot();
-        }
         // we allocate once buffers to not have to do mallocs for each IPC
         // request, as malloc is expansive when we optimize for µs.
         ret_buffer = new char[MAX_IPC_RETURN_SIZE];
@@ -1055,7 +1043,16 @@ class Shared {
 };
 
 class PCSX2 : public Shared {
-    const uint16_t get_emulator_slot() { return 28011; }
-    const std::string get_emulator_name() { return "pcsx2"; }
+  public:
+    /**
+     * PCSX2 session Initializer.
+     */
+    PCSX2() : Shared(28011, "pcsx2", true){};
+    /**
+     * PCSX2 session Initializer with a specified slot.
+     * @param slot Slot to use for this IPC session.
+     * @see slot
+     */
+    PCSX2(const unsigned int slot) : Shared(slot, "pcsx2", false){};
 };
 }; // namespace PINE
