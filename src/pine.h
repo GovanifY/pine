@@ -144,6 +144,15 @@ class Shared {
     unsigned int reply_len = 0;
 
     /**
+     * Maximum length reserved for VLE reply arguments. @n
+     * This is used when chaining multiple IPC commands in one go
+     * to estimate the maximum length of the reply of the IPC message.
+     * @see IPCCommand
+     * @see MAX_IPC_RETURN_SIZE
+     */
+    unsigned int reloc_len = 0;
+
+    /**
      * Number of IPC messages of the batch IPC request. @n
      * This is used when chaining multiple IPC commands in one go
      * to store the number of IPC messages chained together.
@@ -373,7 +382,11 @@ class Shared {
             batch_len += 1;
             // MSB is used as a flag to warn pine that the reply is a VLE!
             batch_arg_place[arg_cnt] = (reply_len | 0x80000000);
-            reply_len += 256;
+            // reloc size
+            reply_len += 4;
+            // this is the maximum size we are willing to allocate for a
+            // relocatable string.
+            reloc_len += 0x1000;
             arg_cnt += 1;
             return cmd;
         } else {
@@ -382,7 +395,7 @@ class Shared {
             ToArray(ipc_buffer, 4 + 1, 0);
             ipc_buffer[4] = Y;
             SendCommand(IPCBuffer{ 4 + 1, ipc_buffer },
-                        IPCBuffer{ 256 + 4 + 1, ret_buffer });
+                        IPCBuffer{ 0x1000 + 4 + 1, ret_buffer });
             return GetReply<Y>(ret_buffer, 5);
         }
     }
@@ -537,9 +550,10 @@ class Shared {
             return FromArray<EmuStatus>(buf, loc);
         else if constexpr (T == MsgVersion || T == MsgID || T == MsgTitle ||
                            T == MsgUUID || T == MsgGameVersion) {
-            char *version = new char[256];
-            memcpy(version, &buf[loc], 256);
-            return version;
+            uint32_t size = FromArray(buf, loc - 4);
+            char *datastream = new char[size];
+            memcpy(datastream, &buf[loc], size);
+            return datastream;
         } else {
             SetError(Unimplemented);
             return;
@@ -664,6 +678,7 @@ class Shared {
         // 0-3 = header size, 4 = opcode
         batch_len = 4;
         reply_len = 5;
+        reloc_len = 0;
         arg_cnt = 0;
     }
 
@@ -690,11 +705,11 @@ class Shared {
 
         // we copy our arrays to unblock the IPC class.
         uint16_t bl = batch_len;
-        int rl = reply_len;
+        int rl = reply_len + reloc_len;
         char *c_cmd = new char[batch_len];
         memcpy(c_cmd, ipc_buffer, batch_len * sizeof(char));
-        char *c_ret = new char[reply_len];
-        memcpy(c_ret, ret_buffer, reply_len * sizeof(char));
+        char *c_ret = new char[rl];
+        memcpy(c_ret, ret_buffer, rl * sizeof(char));
         unsigned int *arg_place = new unsigned int[arg_cnt];
         memcpy(arg_place, batch_arg_place, arg_cnt * sizeof(unsigned int));
 
