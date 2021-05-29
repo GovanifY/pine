@@ -144,13 +144,14 @@ class Shared {
     unsigned int reply_len = 0;
 
     /**
-     * Maximum length reserved for VLE reply arguments. @n
-     * This is used when chaining multiple IPC commands in one go
-     * to estimate the maximum length of the reply of the IPC message.
+     * Whether a batch command reply needs relocation. @n
+     * This automatically sets up the reply size to be the
+     * maximum possible since we cannot anticipate how much
+     * resources this will take.
      * @see IPCCommand
      * @see MAX_IPC_RETURN_SIZE
      */
-    unsigned int reloc_len = 0;
+    bool needs_reloc = false;
 
     /**
      * Number of IPC messages of the batch IPC request. @n
@@ -382,13 +383,8 @@ class Shared {
             batch_len += 1;
             // MSB is used as a flag to warn pine that the reply is a VLE!
             batch_arg_place[arg_cnt] = (reply_len | 0x80000000);
-            // reloc size
             reply_len += 4;
-            // this is the maximum size we are willing to allocate for a
-            // relocatable string. Please do note that updating the maximum size
-            // is _not_ a protocol breaking change, we can update it accordingly
-            // if need there is!
-            reloc_len += 0x1000;
+            needs_reloc = true;
             arg_cnt += 1;
             return cmd;
         } else {
@@ -397,7 +393,7 @@ class Shared {
             ToArray(ipc_buffer, 4 + 1, 0);
             ipc_buffer[4] = Y;
             SendCommand(IPCBuffer{ 4 + 1, ipc_buffer },
-                        IPCBuffer{ 0x1000 + 4 + 4 + 1, ret_buffer });
+                        IPCBuffer{ MAX_IPC_RETURN_SIZE, ret_buffer });
             return GetReply<Y>(ret_buffer, 5);
         }
     }
@@ -608,6 +604,7 @@ class Shared {
         while (receive_length < end_length) {
             auto tmp_length = read_portable(sock, &ret.buffer[receive_length],
                                             ret.size - receive_length);
+            // TODO: do not use ret.size, wait until everything is received
 
             // we close the connection if an error happens
             if (tmp_length <= 0) {
@@ -643,6 +640,8 @@ class Shared {
         // and applying it to all future commands in one go instead of doing it
         // in an O(n^2) and updating the list every time we encounter an offset
         // update.
+        // why not just assume a standard size instead of going through the pain
+        // of relocating everything in the protocol? math is cheap, io isn't.
         if constexpr (std::is_same<T, BatchCommand>::value) {
             unsigned int reloc_add = 0;
             for (unsigned int i = 0; i < cmd.msg_size; i++) {
@@ -680,7 +679,7 @@ class Shared {
         // 0-3 = header size, 4 = opcode
         batch_len = 4;
         reply_len = 5;
-        reloc_len = 0;
+        needs_reloc = false;
         arg_cnt = 0;
     }
 
@@ -707,7 +706,7 @@ class Shared {
 
         // we copy our arrays to unblock the IPC class.
         uint16_t bl = batch_len;
-        int rl = reply_len + reloc_len;
+        int rl = needs_reloc ? reply_len : MAX_IPC_RETURN_SIZE;
         char *c_cmd = new char[batch_len];
         memcpy(c_cmd, ipc_buffer, batch_len * sizeof(char));
         char *c_ret = new char[rl];
