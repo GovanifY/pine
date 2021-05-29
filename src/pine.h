@@ -552,9 +552,9 @@ class Shared {
             return FromArray<EmuStatus>(buf, loc);
         else if constexpr (T == MsgVersion || T == MsgID || T == MsgTitle ||
                            T == MsgUUID || T == MsgGameVersion) {
-            uint32_t size = FromArray(buf, loc - 4);
+            uint32_t size = FromArray(buf, loc);
             char *datastream = new char[size];
-            memcpy(datastream, &buf[loc], size);
+            memcpy(datastream, &buf[loc + 4], size);
             return datastream;
         } else {
             SetError(Unimplemented);
@@ -650,8 +650,8 @@ class Shared {
                 if ((cmd.return_locations[i] & 0x80000000) != 0) {
                     cmd.return_locations[i] =
                         (cmd_return_locations[i] & ~0x80000000);
-                    reloc_add += FromArray<uint32_t>(
-                        ret.buffer, (cmd.return_locations[i] - 4));
+                    reloc_add += FromArray<uint32_t>(ret.buffer,
+                                                     (cmd.return_locations[i]));
                 }
             }
         }
