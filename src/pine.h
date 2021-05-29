@@ -385,7 +385,9 @@ class Shared {
             // reloc size
             reply_len += 4;
             // this is the maximum size we are willing to allocate for a
-            // relocatable string.
+            // relocatable string. Please do note that updating the maximum size
+            // is _not_ a protocol breaking change, we can update it accordingly
+            // if need there is!
             reloc_len += 0x1000;
             arg_cnt += 1;
             return cmd;
@@ -395,7 +397,7 @@ class Shared {
             ToArray(ipc_buffer, 4 + 1, 0);
             ipc_buffer[4] = Y;
             SendCommand(IPCBuffer{ 4 + 1, ipc_buffer },
-                        IPCBuffer{ 0x1000 + 4 + 1, ret_buffer });
+                        IPCBuffer{ 0x1000 + 4 + 4 + 1, ret_buffer });
             return GetReply<Y>(ret_buffer, 5);
         }
     }
@@ -851,8 +853,8 @@ class Shared {
      * On error throws an IPCStatus. @n
      * Format: XX @n
      * Legend: XX = IPC Tag. @n
-     * Return: ZZ * 256 @n
-     * Legend: ZZ = version string.
+     * Return: YY YY YY YY (ZZ*??) @n
+     * Legend: YY = string size, ZZ = version string.
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
@@ -912,8 +914,8 @@ class Shared {
      * On error throws an IPCStatus. @n
      * Format: XX @n
      * Legend: XX = IPC Tag. @n
-     * Return: ZZ * 256 @n
-     * Legend: ZZ = title string.
+     * Return: YY YY YY YY (ZZ*??) @n
+     * Legend: YY = string size, ZZ = title string.
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
@@ -933,8 +935,8 @@ class Shared {
      * On error throws an IPCStatus. @n
      * Format: XX @n
      * Legend: XX = IPC Tag. @n
-     * Return: ZZ * 256 @n
-     * Legend: ZZ = ID string.
+     * Return: YY YY YY YY (ZZ*??) @n
+     * Legend: YY = string size, ZZ = ID string.
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
@@ -954,8 +956,8 @@ class Shared {
      * On error throws an IPCStatus. @n
      * Format: XX @n
      * Legend: XX = IPC Tag. @n
-     * Return: ZZ * 256 @n
-     * Legend: ZZ = UUID string.
+     * Return: YY YY YY YY (ZZ*??) @n
+     * Legend: YY = string size, ZZ = UUID string.
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
@@ -975,8 +977,8 @@ class Shared {
      * On error throws an IPCStatus. @n
      * Format: XX @n
      * Legend: XX = IPC Tag. @n
-     * Return: ZZ * 256 @n
-     * Legend: ZZ = game version string.
+     * Return: YY YY YY YY (ZZ*??) @n
+     * Legend: YY = string size, ZZ = game version string.
      * @see IPCCommand
      * @see IPCStatus
      * @param T Flag to enable batch processing or not.
