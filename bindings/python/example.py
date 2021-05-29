@@ -19,15 +19,15 @@ elif(cur_os == "Darwin"):
 libipc = ctypes.CDLL(os.path.join(os.path.dirname(os.path.abspath(__file__)),lib))
 
 # we create a new PCSX2Ipc object
-ipc = libipc.pcsx2ipc_new()
+ipc = libipc.pine_pcsx2_new()
 
 # we read an uint8_t from memory location 0x00347D34
-print(libipc.pcsx2ipc_read(ipc, 0x00347D34, 0, False))
+print(libipc.pine_read(ipc, 0x00347D34, 0, False))
 
 # we check for errors
-print("Error (if any): " + str(libipc.pcsx2ipc_get_error(ipc)))
+print("Error (if any): " + str(libipc.pine_get_error(ipc)))
 
 # we delete the object and free the resources
-libipc.pcsx2ipc_delete(ipc)
+libipc.pine_pcsx2_delete(ipc)
 
 # for more infos check out the C bindings documentation :D !

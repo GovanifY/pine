@@ -1,4 +1,4 @@
-project('pine_c', 'cpp', default_options : ['cpp_std=c++17',
+project('pine', 'cpp', default_options : ['cpp_std=c++17',
   'buildtype=release'])
 
 compiler = meson.get_compiler('cpp')

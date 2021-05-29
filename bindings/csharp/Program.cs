@@ -17,31 +17,31 @@ namespace csharp
         // rule of thumb: pointers = IntPtr, enum = their underlying type(by default it's int in C but 
         // I should have properly defined their type explicitely).
         [DllImport(libipc)]
-        static extern IntPtr pcsx2ipc_new();
+        static extern IntPtr pine_pcsx2_new();
 
         [DllImport(libipc)]
-        static extern UInt64 pcsx2ipc_read(IntPtr v, UInt32 address, Byte msg,
+        static extern UInt64 pine_read(IntPtr v, UInt32 address, Byte msg,
                 bool batch);
 
         [DllImport(libipc)]
-        static extern void pcsx2ipc_delete(IntPtr v);
+        static extern void pine_pcsx2_delete(IntPtr v);
 
         [DllImport(libipc)]
-        static extern UInt32 pcsx2ipc_get_error(IntPtr v);
+        static extern UInt32 pine_get_error(IntPtr v);
 
         static void Main(string[] args)
         {
             // we get our ipc object
-            IntPtr ipc = pcsx2ipc_new();
+            IntPtr ipc = pine_pcsx2_new();
 
             // we read an uint8_t from memory location 0x00347D34
-            Console.WriteLine(pcsx2ipc_read(ipc, 0x00347D34, 0, false));
+            Console.WriteLine(pine_read(ipc, 0x00347D34, 0, false));
 
             // we check for errors
-            Console.WriteLine("Error (if any): {0}", pcsx2ipc_get_error(ipc));
+            Console.WriteLine("Error (if any): {0}", pine_get_error(ipc));
 
             // we delete the object and free the resources
-            pcsx2ipc_delete(ipc);
+            pine_pcsx2_delete(ipc);
 
             // for more infos check out the C bindings documentation :D !
         }

@@ -11,7 +11,7 @@
  * batch commands will always return 0/nullptr.
  */
 
-#include "pcsx2_ipc.h"
+#include "pine.h"
 #include <vector>
 
 #ifdef __cplusplus
@@ -25,112 +25,113 @@ extern "C" {
 #endif
 
 /**
- * @see PCSX2Ipc::PCSX2Ipc
+ * @see PINE::Shared::PINE::Shared
  */
-EXPORT_LIB PCSX2Ipc *pcsx2ipc_new();
+EXPORT_LIB PINE::PCSX2 *pine_pcsx2_new();
 
 /**
- * @see PCSX2Ipc::InitializeBatch
+ * @see PINE::Shared::InitializeBatch
  */
-EXPORT_LIB void pcsx2ipc_initialize_batch(PCSX2Ipc *v);
+EXPORT_LIB void pine_initialize_batch(PINE::Shared *v);
 
 /**
  * This function frees datastream whose ownership was passed down to you. @n
  * This is just a fancy wrapper around delete[] that is easier to use through
  * FFI.
  */
-EXPORT_LIB void pcsx2ipc_free_datastream(char *data);
+EXPORT_LIB void pine_free_datastream(char *data);
 
 /**
  * In contrast to the C++ library this returns a handle to a struct. @n
  * This requires you to free handles by yourself, see
- * pcsx2ipc_free_batch_command.
- * @see pcsx2ipc_free_batch_command
- * @return PCSX2Ipc::BatchCommand handle.
- * @see PCSX2Ipc::FinalizeBatch
+ * pine_free_batch_command.
+ * @see pine_free_batch_command
+ * @return PINE::Shared::BatchCommand handle.
+ * @see PINE::Shared::FinalizeBatch
  */
-EXPORT_LIB int pcsx2ipc_finalize_batch(PCSX2Ipc *v);
+EXPORT_LIB int pine_finalize_batch(PINE::Shared *v);
 
 /**
- * Variant of PCSX2Ipc::GetReply that exclusively deals with integers replies.
- * @see PCSX2Ipc::GetReply
+ * Variant of PINE::Shared::GetReply that exclusively deals with integers
+ * replies.
+ * @see PINE::Shared::GetReply
  */
-EXPORT_LIB uint64_t pcsx2ipc_get_reply_int(PCSX2Ipc *v, int cmd, int place,
-                                           PCSX2Ipc::IPCCommand msg);
+EXPORT_LIB uint64_t pine_get_reply_int(PINE::Shared *v, int cmd, int place,
+                                       PINE::Shared::IPCCommand msg);
 
 /**
- * @see PCSX2Ipc::SendCommand
+ * @see PINE::Shared::SendCommand
  */
-EXPORT_LIB void pcsx2ipc_send_command(PCSX2Ipc *v, int cmd);
+EXPORT_LIB void pine_send_command(PINE::Shared *v, int cmd);
 
 /**
- * @see PCSX2Ipc::Read
+ * @see PINE::Shared::Read
  */
-EXPORT_LIB uint64_t pcsx2ipc_read(PCSX2Ipc *v, uint32_t address,
-                                  PCSX2Ipc::IPCCommand msg, bool batch);
+EXPORT_LIB uint64_t pine_read(PINE::Shared *v, uint32_t address,
+                              PINE::Shared::IPCCommand msg, bool batch);
 
 /**
- * @see PCSX2Ipc::Version
+ * @see PINE::Shared::Version
  */
-EXPORT_LIB char *pcsx2ipc_version(PCSX2Ipc *v, bool batch);
+EXPORT_LIB char *pine_version(PINE::Shared *v, bool batch);
 
 /**
- * @see PCSX2Ipc::Status
+ * @see PINE::Shared::Status
  */
-EXPORT_LIB PCSX2Ipc::EmuStatus pcsx2ipc_status(PCSX2Ipc *v, bool batch);
+EXPORT_LIB PINE::Shared::EmuStatus pine_status(PINE::Shared *v, bool batch);
 
 /**
- * @see PCSX2Ipc::GetGameTitle
+ * @see PINE::Shared::GetGameTitle
  */
-EXPORT_LIB char *pcsx2ipc_getgametitle(PCSX2Ipc *v, bool batch);
+EXPORT_LIB char *pine_getgametitle(PINE::Shared *v, bool batch);
 
 /**
- * @see PCSX2Ipc::GetGameID
+ * @see PINE::Shared::GetGameID
  */
-EXPORT_LIB char *pcsx2ipc_getgameid(PCSX2Ipc *v, bool batch);
+EXPORT_LIB char *pine_getgameid(PINE::Shared *v, bool batch);
 
 /**
- * @see PCSX2Ipc::GetGameUUID
+ * @see PINE::Shared::GetGameUUID
  */
-EXPORT_LIB char *pcsx2ipc_getgameuuid(PCSX2Ipc *v, bool batch);
+EXPORT_LIB char *pine_getgameuuid(PINE::Shared *v, bool batch);
 
 /**
- * @see PCSX2Ipc::GetGameVersion
+ * @see PINE::Shared::GetGameVersion
  */
-EXPORT_LIB char *pcsx2ipc_getgameversion(PCSX2Ipc *v, bool batch);
+EXPORT_LIB char *pine_getgameversion(PINE::Shared *v, bool batch);
 
 /**
- * @see PCSX2Ipc::SaveState
+ * @see PINE::Shared::SaveState
  */
-EXPORT_LIB void pcsx2ipc_savestate(PCSX2Ipc *v, uint8_t slot, bool batch);
+EXPORT_LIB void pine_savestate(PINE::Shared *v, uint8_t slot, bool batch);
 
 /**
- * @see PCSX2Ipc::LoadState
+ * @see PINE::Shared::LoadState
  */
-EXPORT_LIB void pcsx2ipc_loadstate(PCSX2Ipc *v, uint8_t slot, bool batch);
+EXPORT_LIB void pine_loadstate(PINE::Shared *v, uint8_t slot, bool batch);
 
 /**
- * @see PCSX2Ipc::Write
+ * @see PINE::Shared::Write
  */
-EXPORT_LIB void pcsx2ipc_write(PCSX2Ipc *v, uint32_t address, uint64_t val,
-                               PCSX2Ipc::IPCCommand msg, bool batch);
+EXPORT_LIB void pine_write(PINE::Shared *v, uint32_t address, uint64_t val,
+                           PINE::Shared::IPCCommand msg, bool batch);
 
 /**
- * @see PCSX2Ipc::~PCSX2Ipc
+ * @see PINE::~PCSX2
  */
-EXPORT_LIB void pcsx2ipc_delete(PCSX2Ipc *v);
+EXPORT_LIB void pine_pcsx2_delete(PINE::PCSX2 *v);
 
 /**
- * Frees given PCSX2Ipc::BatchCommand through its int handle. @n
+ * Frees given PINE::Shared::BatchCommand through its int handle. @n
  * As the C bindings handle structures for you, you have to tell them when to
  * free the batch commands if you want to free memory.
- * @param cmd PCSX2Ipc::BatchCommand handle.
+ * @param cmd PINE::Shared::BatchCommand handle.
  */
-EXPORT_LIB void pcsx2ipc_free_batch_command(int cmd);
+EXPORT_LIB void pine_free_batch_command(int cmd);
 /**
- * @see PCSX2Ipc::GetError
+ * @see PINE::Shared::GetError
  */
-EXPORT_LIB PCSX2Ipc::IPCStatus pcsx2ipc_get_error(PCSX2Ipc *v);
+EXPORT_LIB PINE::Shared::IPCStatus pine_get_error(PINE::Shared *v);
 
 #ifdef __cplusplus
 }
