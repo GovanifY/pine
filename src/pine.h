@@ -632,8 +632,9 @@ class Shared {
         // while we haven't received the entire packet, maybe due to
         // socket datagram splittage, we continue to read
         while (receive_length < end_length) {
-            auto tmp_length = read_portable(sock, &ret.buffer[receive_length],
-                                            ret.size - receive_length);
+            auto tmp_length =
+                read_portable(sock, &ret.buffer[receive_length],
+                              MAX_IPC_RETURN_SIZE - receive_length);
             // we close the connection if an error happens
             if (tmp_length <= 0) {
                 receive_length = 0;

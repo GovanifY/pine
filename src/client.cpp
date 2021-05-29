@@ -38,9 +38,9 @@ auto read_background(PINE::PCSX2 *ipc) -> void {
 
             // WARNING: all datastreams that are returned by the library changes
             // ownership, it is your duty to free them after use.
-            char *title = ipc->GetGameTitle();
-            printf("%s\n", title);
-            delete[] title;
+            // char *title = ipc->GetGameTitle();
+            // printf("%s\n", title);
+            // delete[] title;
 
             ipc->InitializeBatch();
             ipc->GetGameTitle<true>();
@@ -80,7 +80,7 @@ auto main(int argc, char *argv[]) -> int {
     std::thread first(read_background, ipc);
 
     // in this case we wait 5 seconds before writing to our address
-    msleep(5000);
+    msleep(500000);
     try {
         printf("%s\n", ipc->Version());
         // a normal write can be done this way
