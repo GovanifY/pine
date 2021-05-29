@@ -3,7 +3,7 @@ use libc::{c_char, c_uint, c_ulong};
 
 #[repr(C)] pub struct PCSX2Ipc { _private: [u8; 0] }
 
-#[link(name = "pcsx2_ipc_c")]
+#[link(name = "pine_c")]
 extern "C" {
     /* I defined the functions I wanted to use for the example
      * below but if you need other ones you'll have to

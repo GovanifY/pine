@@ -6,11 +6,11 @@ namespace csharp
     class Program
     {
 #if _WINDOWS
-        const string libipc = "libpcsx2_ipc_c.dll";
+        const string libipc = "libpine_c.dll";
 #elif _OSX
-        const string libipc = "libpcsx2_ipc_c.dylib";
+        const string libipc = "libpine_c.dylib";
 #elif _UNIX
-        const string libipc = "libpcsx2_ipc_c.so";
+        const string libipc = "libpine_c.so";
 #endif
 
         // if the function you want to use isn't there you'll have to define the binding to the function

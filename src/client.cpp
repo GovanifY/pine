@@ -1,4 +1,4 @@
-#include "pcsx2_ipc.h"
+#include "pine.h"
 #include <iostream>
 #include <ostream>
 #include <stdio.h>

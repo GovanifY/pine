@@ -4,14 +4,14 @@ import platform
 
 
 # we get the correct library extension per os
-lib="libpcsx2_ipc_c"
+lib="libpine_c"
 cur_os = platform.system()
 if(cur_os == "Linux"):
-    lib="libpcsx2_ipc_c.so"
+    lib="libpine_c.so"
 elif(cur_os == "Windows"):
-    lib="libpcsx2_ipc_c.dll"
+    lib="libpine_c.dll"
 elif(cur_os == "Darwin"):
-    lib="libpcsx2_ipc_c.dylib"
+    lib="libpine_c.dylib"
 
 
 # we load the library, this will require it to be in the same folder

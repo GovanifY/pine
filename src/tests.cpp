@@ -1,4 +1,4 @@
-#include "pcsx2_ipc.h"
+#include "pine.h"
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 #include <climits>
@@ -43,7 +43,7 @@ auto kill_pcsx2() -> int { return system("pkill PCSX2"); }
 
 #endif
 
-SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pcsx2_ipc]") {
+SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pine]") {
 
     // ensure we have a clean environment
     kill_pcsx2();

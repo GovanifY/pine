@@ -1,6 +1,6 @@
 local ffi = require("ffi")
 
-local C = ffi.load('pcsx2_ipc_c')
+local C = ffi.load('pine_c')
 
 -- If you need more functions than that you need to copy paste the C bindings,
 -- replace struct pointers by void pointers and change enums to their underlying
