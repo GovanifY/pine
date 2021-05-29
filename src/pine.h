@@ -1052,6 +1052,6 @@ class PCSX2 : public Shared {
      * @see slot
      */
     PCSX2(const unsigned int slot = 0)
-        : Shared((slot == 0) ? 28011 : slot, "pcsx2", true){};
+        : Shared((slot == 0) ? 28011 : slot, "pcsx2", (slot == 0)){};
 };
 }; // namespace PINE
