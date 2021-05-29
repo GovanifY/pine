@@ -604,8 +604,6 @@ class Shared {
         while (receive_length < end_length) {
             auto tmp_length = read_portable(sock, &ret.buffer[receive_length],
                                             ret.size - receive_length);
-            // TODO: do not use ret.size, wait until everything is received
-
             // we close the connection if an error happens
             if (tmp_length <= 0) {
                 receive_length = 0;
