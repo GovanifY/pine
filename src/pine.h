@@ -24,8 +24,8 @@
 #endif
 
 /**
- * The PCSX2Ipc API. @n
- * This is the client side implementation of PCSX2 IPC. @n
+ * The PINE API. @n
+ * This is the client side implementation of the PINE protocol. @n
  * It allows for a three
  * way communication between the emulated game, the emulator and an external
  * tool, using the external tool as a relay for all communication. @n
@@ -48,21 +48,27 @@
  * Have fun! @n
  * -Gauvain "GovanifY" Roussel-Tarbouriech, 2020
  */
-class PCSX2Ipc {
+namespace PINE {
+class Shared {
 
     // allow test suite to poke internals
   protected:
+    /**
+     * Default PINE slot for the emulator in use. @n
+     * @see slot
+     */
+    virtual const uint16_t get_emulator_slot() { return 0; }
+
+    /**
+     * Default PINE name for the emulator in use. @n
+     */
+    virtual const std::string get_emulator_name() { return ""; }
+
     /**
      * IPC Slot identifier. @n
      * Used by the IPC to identify concurrent sessions.
      */
     uint16_t slot;
-
-    /**
-     * Default IPC Slot. @n
-     * @see slot
-     */
-    static const uint16_t DEFAULT_SLOT = 28011;
 
 #if defined(_WIN32) || defined(DOXYGEN)
     /**
@@ -288,7 +294,7 @@ class PCSX2Ipc {
         MsgWrite16 = 5,         /**< Write 16 bit value to memory. */
         MsgWrite32 = 6,         /**< Write 32 bit value to memory. */
         MsgWrite64 = 7,         /**< Write 64 bit value to memory. */
-        MsgVersion = 8,         /**< Returns PCSX2 version. */
+        MsgVersion = 8,         /**< Returns the emulator version. */
         MsgSaveState = 9,       /**< Saves a savestate. */
         MsgLoadState = 0xA,     /**< Loads a savestate. */
         MsgTitle = 0xB,         /**< Returns the game title. */
@@ -548,8 +554,8 @@ class PCSX2Ipc {
     }
 
     /**
-     * Sends an IPC command to PCSX2. @n
-     * Fails if the IPC cannot be sent or if PCSX2 returns IPC_FAIL.
+     * Sends an IPC command to the emulator. @n
+     * Fails if the IPC cannot be sent or if the emulator returns IPC_FAIL.
      * Throws an IPCStatus on failure.
      * @param cmd An IPCBuffer containing the IPC command size and buffer OR a
      * BatchCommand.
@@ -689,7 +695,7 @@ class PCSX2Ipc {
     }
 
     /**
-     * Reads a value from PCSX2 game memory. @n
+     * Reads a value from the emulator's memory. @n
      * On error throws an IPCStatus. @n
      * Format: XX YY YY YY YY @n
      * Legend: XX = IPC Tag, YY = Address. @n
@@ -753,7 +759,7 @@ class PCSX2Ipc {
     }
 
     /**
-     * Writes a value to PCSX2 game memory. @n
+     * Writes a value to the emulator's game memory. @n
      * On error throws an IPCStatus. @n
      * Format: XX YY YY YY YY (ZZ*??) @n
      * Legend: XX = IPC Tag, YY = Address, ZZ = Value.
@@ -813,7 +819,7 @@ class PCSX2Ipc {
     }
 
     /**
-     * Retrieves PCSX2 version. @n
+     * Retrieves the emulator's version. @n
      * On error throws an IPCStatus. @n
      * Format: XX @n
      * Legend: XX = IPC Tag. @n
@@ -953,7 +959,7 @@ class PCSX2Ipc {
     }
 
     /**
-     * Asks PCSX2 to save a savestate. @n
+     * Asks the emulator to save a savestate. @n
      * On error throws an IPCStatus. @n
      * Format: XX YY @n
      * Legend: XX = IPC Tag, YY = Slot.
@@ -970,7 +976,7 @@ class PCSX2Ipc {
     }
 
     /**
-     * Asks PCSX2 to load a savestate. @n
+     * Asks the emulator to load a savestate. @n
      * On error throws an IPCStatus. @n
      * Format: XX YY @n
      * Legend: XX = IPC Tag, YY = Slot.
@@ -987,11 +993,11 @@ class PCSX2Ipc {
     }
 
     /**
-     * PCSX2Ipc Initializer.
+     * Shared Initializer.
      * @param slot Slot to use for this IPC session.
      * @see slot
      */
-    PCSX2Ipc(unsigned int slot = DEFAULT_SLOT) {
+    Shared(unsigned int slot = 0) {
         // some basic input sanitization
         if (slot > 65536) {
             SetError(NoConnection);
@@ -1011,17 +1017,21 @@ class PCSX2Ipc {
         // fallback in case macOS or other OSes don't implement the XDG base
         // spec
         if (runtime_dir == nullptr)
-            SOCKET_NAME = "/tmp/pcsx2.sock";
+            SOCKET_NAME = "/tmp/" + this->get_emulator_name() + ".sock";
         else {
             SOCKET_NAME = runtime_dir;
-            SOCKET_NAME += "/pcsx2.sock";
+            SOCKET_NAME += "/" + this->get_emulator_name() + ".sock";
         }
 
-        if (slot != DEFAULT_SLOT) {
+        if (slot != 0) {
             SOCKET_NAME += "." + std::to_string(slot);
         }
 #endif
-        this->slot = slot;
+        if (slot != 0) {
+            this->slot = slot;
+        } else {
+            this->slot = get_emulator_slot();
+        }
         // we allocate once buffers to not have to do mallocs for each IPC
         // request, as malloc is expansive when we optimize for µs.
         ret_buffer = new char[MAX_IPC_RETURN_SIZE];
@@ -1031,9 +1041,9 @@ class PCSX2Ipc {
     }
 
     /**
-     * PCSX2Ipc Destructor.
+     * Shared Destructor.
      */
-    ~PCSX2Ipc() {
+    virtual ~Shared() {
         // We clean up winsock.
 #ifdef _WIN32
         WSACleanup();
@@ -1043,3 +1053,9 @@ class PCSX2Ipc {
         delete[] batch_arg_place;
     }
 };
+
+class PCSX2 : public Shared {
+    const uint16_t get_emulator_slot() { return 28011; }
+    const std::string get_emulator_name() { return "pcsx2"; }
+};
+}; // namespace PINE

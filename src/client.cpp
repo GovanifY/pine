@@ -10,7 +10,7 @@
 
 // TODO: Remind me when C++20 using-enum is implemented in clang/gcc so i can
 // write cleaner code
-// using enum PCSX2Ipc::IPCCommand;
+// using enum PINE::PCSX2::IPCCommand;
 
 // a portable sleep function
 auto msleep(int sleepMs) -> void {
@@ -23,7 +23,7 @@ auto msleep(int sleepMs) -> void {
 
 // this function is an infinite loop reading a value in memory, this shows you
 // how timer can work
-auto read_background(PCSX2Ipc *ipc) -> void {
+auto read_background(PINE::PCSX2 *ipc) -> void {
     while (true) {
         // you can go slower but go higher at your own risk
         msleep(100);
@@ -47,7 +47,7 @@ auto read_background(PCSX2Ipc *ipc) -> void {
             //    std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1)
             //        .count();
             // std::cout << "execution time: " << duration << std::endl;
-            // printf("PCSX2Ipc::Read<uint32_t>(0x00347D34) :  %u\n", value);
+            // printf("PINE::PCSX2::Read<uint32_t>(0x00347D34) :  %u\n", value);
         } catch (...) {
             // if the operation failed
             printf("ERROR!!!!!\n");
@@ -58,9 +58,9 @@ auto read_background(PCSX2Ipc *ipc) -> void {
 // the main function that is executed at the start of our program
 auto main(int argc, char *argv[]) -> int {
 
-    // we instantiate a new PCSX2Ipc object. It should be shared across all your
-    // threads.
-    PCSX2Ipc *ipc = new PCSX2Ipc();
+    // we instantiate a new PINE::PCSX2 object. It should be shared across all
+    // your threads.
+    PINE::PCSX2 *ipc = new PINE::PCSX2();
 
     // we create a new thread
     std::thread first(read_background, ipc);
@@ -109,8 +109,8 @@ auto main(int argc, char *argv[]) -> int {
         // BatchCommand that we saved above!
         // Refer to the documentation of IPCCommand to know all the possible
         // function types
-        printf("PCSX2Ipc::Read<uint8_t>(0x00347D32) :  %u\n",
-               ipc->GetReply<PCSX2Ipc::MsgRead8>(resr, 2));
+        printf("PINE::PCSX2::Read<uint8_t>(0x00347D32) :  %u\n",
+               ipc->GetReply<PINE::PCSX2::MsgRead8>(resr, 2));
     } catch (...) {
         // if the operation failed
         printf("ERROR!!!!!\n");

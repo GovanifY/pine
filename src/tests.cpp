@@ -50,7 +50,7 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pine]") {
 
     WHEN("PCSX2 is not started") {
         THEN("Errors should happen") {
-            PCSX2Ipc *ipc = new PCSX2Ipc();
+            PINE::PCSX2 *ipc = new PINE::PCSX2();
             REQUIRE_THROWS(ipc->Write<u64>(0x00347D34, 5));
         }
     }
@@ -60,7 +60,7 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pine]") {
         open_pcsx2();
 
         // we wait for PCSX2 to be reachable within 10 seconds.
-        PCSX2Ipc *check = new PCSX2Ipc();
+        PINE::PCSX2 *check = new PINE::PCSX2();
         int i = 0;
         while (i < 20) {
             try {
@@ -77,17 +77,17 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pine]") {
 
         WHEN("We want to communicate with PCSX2") {
             THEN("It returns errors on invalid commands") {
-                PCSX2Ipc *ipc = new PCSX2Ipc();
+                PINE::PCSX2 *ipc = new PINE::PCSX2();
 
                 char c_cmd[5];
-                c_cmd[4] = PCSX2Ipc::MsgUnimplemented;
+                c_cmd[4] = PINE::PCSX2::MsgUnimplemented;
                 c_cmd[0] = 5;
                 char c_ret[5];
 
                 // send unimplement message to server
                 REQUIRE_THROWS(
-                    ipc->SendCommand(PCSX2Ipc::IPCBuffer{ 5, c_cmd },
-                                     PCSX2Ipc::IPCBuffer{ 5, c_ret }));
+                    ipc->SendCommand(PINE::PCSX2::IPCBuffer{ 5, c_cmd },
+                                     PINE::PCSX2::IPCBuffer{ 5, c_ret }));
 
                 // make unimplemented write
                 REQUIRE_THROWS(ipc->Write<u128>(0x00347D34, 5));
@@ -97,7 +97,7 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pine]") {
             }
 
             THEN("It returns errors when socket issues happen") {
-                PCSX2Ipc *ipc = new PCSX2Ipc();
+                PINE::PCSX2 *ipc = new PINE::PCSX2();
 
                 char c_cmd[5];
                 c_cmd[0] = 5;
@@ -106,15 +106,15 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pine]") {
                 // an address space that is not yours will return an errno. We
                 // do both to simulate a connection issue.
                 REQUIRE_THROWS(ipc->SendCommand(
-                    PCSX2Ipc::IPCBuffer{ 5, c_cmd },
-                    PCSX2Ipc::IPCBuffer{ INT_MAX, (char *)0x00 }));
+                    PINE::PCSX2::IPCBuffer{ 5, c_cmd },
+                    PINE::PCSX2::IPCBuffer{ INT_MAX, (char *)0x00 }));
 
                 // trying to write to a socket with INT_MAX and/or pointer from
                 // an address space that is not yours will return an errno. We
                 // do both to simulate a connection issue.
                 REQUIRE_THROWS(ipc->SendCommand(
-                    PCSX2Ipc::IPCBuffer{ INT_MAX, (char *)0x00 },
-                    PCSX2Ipc::IPCBuffer{ 1, c_cmd }));
+                    PINE::PCSX2::IPCBuffer{ INT_MAX, (char *)0x00 },
+                    PINE::PCSX2::IPCBuffer{ 1, c_cmd }));
             }
         }
 
@@ -124,7 +124,7 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pine]") {
                 // we do a bunch of writes, read back, ensure the result is
                 // correct and ensure we didn't threw an error.
                 REQUIRE_NOTHROW([&]() {
-                    PCSX2Ipc *ipc = new PCSX2Ipc();
+                    PINE::PCSX2 *ipc = new PINE::PCSX2();
                     ipc->Write<u64>(0x00347D34, 5);
                     ipc->Write<u32>(0x00347D44, 6);
                     ipc->Write<u16>(0x00347D54, 7);
@@ -143,7 +143,7 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pine]") {
                 // we do a bunch of writes, read back, ensure the result is
                 // correct and ensure we didn't threw an error.
                 REQUIRE_NOTHROW([&]() {
-                    PCSX2Ipc *ipc = new PCSX2Ipc();
+                    PINE::PCSX2 *ipc = new PINE::PCSX2();
                     char *version = ipc->Version();
                     REQUIRE(strncmp(version, "PCSX2", 5) == 0);
                 }());
@@ -157,7 +157,7 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pine]") {
                 // correct and ensure we didn't threw an error, in batch mode
                 // this time.
                 REQUIRE_NOTHROW([&]() {
-                    PCSX2Ipc *ipc = new PCSX2Ipc();
+                    PINE::PCSX2 *ipc = new PINE::PCSX2();
 
                     ipc->InitializeBatch();
                     ipc->Write<u64, true>(0x00347E34, 5);
@@ -178,17 +178,20 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pine]") {
                     ipc->SendCommand(resr);
 
                     REQUIRE(
-                        strncmp(ipc->GetReply<PCSX2Ipc::MsgVersion>(resr, 4),
+                        strncmp(ipc->GetReply<PINE::PCSX2::MsgVersion>(resr, 4),
                                 "PCSX2", 5) == 0);
-                    REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead8>(resr, 3) == 8);
-                    REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead16>(resr, 2) == 7);
-                    REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead32>(resr, 1) == 6);
-                    REQUIRE(ipc->GetReply<PCSX2Ipc::MsgRead64>(resr, 0) == 5);
+                    REQUIRE(ipc->GetReply<PINE::PCSX2::MsgRead8>(resr, 3) == 8);
+                    REQUIRE(ipc->GetReply<PINE::PCSX2::MsgRead16>(resr, 2) ==
+                            7);
+                    REQUIRE(ipc->GetReply<PINE::PCSX2::MsgRead32>(resr, 1) ==
+                            6);
+                    REQUIRE(ipc->GetReply<PINE::PCSX2::MsgRead64>(resr, 0) ==
+                            5);
                 }());
             }
 
             THEN("We error out when packets are too big") {
-                PCSX2Ipc *ipc = new PCSX2Ipc();
+                PINE::PCSX2 *ipc = new PINE::PCSX2();
 
                 // write packets too big
                 REQUIRE_THROWS([&]() {
