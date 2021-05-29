@@ -42,6 +42,20 @@ auto read_background(PINE::PCSX2 *ipc) -> void {
             printf("%s\n", title);
             delete[] title;
 
+            ipc->InitializeBatch();
+            ipc->GetGameTitle<true>();
+            ipc->GetGameTitle<true>();
+            ipc->Read<u8, true>(0x00347D32);
+            auto resr = ipc->FinalizeBatch();
+            // same as before
+            ipc->SendCommand(resr);
+
+            printf("PINE::PCSX2::Read<uint8_t>(0x00347D32) :  %u\n",
+                   ipc->GetReply<PINE::PCSX2::MsgRead8>(resr, 1));
+
+            printf("PINE::PCSX2::GetGameTitle() :  %s\n",
+                   ipc->GetReply<PINE::PCSX2::MsgTitle>(resr, 2));
+
             // auto t2 = std::chrono::high_resolution_clock::now();
             // auto duration =
             //    std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1)

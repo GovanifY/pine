@@ -1,5 +1,5 @@
 project('pine', 'cpp', default_options : ['cpp_std=c++17',
-  'buildtype=release'])
+  'buildtype=debug'])
 
 compiler = meson.get_compiler('cpp')
 winsock = compiler.find_library('ws2_32', required: false)

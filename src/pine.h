@@ -23,6 +23,8 @@
 #include <unistd.h>
 #endif
 
+#define DEBUG
+
 /**
  * The PINE API. @n
  * This is the client side implementation of the PINE protocol. @n
@@ -52,6 +54,29 @@
  * -Gauvain "GovanifY" Roussel-Tarbouriech, 2020
  */
 namespace PINE {
+
+#ifdef DEBUG
+
+void hexdump(void *ptr, int buflen) {
+    unsigned char *buf = (unsigned char *)ptr;
+    int i, j;
+    for (i = 0; i < buflen; i += 16) {
+        printf("%06x: ", i);
+        for (j = 0; j < 16; j++)
+            if (i + j < buflen)
+                printf("%02x ", buf[i + j]);
+            else
+                printf("   ");
+        printf(" ");
+        for (j = 0; j < 16; j++)
+            if (i + j < buflen)
+                printf("%c", isprint(buf[i + j]) ? buf[i + j] : '.');
+        printf("\n");
+    }
+}
+
+#endif
+
 class Shared {
     // allow test suite to poke internals
   protected:
@@ -548,7 +573,7 @@ class Shared {
             return FromArray<EmuStatus>(buf, loc);
         else if constexpr (T == MsgVersion || T == MsgID || T == MsgTitle ||
                            T == MsgUUID || T == MsgGameVersion) {
-            uint32_t size = FromArray(buf, loc);
+            uint32_t size = FromArray<uint32_t>(buf, loc);
             char *datastream = new char[size];
             memcpy(datastream, &buf[loc + 4], size);
             return datastream;
@@ -594,6 +619,11 @@ class Shared {
             return;
         }
 
+#ifdef DEBUG
+        printf("packet sent:\n");
+        hexdump(command.buffer, command.size);
+#endif
+
         // either int or ssize_t depending on the platform, so we have to
         // use a bunch of auto
         auto receive_length = 0;
@@ -621,6 +651,10 @@ class Shared {
                 }
             }
         }
+#ifdef DEBUG
+        printf("reply received:\n");
+        hexdump(ret.buffer, receive_length);
+#endif
         if (receive_length == 0) {
             SetError(Fail);
             return;
@@ -646,7 +680,7 @@ class Shared {
                 cmd.return_locations[i] += reloc_add;
                 if ((cmd.return_locations[i] & 0x80000000) != 0) {
                     cmd.return_locations[i] =
-                        (cmd_return_locations[i] & ~0x80000000);
+                        (cmd.return_locations[i] & ~0x80000000);
                     reloc_add += FromArray<uint32_t>(ret.buffer,
                                                      (cmd.return_locations[i]));
                 }
@@ -863,7 +897,7 @@ class Shared {
     template <bool T = false>
     auto Version() {
         constexpr IPCCommand tag = MsgVersion;
-        return StringCommands<tag>();
+        return StringCommands<tag, T>();
     }
 
     /**
@@ -924,7 +958,7 @@ class Shared {
     template <bool T = false>
     auto GetGameTitle() {
         constexpr IPCCommand tag = MsgTitle;
-        return StringCommands<tag>();
+        return StringCommands<tag, T>();
     }
 
     /**
@@ -945,7 +979,7 @@ class Shared {
     template <bool T = false>
     auto GetGameID() {
         constexpr IPCCommand tag = MsgID;
-        return StringCommands<tag>();
+        return StringCommands<tag, T>();
     }
 
     /**
@@ -966,7 +1000,7 @@ class Shared {
     template <bool T = false>
     auto GetGameUUID() {
         constexpr IPCCommand tag = MsgUUID;
-        return StringCommands<tag>();
+        return StringCommands<tag, T>();
     }
 
     /**
@@ -987,7 +1021,7 @@ class Shared {
     template <bool T = false>
     auto GetGameVersion() {
         constexpr IPCCommand tag = MsgGameVersion;
-        return StringCommands<tag>();
+        return StringCommands<tag, T>();
     }
 
     /**
