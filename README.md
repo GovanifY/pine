@@ -31,7 +31,7 @@ Meson and ninja ARE portable across OSes as-is and shouldn't require any tinkeri
 refer to [the meson documentation](https://mesonbuild.com/Using-with-Visual-Studio.html) 
 if you really want to use another generator, say, Visual Studio, instead of ninja.   
 
-On Doxygen you can find the documentation of the C++ API [here](@ref PCSX2Ipc).  
+On Doxygen you can find the documentation of the C++ API [here](@ref PINE).  
 The C API is documented [here](@ref bindings/c/c_ffi.h) and is probably what you
 want to read if you use language bindings.
 

@@ -45,12 +45,14 @@
  * IPC even complex events can be outsourced from the emulator, thus keeping
  * the main codebase lean and minimal. @n
  *
+ * If you are reading the documentation, feel free to browse through the class
+ * that targets your preferred emulator.
+ *
  * Have fun! @n
  * -Gauvain "GovanifY" Roussel-Tarbouriech, 2020
  */
 namespace PINE {
 class Shared {
-
     // allow test suite to poke internals
   protected:
     /**
@@ -1045,14 +1047,11 @@ class Shared {
 class PCSX2 : public Shared {
   public:
     /**
-     * PCSX2 session Initializer.
-     */
-    PCSX2() : Shared(28011, "pcsx2", true){};
-    /**
      * PCSX2 session Initializer with a specified slot.
      * @param slot Slot to use for this IPC session.
      * @see slot
      */
-    PCSX2(const unsigned int slot) : Shared(slot, "pcsx2", false){};
+    PCSX2(const unsigned int slot = 0)
+        : Shared((slot == 0) ? 28011 : slot, "pcsx2", true){};
 };
 }; // namespace PINE
