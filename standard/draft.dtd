@@ -15,11 +15,11 @@
                 <uri>https://govanify.com/</uri>
             </address>
         </author>
-        <date month="May" year="2021" />
+        <date month="May" year="2021" day="30"/>
         <abstract>
             <t>This standard presents PINE (Protocol for
             Instrumentation of Emulators), an 
-            Inter-Process Communication protocol targetted 
+            Inter-Process Communication protocol targeted 
             at video-game emulators.</t>
         </abstract>
     </front>
@@ -30,29 +30,33 @@
             (Protocol for Instrumentation of Emulators).</t>
             <t>This protocol was developped for video-game
             emulators to provide a consistent interface 
-            between all of them with three main design
+            between all of them with four main design
             goals:
             <list> 
                 <t>Speed</t>
                 <t>Simplicity</t>
                 <t>Robustness</t>
+                <t>Retro-compatibility</t>
             </list>
             </t>
         </section>
         <section title="Communication mechanisms">
-            <t>PINE as a protocol needs a way to communicate
+            <t>PINE, as a protocol, needs a way to communicate
             with the emulator it targets. This implementation
             is system-specific and is only standardized for
-            Linux<xref target="lnx_com"/>, MacOS
-            <xref target="mac_com"/> and Windows
-            <xref target="win_com"/>. Systems that are not
-            standardized can still implement the PINE protocol.
+            Linux (<xref target="lnx_com"/>), 
+            MacOS (<xref target="mac_com"/>) and 
+            Windows (<xref target="win_com"/>). Systems that are not
+            standardized can still implement the PINE protocol;
             The base requirements for them is to have a working
             IPC process that can open simultaneous connections.
-            While a minimum is not standardized a system that
+            While a minimum is not enforced a system that
             can implement 10 simultaneous communications would
             be perfect for this usage.</t>
-            <section title="Slots">
+            <t>Each PINE target must have a defined 
+            slot (<xref target="slot"/>) and 
+            target name (<xref target="target_name"/>).</t>
+            <section anchor="slot" title="Slots">
                 <t>PINE implements a concept of slots to allow
                 for simultaneous connections. They can be roughly
                 thought of as ports[BIBLIO HERE]. They can be set
@@ -64,7 +68,7 @@
                 same software to be able to work concurrently.</t>
             </section>
 
-            <section title="Target name">
+            <section anchor="target_name" title="Target name">
                 <t>Every PINE target must have a set target name.
                 This target name is used to differenciate targets
                 between each others. An example target name is
@@ -79,10 +83,10 @@
                     XDG_RUNTIME_DIR as a folder to use to store the unix
                     socket. In case this variable is not set, it will default
                     to /tmp. In case the default slot is used, the socket will 
-                    be named assuming the format: 
-                    &apos;Target name + &quot;.sock&quot;&apos;.
-                    If the slot is specified it will use this format instead: 
-                    &apos;Target name + &quot;.sock.&quot; + slot&apos;.</t>
+                    be named assuming the format:</t>
+                    <t>&apos;Target name + &quot;.sock&quot;&apos;.</t>
+                    <t>If the slot is specified it will use this format instead:</t>
+                    <t>&apos;Target name + &quot;.sock.&quot; + slot&apos;.</t>
                     <t>Examples:
                         <list>
                             <t>/run/user/1000/pcsx2.sock: default slot, XDG_RUNTIME_DIR set</t>
@@ -96,10 +100,10 @@
                     TMPDIR as a folder to use to store the unix
                     socket. In case this variable is not set, it will default
                     to /tmp. In case the default slot is used, the socket will 
-                    be named assuming the format: 
-                    &apos;Target name + &quot;.sock&quot;&apos;.
-                    If the slot is specified it will use this format instead: 
-                    &apos;Target name + &quot;.sock.&quot; + slot&apos;.</t>
+                    be named assuming the format:</t>
+                    <t>&apos;Target name + &quot;.sock&quot;&apos;.</t>
+                    <t>If the slot is specified it will use this format instead:</t>
+                    <t>&apos;Target name + &quot;.sock.&quot; + slot&apos;.</t>
                     <t>Examples:
                         <list>
                             <t>/hello/pcsx2.sock: default slot, TMPDIR set to hello</t>
@@ -111,6 +115,144 @@
                     <t>Windows uses TCP sockets[BIB HERE] to communicate.
                     Slots are used as TCP ports, listening only to localhost.</t>
                 </section>
+            </section>
+        </section>
+        <section title="Protocol specification">
+            <t>PINE is a stateless binary-serialized messaging protocol.
+            Every request sent by the client (program) will always have a reply from
+            the server (emulator). The server can also initiate requests[todo events]
+            although it will not expect any answer.</t>
+            <t>There are three types of messages defined: 
+            <list style="number"> 
+                <t>Requests (<xref target="ipc_req"/>)</t>
+                <t>Answers (<xref target="ipc_ans"/>)</t>
+                <t>Events (<xref target="ipc_evt"/>)</t>
+            </list>
+            Separately, Requests and Answers can also be batched together into batch
+            commands (<xref target="batch"/>) in order to avoid the roundtrip latency,
+            when possible.
+            </t>
+            <t>All IPC messages are preceded by a uint32_t set to the size of the message,
+            including this field.</t>
+            <section anchor="ipc_req" title="Request messages">
+                <t>
+                   <figure>
+                       <preamble>A request message begins by an uint8_t opcode, followed 
+                       by arguments defined per operation. Here is an example of a fully 
+                       formed request message:</preamble>
+                       <artwork>
++-----------+--+-----------+
+|09 00 00 00|00|34 7d 34 00|
++-----------+--+-----------+
+  |          |           |
+  |          |       argument
+  |          |         
+  |          opcode
+  |
+  message size
+                       </artwork>
+                       <postamble>In this case this is a message with opcode 0,
+                       (MsgRead8: <xref target="msgread8"/>) using for argument 
+                       0x00347D34 (the address it wants to read). Refer to the sections
+                       below for opcode specific information.</postamble>
+                   </figure>
+                </t>
+                <t>opcodes (operation codes) are uint8_t defining the operation that 
+                must be executed by the server. Some of them have special meaning:
+                <list> 
+                    <t>FF: unimplemented</t>
+                    <t>F0-FE (included): reserved for multiple opcodes commands</t>
+                    <t>D0-EF (included): reserved for target-specific operations</t>
+                </list>
+                </t>
+                <t>You will find below a list of all standardized request messages,
+                along with their arguments and their opcodes.</t>
+                <section anchor="msgread8" title="MsgRead8">
+                    <t>Reads a 8 byte value from memory location mem.</t>
+                    <t>opcode = 0</t>
+                    <t>argument = [ uint32_t mem ];</t>
+                </section>
+                <section anchor="msgread16" title="MsgRead16">
+                    <t>Reads a 16 byte value from memory location mem.</t>
+                    <t>opcode = 1</t>
+                    <t>argument = [ uint32_t mem ];</t>
+                </section>
+                <section anchor="msgread32" title="MsgRead32">
+                    <t>Reads a 32 byte value from memory location mem.</t>
+                    <t>opcode = 2</t>
+                    <t>argument = [ uint32_t mem ];</t>
+                </section>
+                <section anchor="msgread64" title="MsgRead64">
+                    <t>Reads a 64 byte value from memory location mem.</t>
+                    <t>opcode = 3</t>
+                    <t>argument = [ uint32_t mem ];</t>
+                </section>
+                <section anchor="msgwrite8" title="MsgWrite8">
+                    <t>Writes a 8 byte value val to memory location mem.</t>
+                    <t>opcode = 4</t>
+                    <t>argument = [ uint32_t mem, uint8_t val ];</t>
+                </section>
+                <section anchor="msgwrite16" title="MsgWrite16">
+                    <t>Writes a 16 byte value val to memory location mem.</t>
+                    <t>opcode = 5</t>
+                    <t>argument = [ uint32_t mem, uint16_t val ];</t>
+                </section>
+                <section anchor="msgwrite32" title="MsgWrite32">
+                    <t>Writes a 32 byte value val to memory location mem.</t>
+                    <t>opcode = 6</t>
+                    <t>argument = [ uint32_t mem, uint32_t val ];</t>
+                </section>
+                <section anchor="msgwrite64" title="MsgWrite64">
+                    <t>Writes a 64 byte value val to memory location mem.</t>
+                    <t>opcode = 7</t>
+                    <t>argument = [ uint32_t mem, uint64_t val ];</t>
+                </section>
+                <section anchor="msgversion" title="MsgVersion">
+                    <t>Retrieves the version of the target.</t>
+                    <t>opcode = 8</t>
+                    <t>argument = [ ];</t>
+                </section>
+                <section anchor="msgsavestate" title="MsgSaveState">
+                    <t>Request the emulator to save to state sta.</t>
+                    <t>opcode = 9</t>
+                    <t>argument = [ uint8_t sta ];</t>
+                </section>
+                <section anchor="msgloadstate" title="MsgLoadState">
+                    <t>Request the emulator to load state sta.</t>
+                    <t>opcode = 10</t>
+                    <t>argument = [ uint8_t sta ];</t>
+                </section>
+                <section anchor="msgtitle" title="MsgTitle">
+                    <t>Request the title of the game currently running.</t>
+                    <t>opcode = 10</t>
+                    <t>argument = [ ];</t>
+                </section>
+                <section anchor="msgid" title="MsgID">
+                    <t>Request the ID of the game currently running.</t>
+                    <t>opcode = 11</t>
+                    <t>argument = [ ];</t>
+                </section>
+                <section anchor="msguuid" title="MsgUUID">
+                    <t>Request the UUID of the game currently running.</t>
+                    <t>opcode = 12</t>
+                    <t>argument = [ ];</t>
+                </section>
+                <section anchor="msggameversion" title="MsgGameVersion">
+                    <t>Request the version of the game currently running.</t>
+                    <t>opcode = 13</t>
+                    <t>argument = [ ];</t>
+                </section>
+                <section anchor="msgstatus" title="MsgStatus">
+                    <t>Request the status of the emulator.</t>
+                    <t>opcode = 14</t>
+                    <t>argument = [ ];</t>
+                </section>
+            </section>
+            <section anchor="ipc_ans" title="Answer messages">
+            </section>
+            <section anchor="ipc_evt" title="Event messages">
+            </section>
+            <section anchor="batch" title="Batch messages">
             </section>
         </section>
     </middle>
