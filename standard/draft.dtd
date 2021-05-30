@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+<rfc category="std" ipr="none">
+    <front>
+        <title abbrev="PINE">
+            Protocol for Instrumentation of Emulators
+        </title>
+        <author initials="Gauvain T. H. G. I." surname="Roussel-Tarbouriech" 
+        fullname="Gauvain Roussel-Tarbouriech">
+            <organization abbrev="PCSX2">
+                PCSX2 Emulator Project
+            </organization>
+            <address>
+                <email>gauvain@govanify.com</email>
+                <uri>https://govanify.com/</uri>
+            </address>
+        </author>
+        <date month="May" year="2021" />
+        <abstract>
+            <t>This standard presents PINE (Protocol for
+            Instrumentation of Emulators), an 
+            Inter-Process Communication protocol targetted 
+            at video-game emulators.</t>
+        </abstract>
+    </front>
+   
+    <middle>
+        <section anchor="intro" title="Introduction">
+            <t>This standard describes the PINE Protocol
+            (Protocol for Instrumentation of Emulators).</t>
+            <t>This protocol was developped for video-game
+            emulators to provide a consistent interface 
+            between all of them with three main design
+            goals:
+            <list> 
+                <t>Speed</t>
+                <t>Simplicity</t>
+                <t>Robustness</t>
+            </list>
+            </t>
+        </section>
+        <section title="Communication mechanisms">
+            <t>PINE as a protocol needs a way to communicate
+            with the emulator it targets. This implementation
+            is system-specific and is only standardized for
+            Linux<xref target="lnx_com"/>, MacOS
+            <xref target="mac_com"/> and Windows
+            <xref target="win_com"/>. Systems that are not
+            standardized can still implement the PINE protocol.
+            The base requirements for them is to have a working
+            IPC process that can open simultaneous connections.
+            While a minimum is not standardized a system that
+            can implement 10 simultaneous communications would
+            be perfect for this usage.</t>
+            <section title="Slots">
+                <t>PINE implements a concept of slots to allow
+                for simultaneous connections. They can be roughly
+                thought of as ports[BIBLIO HERE]. They can be set
+                to any number between 0 and 65536 included. PINE 
+                targets  have a default slot to allow for PnP 
+                (plug-n-play) which must be in the range 
+                28000-30000. Those numbers must be overrideable
+                manually to allow for multiple instances of the
+                same software to be able to work concurrently.</t>
+            </section>
+
+            <section title="Target name">
+                <t>Every PINE target must have a set target name.
+                This target name is used to differenciate targets
+                between each others. An example target name is
+                "pcsx2".</t>
+            </section>
+
+            <section title="System-specific implementation">
+                <section anchor="lnx_com" title="Linux">
+                    <t>Linux uses unix sockets[BIB HERE] to communicate.
+                    Linux follow the XDG Base specification[BIB HERE] and
+                    as such will use the environment variable 
+                    XDG_RUNTIME_DIR as a folder to use to store the unix
+                    socket. In case this variable is not set, it will default
+                    to /tmp. In case the default slot is used, the socket will 
+                    be named assuming the format: 
+                    &apos;Target name + &quot;.sock&quot;&apos;.
+                    If the slot is specified it will use this format instead: 
+                    &apos;Target name + &quot;.sock.&quot; + slot&apos;.</t>
+                    <t>Examples:
+                        <list>
+                            <t>/run/user/1000/pcsx2.sock: default slot, XDG_RUNTIME_DIR set</t>
+                            <t>/tmp/pcsx2.sock.123: slot 123, XDG_RUNTIME_DIR not set</t>
+                        </list>
+                    </t>
+                </section>
+                <section anchor="mac_com" title="MacOS">
+                    <t>MacOS uses unix sockets[BIB HERE] to communicate.
+                    MacOS will use the environment variable 
+                    TMPDIR as a folder to use to store the unix
+                    socket. In case this variable is not set, it will default
+                    to /tmp. In case the default slot is used, the socket will 
+                    be named assuming the format: 
+                    &apos;Target name + &quot;.sock&quot;&apos;.
+                    If the slot is specified it will use this format instead: 
+                    &apos;Target name + &quot;.sock.&quot; + slot&apos;.</t>
+                    <t>Examples:
+                        <list>
+                            <t>/hello/pcsx2.sock: default slot, TMPDIR set to hello</t>
+                            <t>/tmp/pcsx2.sock.123: slot 123, TMPDIR not set</t>
+                        </list>
+                    </t>
+                </section>
+                <section anchor="win_com" title="Windows">
+                    <t>Windows uses TCP sockets[BIB HERE] to communicate.
+                    Slots are used as TCP ports, listening only to localhost.</t>
+                </section>
+            </section>
+        </section>
+    </middle>
+</rfc>
