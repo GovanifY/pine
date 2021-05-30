@@ -6,7 +6,7 @@ PINE Reference Implementation
 ![coverage](https://img.shields.io/jenkins/coverage/api?jobUrl=https%3A%2F%2Fci.govanify.com%2Fjob%2Fgovanify%2Fjob%2Fpine%2Fjob%2Fmaster%2F)
 ](https://ci.govanify.com/blue/organizations/jenkins/govanify%2Fpine/activity?branch=master)
 
-PINE (Protocol for Instrumentalization of Emulators) is an IPC protocol designed
+PINE (Protocol for Instrumentation of Emulators) is an IPC protocol designed
 for embedded devices emulators, specifically video game emulators.  
 It has a small common subset of operations and additions that are platform
 specific. No obligation is given to implement the common operations although it
