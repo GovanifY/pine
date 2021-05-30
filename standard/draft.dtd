@@ -59,7 +59,7 @@
             <section anchor="slot" title="Slots">
                 <t>PINE implements a concept of slots to allow
                 for simultaneous connections. They can be roughly
-                thought of as ports[BIBLIO HERE]. They can be set
+                thought of as TCP ports <xref target="tsockets"/>. They can be set
                 to any number between 0 and 65536 included. PINE 
                 targets  have a default slot to allow for PnP 
                 (plug-n-play) which must be in the range 
@@ -77,8 +77,9 @@
 
             <section title="System-specific implementation">
                 <section anchor="lnx_com" title="Linux">
-                    <t>Linux uses unix sockets[BIB HERE] to communicate.
-                    Linux follow the XDG Base specification[BIB HERE] and
+                    <t>Linux uses unix sockets <xref target="usockets"/> of domain SOCK_STREAM
+                    to communicate.
+                    Linux follow the XDG Base specification <xref target="xdg"/> and
                     as such will use the environment variable 
                     XDG_RUNTIME_DIR as a folder to use to store the unix
                     socket. In case this variable is not set, it will default
@@ -95,7 +96,8 @@
                     </t>
                 </section>
                 <section anchor="mac_com" title="MacOS">
-                    <t>MacOS uses unix sockets[BIB HERE] to communicate.
+                    <t>MacOS uses unix sockets <xref target="usockets"/> of domain SOCK_STREAM
+                    to communicate.
                     MacOS will use the environment variable 
                     TMPDIR as a folder to use to store the unix
                     socket. In case this variable is not set, it will default
@@ -112,7 +114,7 @@
                     </t>
                 </section>
                 <section anchor="win_com" title="Windows">
-                    <t>Windows uses TCP sockets[BIB HERE] to communicate.
+                    <t>Windows uses TCP sockets <xref target="tsockets"/> to communicate.
                     Slots are used as TCP ports, listening only to localhost.</t>
                 </section>
             </section>
@@ -249,11 +251,179 @@
                 </section>
             </section>
             <section anchor="ipc_ans" title="Answer messages">
+                <t>
+                   <figure>
+                       <preamble>An answer message begins by an uint8_t result code,
+                       which can be either of those two values:
+                        <list style="numbers"> 
+                            <t>00: OK</t>
+                            <t>FF: FAIL</t>
+                        </list>
+                        whereas FAIL denotes a failure on the server side. It is followed
+                       by arguments defined per operation. Here is an example of a fully 
+                       formed request message:</preamble>
+                       <artwork>
++-----------+--+--+
+|06 00 00 00|00|00|
++-----------+--+--+
+  |          |   |
+  |          |   argument
+  |          |         
+  |          result code 
+  |
+  message size
+                       </artwork>
+                       <postamble>In this case this is an answer message of type MsgRead8,
+                       (MsgRead8: <xref target="msgread8"/>) replying with the result 
+                       0x00 (the value it read). Refer to the sections
+                       below for documentation on all possible answer messages.</postamble>
+                   </figure>
+                </t>
+                <section anchor="ans_msgread8" title="MsgRead8">
+                    <t>argument = [ uint8_t val ];</t>
+                </section>
+                <section anchor="ans_msgread16" title="MsgRead16">
+                    <t>argument = [ uint16_t val ];</t>
+                </section>
+                <section anchor="ans_msgread32" title="MsgRead32">
+                    <t>argument = [ uint32_t val ];</t>
+                </section>
+                <section anchor="ans_msgread64" title="MsgRead64">
+                    <t>argument = [ uint64_t val ];</t>
+                </section>
+                <section anchor="ans_msgwrite8" title="MsgWrite8">
+                    <t>argument = [ ];</t>
+                </section>
+                <section anchor="ans_msgwrite16" title="MsgWrite16">
+                    <t>argument = [ ];</t>
+                </section>
+                <section anchor="ans_msgwrite32" title="MsgWrite32">
+                    <t>argument = [ ];</t>
+                </section>
+                <section anchor="ans_msgwrite64" title="MsgWrite64">
+                    <t>argument = [ ];</t>
+                </section>
+                <section anchor="ans_msgversion" title="MsgVersion">
+                    <t>argument = [ uint32_t size, char* version ];</t>
+                </section>
+                <section anchor="ans_msgsavestate" title="MsgSaveState">
+                    <t>argument = [ ];</t>
+                </section>
+                <section anchor="ans_msgloadstate" title="MsgLoadState">
+                    <t>argument = [ ];</t>
+                </section>
+                <section anchor="ans_msgtitle" title="MsgTitle">
+                    <t>argument = [ uint32_t size, char* version ];</t>
+                </section>
+                <section anchor="ans_msgid" title="MsgID">
+                    <t>argument = [ uint32_t size, char* version ];</t>
+                </section>
+                <section anchor="ans_msguuid" title="MsgUUID">
+                    <t>argument = [ uint32_t size, char* version ];</t>
+                </section>
+                <section anchor="ans_msggameversion" title="MsgGameVersion">
+                    <t>argument = [ uint32_t size, char* version ];</t>
+                </section>
+                <section anchor="ans_msgstatus" title="MsgStatus">
+                    <t>argument = [ uint32_t status ];</t>
+                    <t>Where status can be any of those value:
+                    <list style="numbers"> 
+                        <t>0: Running</t>
+                        <t>1: Paused</t>
+                        <t>2: Shutdown</t>
+                    </list>
+                    </t>
+                </section>
             </section>
             <section anchor="ipc_evt" title="Event messages">
+                <t>As of right now, event messages are not implemented. This
+                should change before this draft becomes a standard.</t>
             </section>
             <section anchor="batch" title="Batch messages">
+                <t>
+                   <figure>
+                       <preamble>Batch messages works for both request and answer messages.
+                       They are simply a concatenated gist of all messages minus the original
+                       size header preamble. Here is an example with a request message:</preamble>
+                       <artwork>
++-----------+--------------+--------------+
+|0e 00 00 00|00 34 7d 34 00|00 34 7d 34 00|
++-----------+--------------+--------------+
+  |          |               |
+  |          |               message 2
+  |          |         
+  |          message 1 
+  |
+  message size
+                       </artwork>
+                   </figure>
+                   <figure>
+                       <preamble>And with an answer message:</preamble>
+                       <artwork>
++-----------+-----+-----+
+|08 00 00 00|00 00|00 00|
++-----------+-----+-----+
+  |           |     |
+  |           |     message 2
+  |           |
+  |           message 1
+  |
+  message size
+                       </artwork>
+                       <postamble>As answer messages do not have any identifier and may
+                       have arguments of size unknown at request time, as such it is the
+                       duty of the client to relocate all responses according to the size
+                       of the replies <xref target="client_reloc"/></postamble>
+                   </figure>
+                </t>
             </section>
         </section>
     </middle>
+    <back>
+        <references>
+            <reference anchor="client_reloc" target="https://code.govanify.com/govanify/pine/src/commit/bdb84a810bd6dde0a30d6253ac5895b3439b044b/src/pine.h#L669-L690">
+               <front>
+                   <title>PINE client relocation of answer arguments</title>
+                       <author initials="Gauvain T. H. G. I." surname="Roussel-Tarbouriech" 
+                       fullname="Gauvain Roussel-Tarbouriech">
+                           <organization abbrev="PCSX2">
+                               PCSX2 Emulator Project
+                           </organization>
+                        </author>
+               </front>
+            </reference>
+            <reference anchor="tsockets">
+               <front>
+                   <title>Transmission Control Protocol</title>
+                   <author fullname="DARPA">
+                   </author>
+               </front>
+               <seriesInfo name="RFC" value="793" />
+            </reference>
+            <reference anchor="usockets" target="https://en.wikipedia.org/wiki/Unix_domain_socket">
+               <front>
+                   <title>Unix Domain Sockets</title>
+                   <author initials="UNIX">
+                   </author>
+               </front>
+            </reference>
+            <reference anchor="xdg" target="https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html">
+               <front>
+                   <title>XDG Base Directory Specification</title>
+                   <author initials="W." surname="Bastian" 
+                   fullname="Waldo Bastian">
+                   </author>
+                   <author initials="A." surname="Karlitskaya" 
+                   fullname="Allison Karlitskaya">
+                   </author>
+                   <author initials="L." surname="Poettering" 
+                   fullname="Lennart Poettering">
+                   </author>
+                   <author initials="J." surname="Löthberg" 
+                   fullname="Johannes Löthberg">
+                   </author>
+               </front>
+            </reference>
+        </references>
+    </back>
 </rfc>
