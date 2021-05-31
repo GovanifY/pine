@@ -21,47 +21,19 @@ auto msleep(int sleepMs) -> void {
 #endif
 }
 
-// this function is an infinite loop reading a value in memory, this shows you
-// how timer can work
+// this function is an infinite loop reading the game title, this shows you
+// how timers can work
 auto read_background(PINE::PCSX2 *ipc) -> void {
     while (true) {
         // you can go slower but go higher at your own risk
         msleep(100);
 
-        // we read a 32 bit value from memory address 0x00347D34
         try {
-            // those comments calculate a rough approximation of the latency
-            // time of socket IPC, in µs, if you want to have an idea.
-
-            // auto t1 = std::chrono::high_resolution_clock::now();
-            // uint32_t value = ipc->Read<u32>(0x00347D34);
-
             // WARNING: all datastreams that are returned by the library changes
             // ownership, it is your duty to free them after use.
-            // char *title = ipc->GetGameTitle();
-            // printf("%s\n", title);
-            // delete[] title;
-
-            ipc->InitializeBatch();
-            ipc->GetGameTitle<true>();
-            ipc->GetGameTitle<true>();
-            ipc->Read<u8, true>(0x00347D32);
-            auto resr = ipc->FinalizeBatch();
-            // same as before
-            ipc->SendCommand(resr);
-
-            printf("PINE::PCSX2::Read<uint8_t>(0x00347D32) :  %u\n",
-                   ipc->GetReply<PINE::PCSX2::MsgRead8>(resr, 1));
-
-            printf("PINE::PCSX2::GetGameTitle() :  %s\n",
-                   ipc->GetReply<PINE::PCSX2::MsgTitle>(resr, 2));
-
-            // auto t2 = std::chrono::high_resolution_clock::now();
-            // auto duration =
-            //    std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1)
-            //        .count();
-            // std::cout << "execution time: " << duration << std::endl;
-            // printf("PINE::PCSX2::Read<uint32_t>(0x00347D34) :  %u\n", value);
+            char *title = ipc->GetGameTitle();
+            printf("%s\n", title);
+            delete[] title;
         } catch (...) {
             // if the operation failed
             printf("ERROR!!!!!\n");
@@ -80,9 +52,8 @@ auto main(int argc, char *argv[]) -> int {
     std::thread first(read_background, ipc);
 
     // in this case we wait 5 seconds before writing to our address
-    msleep(500000);
+    msleep(5000);
     try {
-        printf("%s\n", ipc->Version());
         // a normal write can be done this way
         ipc->Write<u8>(0x00347D34, 0x5);
 
@@ -109,6 +80,7 @@ auto main(int argc, char *argv[]) -> int {
         ipc->InitializeBatch();
         ipc->Read<u8, true>(0x00347D34);
         ipc->Read<u8, true>(0x00347D33);
+        ipc->Version<true>();
         ipc->Read<u8, true>(0x00347D32);
         auto resr = ipc->FinalizeBatch();
         // same as before
@@ -123,8 +95,10 @@ auto main(int argc, char *argv[]) -> int {
         // BatchCommand that we saved above!
         // Refer to the documentation of IPCCommand to know all the possible
         // function types
+        printf("PINE::PCSX2::Version() :  %s\n",
+               ipc->GetReply<PINE::PCSX2::MsgVersion>(resr, 2));
         printf("PINE::PCSX2::Read<uint8_t>(0x00347D32) :  %u\n",
-               ipc->GetReply<PINE::PCSX2::MsgRead8>(resr, 2));
+               ipc->GetReply<PINE::PCSX2::MsgRead8>(resr, 3));
     } catch (...) {
         // if the operation failed
         printf("ERROR!!!!!\n");

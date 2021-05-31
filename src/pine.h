@@ -23,8 +23,6 @@
 #include <unistd.h>
 #endif
 
-#define DEBUG
-
 /**
  * The PINE API. @n
  * This is the client side implementation of the PINE protocol. @n
@@ -399,7 +397,9 @@ class Shared {
     auto StringCommands() {
         // batch mode
         if constexpr (T) {
-            if (BatchSafetyChecks(1)) {
+            // reply is automatically set to max because of reloc, so let's not
+            // check that
+            if (BatchSafetyChecks(1, 4)) {
                 SetError(OutOfMemory);
                 return (char *)0;
             }
@@ -739,7 +739,7 @@ class Shared {
 
         // we copy our arrays to unblock the IPC class.
         uint16_t bl = batch_len;
-        int rl = needs_reloc ? reply_len : MAX_IPC_RETURN_SIZE;
+        int rl = needs_reloc ? MAX_IPC_RETURN_SIZE : reply_len;
         char *c_cmd = new char[batch_len];
         memcpy(c_cmd, ipc_buffer, batch_len * sizeof(char));
         char *c_ret = new char[rl];
