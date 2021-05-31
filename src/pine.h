@@ -447,6 +447,8 @@ class Shared {
         unsigned int *return_locations; /**< Location of arguments in IPC return
                                            fields. */
         unsigned int msg_size;          /**< Number of IPC messages. */
+        bool reloc; /**< Whether the message needs relocation. */
+
         // C bindings handle manually the freeing of such resources.
 #ifndef C_FFI
         /**
@@ -676,14 +678,16 @@ class Shared {
         // why not just assume a standard size instead of going through the pain
         // of relocating everything in the protocol? math is cheap, io isn't.
         if constexpr (std::is_same<T, BatchCommand>::value) {
-            unsigned int reloc_add = 0;
-            for (unsigned int i = 0; i < cmd.msg_size; i++) {
-                cmd.return_locations[i] += reloc_add;
-                if ((cmd.return_locations[i] & 0x80000000) != 0) {
-                    cmd.return_locations[i] =
-                        (cmd.return_locations[i] & ~0x80000000);
-                    reloc_add += FromArray<uint32_t>(ret.buffer,
-                                                     (cmd.return_locations[i]));
+            if (cmd.reloc) {
+                unsigned int reloc_add = 0;
+                for (unsigned int i = 0; i < cmd.msg_size; i++) {
+                    cmd.return_locations[i] += reloc_add;
+                    if ((cmd.return_locations[i] & 0x80000000) != 0) {
+                        cmd.return_locations[i] =
+                            (cmd.return_locations[i] & ~0x80000000);
+                        reloc_add += FromArray<uint32_t>(
+                            ret.buffer, (cmd.return_locations[i]));
+                    }
                 }
             }
         }
@@ -753,7 +757,7 @@ class Shared {
 
         // MultiCommand is done!
         return BatchCommand{ IPCBuffer{ bl, c_cmd }, IPCBuffer{ rl, c_ret },
-                             arg_place, arg_cnt };
+                             arg_place, arg_cnt, needs_reloc };
     }
 
     /**
