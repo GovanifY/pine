@@ -11,9 +11,9 @@ for embedded devices emulators, specifically video game emulators.
 It has a small common subset of operations and additions that are platform
 specific. No obligation is given to implement the common operations although it
 is highly encouraged to aid in cross-compatibility of the protocol.
-The protocol is not standardized and you'll find the reference client
-implementation in this repository and the reference server implementation in the
-[PCSX2](https://pcsx2.net) project.
+You'll find in this repository the [protocol standard](standard/)(currently as a draft) 
+along with the reference client implementation.
+The reference server implementation can be found in the [PCSX2](https://pcsx2.net) project.
 
 The reference implementation you'll find here is written in C++, although
 [bindings in popular languages are
