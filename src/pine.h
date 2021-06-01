@@ -1134,4 +1134,16 @@ class PCSX2 : public Shared {
     PCSX2(const unsigned int slot = 0)
         : Shared((slot == 0) ? 28011 : slot, "pcsx2", (slot == 0)){};
 };
+
+class RPCS3 : public Shared {
+  public:
+    /**
+     * RPCS3 session Initializer with a specified slot.
+     * @param slot Slot to use for this IPC session.
+     * @see slot
+     */
+    RPCS3(const unsigned int slot = 0)
+        : Shared((slot == 0) ? 28012 : slot, "rpcs3", (slot == 0)){};
+};
+
 }; // namespace PINE

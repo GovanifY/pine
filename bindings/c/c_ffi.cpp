@@ -6,6 +6,8 @@ static std::vector<PINE::Shared::BatchCommand *> batch_commands;
 
 PINE::PCSX2 *pine_pcsx2_new() { return new PINE::PCSX2(); }
 
+PINE::RPCS3 *pine_rpcs3_new() { return new PINE::RPCS3(); }
+
 void pine_initialize_batch(PINE::Shared *v) { return v->InitializeBatch(); }
 
 void pine_free_datastream(char *data) { delete[] data; }
@@ -212,6 +214,12 @@ void pine_free_batch_command(int cmd) {
     }
 }
 void pine_pcsx2_delete(PINE::PCSX2 *v) {
+    for (long unsigned int i = 0; i < batch_commands.size(); i++)
+        pine_free_batch_command(i);
+    delete v;
+}
+
+void pine_rpcs3_delete(PINE::RPCS3 *v) {
     for (long unsigned int i = 0; i < batch_commands.size(); i++)
         pine_free_batch_command(i);
     delete v;

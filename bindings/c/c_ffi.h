@@ -25,9 +25,14 @@ extern "C" {
 #endif
 
 /**
- * @see PINE::Shared::PINE::Shared
+ * @see PINE::PCSX2
  */
 EXPORT_LIB PINE::PCSX2 *pine_pcsx2_new();
+
+/**
+ * @see PINE::RPCS3
+ */
+EXPORT_LIB PINE::RPCS3 *pine_rpcs3_new();
 
 /**
  * @see PINE::Shared::InitializeBatch
@@ -120,6 +125,11 @@ EXPORT_LIB void pine_write(PINE::Shared *v, uint32_t address, uint64_t val,
  * @see PINE::~PCSX2
  */
 EXPORT_LIB void pine_pcsx2_delete(PINE::PCSX2 *v);
+
+/**
+ * @see PINE::~RPCS3
+ */
+EXPORT_LIB void pine_rpcs3_delete(PINE::RPCS3 *v);
 
 /**
  * Frees given PINE::Shared::BatchCommand through its int handle. @n
