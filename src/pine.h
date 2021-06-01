@@ -1078,6 +1078,7 @@ class Shared {
             SetError(NoConnection);
             return;
         }
+        this->slot = slot;
 #ifdef _WIN32
         // We initialize winsock.
         WSADATA wsa;
