@@ -10,7 +10,7 @@
 
 // TODO: Remind me when C++20 using-enum is implemented in clang/gcc so i can
 // write cleaner code
-// using enum PINE::PCSX2::IPCCommand;
+using enum PINE::PCSX2::IPCCommand;
 
 // a portable sleep function
 auto msleep(int sleepMs) -> void {
@@ -96,9 +96,9 @@ auto main(int argc, char *argv[]) -> int {
         // Refer to the documentation of IPCCommand to know all the possible
         // function types
         printf("PINE::PCSX2::Version() :  %s\n",
-               ipc->GetReply<PINE::PCSX2::MsgVersion>(resr, 2));
+               ipc->GetReply<MsgVersion>(resr, 2));
         printf("PINE::PCSX2::Read<uint8_t>(0x00347D32) :  %u\n",
-               ipc->GetReply<PINE::PCSX2::MsgRead8>(resr, 3));
+               ipc->GetReply<MsgRead8>(resr, 3));
     } catch (...) {
         // if the operation failed
         printf("ERROR!!!!!\n");

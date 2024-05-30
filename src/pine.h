@@ -634,9 +634,8 @@ class Shared {
         // while we haven't received the entire packet, maybe due to
         // socket datagram splittage, we continue to read
         while (receive_length < end_length) {
-            auto tmp_length =
-                read_portable(sock, &ret.buffer[receive_length],
-                              ret.size - receive_length);
+            auto tmp_length = read_portable(sock, &ret.buffer[receive_length],
+                                            ret.size - receive_length);
             // we close the connection if an error happens
             if (tmp_length <= 0) {
                 receive_length = 0;
@@ -1145,6 +1144,22 @@ class RPCS3 : public Shared {
      */
     RPCS3(const unsigned int slot = 0)
         : Shared((slot == 0) ? 28012 : slot, "rpcs3", (slot == 0)){};
+};
+
+class DuckStation : public Shared {
+  public:
+    /**
+     * DuckStation session Initializer with a specified slot.
+     * @param slot Slot to use for this IPC session.
+     * @see slot
+     */
+    DuckStation(const unsigned int slot = 0)
+        : Shared((slot == 0) ? 28011 : slot, "duckstation", (slot == 0)){};
+
+    auto GetGameVersion() {
+        SetError(Unimplemented);
+        return;
+    }
 };
 
 }; // namespace PINE
