@@ -35,6 +35,11 @@ EXPORT_LIB PINE::PCSX2 *pine_pcsx2_new();
 EXPORT_LIB PINE::RPCS3 *pine_rpcs3_new();
 
 /**
+ * @see PINE::DuckStation
+ */
+EXPORT_LIB PINE::DuckStation *pine_duckstation_new();
+
+/**
  * @see PINE::Shared::InitializeBatch
  */
 EXPORT_LIB void pine_initialize_batch(PINE::Shared *v);
@@ -130,6 +135,11 @@ EXPORT_LIB void pine_pcsx2_delete(PINE::PCSX2 *v);
  * @see PINE::~RPCS3
  */
 EXPORT_LIB void pine_rpcs3_delete(PINE::RPCS3 *v);
+
+/**
+ * @see PINE::~DuckStation
+ */
+EXPORT_LIB void pine_duckstation_delete(PINE::DuckStation *v);
 
 /**
  * Frees given PINE::Shared::BatchCommand through its int handle. @n

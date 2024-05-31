@@ -8,8 +8,6 @@
 #define u32 uint32_t
 #define u64 uint64_t
 
-// TODO: Remind me when C++20 using-enum is implemented in clang/gcc so i can
-// write cleaner code
 using enum PINE::PCSX2::IPCCommand;
 
 // a portable sleep function

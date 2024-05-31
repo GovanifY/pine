@@ -8,6 +8,8 @@ PINE::PCSX2 *pine_pcsx2_new() { return new PINE::PCSX2(); }
 
 PINE::RPCS3 *pine_rpcs3_new() { return new PINE::RPCS3(); }
 
+PINE::DuckStation *pine_duckstation_new() { return new PINE::DuckStation(); }
+
 void pine_initialize_batch(PINE::Shared *v) { return v->InitializeBatch(); }
 
 void pine_free_datastream(char *data) { delete[] data; }
@@ -220,6 +222,12 @@ void pine_pcsx2_delete(PINE::PCSX2 *v) {
 }
 
 void pine_rpcs3_delete(PINE::RPCS3 *v) {
+    for (long unsigned int i = 0; i < batch_commands.size(); i++)
+        pine_free_batch_command(i);
+    delete v;
+}
+
+void pine_duckstation_delete(PINE::DuckStation *v) {
     for (long unsigned int i = 0; i < batch_commands.size(); i++)
         pine_free_batch_command(i);
     delete v;
