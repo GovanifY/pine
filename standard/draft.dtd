@@ -360,13 +360,15 @@
                    <figure>
                        <preamble>And with an answer message:</preamble>
                        <artwork>
-+-----------+-----+-----+
-|08 00 00 00|00 00|00 00|
-+-----------+-----+-----+
-  |           |     |
-  |           |     message 2
-  |           |
-  |           message 1
++-----------+--+-----+
+|07 00 00 00|00|00|00|
++-----------+--+-----+
+  |          |   | |
+  |          |   | message 2
+  |          |   |
+  |          |   message 1
+  |          |         
+  |          result code 
   |
   message size
                        </artwork>
