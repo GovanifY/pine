@@ -1,4 +1,4 @@
-project('pine', 'cpp', default_options : ['cpp_std=c++17',
+project('pine', 'cpp', default_options : ['cpp_std=c++20',
 'buildtype=release'])
 add_global_arguments('-DC_FFI', language : 'cpp')
 
