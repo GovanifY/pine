@@ -89,9 +89,9 @@ class Shared {
      * Socket handler. @n
      * On windows it uses the type SOCKET, on linux int.
      */
-    SOCKET sock;
+    SOCKET sock = INVALID_SOCKET;
 #else
-    int sock;
+    int sock = -1;
 #endif
 
     /**
@@ -1117,6 +1117,10 @@ class Shared {
         // We clean up winsock.
 #ifdef _WIN32
         WSACleanup();
+#else
+        if (sock > -1) {
+            close_portable(sock);
+        }
 #endif
         delete[] ret_buffer;
         delete[] ipc_buffer;
