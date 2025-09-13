@@ -1126,6 +1126,26 @@ class Shared {
         delete[] ipc_buffer;
         delete[] batch_arg_place;
     }
+
+    /**
+     * Disable the copy constructor.
+     */
+    Shared(const Shared& rhs) = delete;
+
+    /**
+     * Disable the move constructor.
+     */
+    Shared(Shared&& rhs) = delete;
+
+    /**
+     * Disable the copy assignment operator.
+     */
+    Shared& operator=(const Shared& rhs) = delete;
+
+    /**
+     * Disable the move assignment operator.
+     */
+    Shared& operator=(Shared&& rhs) = delete;
 };
 
 class PCSX2 : public Shared {
