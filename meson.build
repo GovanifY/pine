@@ -9,7 +9,7 @@ executable('client', src, dependencies : [thread_dep, winsock])
 
 
 
-catch2 = dependency('catch2', required : false)
+catch2 = dependency('catch2-with-main', required : false)
 test_src = ['src/tests.cpp']
 if catch2.found()
   # TODO: in the future if we need to add threads to the API test cases might

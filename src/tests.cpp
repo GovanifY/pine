@@ -1,6 +1,5 @@
 #include "pine.h"
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <climits>
 
 #define u8 uint8_t
