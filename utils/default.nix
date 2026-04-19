@@ -34,6 +34,7 @@ pkgs.mkShell {
     pkgs.pkgconfig
     pkgs.xorg.xorgserver
     pkgs.meson
+    pkgs.cmake
     pkgs.ninja
     pkgs.gcovr
   ];

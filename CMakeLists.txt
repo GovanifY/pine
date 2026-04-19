@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.10)
+project(pine LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(Threads REQUIRED)
+
+add_executable(client src/client.cpp)
+target_link_libraries(client PRIVATE Threads::Threads)
+if(WIN32)
+  target_link_libraries(client PRIVATE ws2_32)
+endif()
+
+include(CTest)
+if(BUILD_TESTING)
+  find_package(Catch2 3 QUIET CONFIG)
+  if(TARGET Catch2::Catch2WithMain)
+    add_executable(tests src/tests.cpp)
+    target_compile_definitions(tests PRIVATE TESTS)
+    target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
+    if(WIN32)
+      target_link_libraries(tests PRIVATE ws2_32)
+    endif()
+    add_test(NAME tests COMMAND tests)
+  endif()
+endif()
