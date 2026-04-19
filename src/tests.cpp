@@ -7,7 +7,15 @@
 #define u16 uint16_t
 #define u32 uint32_t
 #define u64 uint64_t
-#define u128 __int128
+
+// MSVC has no __int128.
+#if defined(_MSC_VER)
+struct alignas(16) u128 {
+    unsigned char raw[16];
+};
+#else
+using u128 = __int128;
+#endif
 
 /* Test case suite for the PCSX2 IPC API
  * You will probably need to set environment variables to be able
@@ -90,7 +98,7 @@ SCENARIO("PCSX2 can be interacted with remotely through IPC", "[pine]") {
                                      PINE::PCSX2::IPCBuffer{ 5, c_ret }));
 
                 // make unimplemented write
-                REQUIRE_THROWS(ipc->Write<u128>(0x00347D34, 5));
+                REQUIRE_THROWS(ipc->Write<u128>(0x00347D34, u128{}));
 
                 // make unimplemented read
                 REQUIRE_THROWS(ipc->Read<u128>(0x00347D34));
