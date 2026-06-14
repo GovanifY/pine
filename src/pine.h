@@ -742,7 +742,7 @@ class Shared {
         ToArray<uint32_t>(ipc_buffer, batch_len, 0);
 
         // we copy our arrays to unblock the IPC class.
-        uint16_t bl = batch_len;
+        int bl = batch_len;
         int rl = needs_reloc ? MAX_IPC_RETURN_SIZE : reply_len;
         char *c_cmd = new char[batch_len];
         memcpy(c_cmd, ipc_buffer, batch_len * sizeof(char));
