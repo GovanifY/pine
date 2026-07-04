@@ -3,6 +3,7 @@
 extern "C" {
 
 static std::vector<PINE::Shared::BatchCommand *> batch_commands;
+static std::vector<int> free_batch_command_indices;
 
 PINE::PCSX2 *pine_pcsx2_new() { return new PINE::PCSX2(); }
 
@@ -20,8 +21,18 @@ int pine_finalize_batch(PINE::Shared *v) {
     p_batch->ipc_message = batch.ipc_message;
     p_batch->ipc_return = batch.ipc_return;
     p_batch->return_locations = batch.return_locations;
-    batch_commands.push_back(p_batch);
-    return batch_commands.size() - 1;
+
+    int index;
+    if (!free_batch_command_indices.empty()) {
+        index = free_batch_command_indices.back();
+        free_batch_command_indices.pop_back();
+        batch_commands[index] = p_batch;
+    } else {
+        index = static_cast<int>(batch_commands.size());
+        batch_commands.push_back(p_batch);
+    }
+
+    return index;
 }
 
 uint64_t pine_get_reply_int(PINE::Shared *v, int cmd, int place,
@@ -213,23 +224,31 @@ void pine_free_batch_command(int cmd) {
         delete[] batch_commands[cmd]->return_locations;
         delete batch_commands[cmd];
         batch_commands[cmd] = NULL;
+        free_batch_command_indices.push_back(cmd);
     }
 }
+
 void pine_pcsx2_delete(PINE::PCSX2 *v) {
     for (long unsigned int i = 0; i < batch_commands.size(); i++)
         pine_free_batch_command(i);
+    batch_commands.clear();
+    free_batch_command_indices.clear();
     delete v;
 }
 
 void pine_rpcs3_delete(PINE::RPCS3 *v) {
     for (long unsigned int i = 0; i < batch_commands.size(); i++)
         pine_free_batch_command(i);
+    batch_commands.clear();
+    free_batch_command_indices.clear();
     delete v;
 }
 
 void pine_duckstation_delete(PINE::DuckStation *v) {
     for (long unsigned int i = 0; i < batch_commands.size(); i++)
         pine_free_batch_command(i);
+    batch_commands.clear();
+    free_batch_command_indices.clear();
     delete v;
 }
 }
