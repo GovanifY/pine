@@ -450,17 +450,47 @@ class Shared {
         unsigned int msg_size;          /**< Number of IPC messages. */
         bool reloc; /**< Whether the message needs relocation. */
 
-        // C bindings handle manually the freeing of such resources.
-#ifndef C_FFI
-        /**
-         * BatchCommand Destructor.
-         */
-        ~BatchCommand() {
+        BatchCommand()
+            : ipc_message{}, ipc_return{}, return_locations(nullptr),
+              msg_size(0), reloc(false) {}
+
+        BatchCommand(IPCBuffer message, IPCBuffer ret, unsigned int *locations,
+                     unsigned int size, bool r)
+            : ipc_message(message), ipc_return(ret),
+              return_locations(locations), msg_size(size), reloc(r) {}
+
+        BatchCommand(const BatchCommand &rhs) = delete;
+        BatchCommand &operator=(const BatchCommand &rhs) = delete;
+
+        BatchCommand(BatchCommand &&rhs) { MoveFrom(rhs); }
+        BatchCommand &operator=(BatchCommand &&rhs) {
+            Cleanup();
+            MoveFrom(rhs);
+            return *this;
+        }
+
+        ~BatchCommand() { Cleanup(); }
+
+      private:
+        void MoveFrom(BatchCommand &rhs) {
+            ipc_message = rhs.ipc_message;
+            ipc_return = rhs.ipc_return;
+            return_locations = rhs.return_locations;
+            msg_size = rhs.msg_size;
+            reloc = rhs.reloc;
+
+            rhs.ipc_message = IPCBuffer{};
+            rhs.ipc_return = IPCBuffer{};
+            rhs.return_locations = nullptr;
+            rhs.msg_size = 0;
+            rhs.reloc = false;
+        }
+
+        void Cleanup() {
             delete[] ipc_message.buffer;
             delete[] ipc_return.buffer;
             delete[] return_locations;
         }
-#endif
     };
 
     /**

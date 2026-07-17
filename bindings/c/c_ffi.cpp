@@ -2,7 +2,7 @@
 
 extern "C" {
 
-static std::vector<PINE::Shared::BatchCommand *> batch_commands;
+static std::vector<PINE::Shared::BatchCommand> batch_commands;
 static std::vector<int> free_batch_command_indices;
 
 PINE::PCSX2 *pine_pcsx2_new() { return new PINE::PCSX2(); }
@@ -16,20 +16,16 @@ void pine_initialize_batch(PINE::Shared *v) { return v->InitializeBatch(); }
 void pine_free_datastream(char *data) { delete[] data; }
 
 int pine_finalize_batch(PINE::Shared *v) {
-    auto p_batch = new PINE::Shared::BatchCommand;
     auto batch = v->FinalizeBatch();
-    p_batch->ipc_message = batch.ipc_message;
-    p_batch->ipc_return = batch.ipc_return;
-    p_batch->return_locations = batch.return_locations;
 
     int index;
     if (!free_batch_command_indices.empty()) {
         index = free_batch_command_indices.back();
         free_batch_command_indices.pop_back();
-        batch_commands[index] = p_batch;
+        batch_commands[index] = std::move(batch);
     } else {
         index = static_cast<int>(batch_commands.size());
-        batch_commands.push_back(p_batch);
+        batch_commands.push_back(std::move(batch));
     }
 
     return index;
@@ -37,36 +33,26 @@ int pine_finalize_batch(PINE::Shared *v) {
 
 uint64_t pine_get_reply_int(PINE::Shared *v, int cmd, int place,
                             PINE::Shared::IPCCommand msg) {
-    auto lcmd = PINE::Shared::BatchCommand{
-        PINE::Shared::IPCBuffer{ batch_commands[cmd]->ipc_message.size,
-                                 batch_commands[cmd]->ipc_message.buffer },
-        PINE::Shared::IPCBuffer{ batch_commands[cmd]->ipc_return.size,
-                                 batch_commands[cmd]->ipc_return.buffer },
-        batch_commands[cmd]->return_locations
-    };
+    PINE::Shared::BatchCommand &command = batch_commands[cmd];
     switch (msg) {
         case PINE::Shared::MsgRead8:
-            return (uint64_t)v->GetReply<PINE::Shared::MsgRead8>(lcmd, place);
+            return (uint64_t)v->GetReply<PINE::Shared::MsgRead8>(command,
+                                                                 place);
         case PINE::Shared::MsgRead16:
-            return (uint64_t)v->GetReply<PINE::Shared::MsgRead16>(lcmd, place);
+            return (uint64_t)v->GetReply<PINE::Shared::MsgRead16>(command,
+                                                                  place);
         case PINE::Shared::MsgRead32:
-            return (uint64_t)v->GetReply<PINE::Shared::MsgRead32>(lcmd, place);
+            return (uint64_t)v->GetReply<PINE::Shared::MsgRead32>(command,
+                                                                  place);
         case PINE::Shared::MsgRead64:
-            return v->GetReply<PINE::Shared::MsgRead64>(lcmd, place);
+            return v->GetReply<PINE::Shared::MsgRead64>(command, place);
         default:
             return 0;
     }
 }
 
 void pine_send_command(PINE::Shared *v, int cmd) {
-    auto lcmd = PINE::Shared::BatchCommand{
-        PINE::Shared::IPCBuffer{ batch_commands[cmd]->ipc_message.size,
-                                 batch_commands[cmd]->ipc_message.buffer },
-        PINE::Shared::IPCBuffer{ batch_commands[cmd]->ipc_return.size,
-                                 batch_commands[cmd]->ipc_return.buffer },
-        batch_commands[cmd]->return_locations
-    };
-    return v->SendCommand(lcmd);
+    return v->SendCommand(batch_commands[cmd]);
 }
 
 uint64_t pine_read(PINE::Shared *v, uint32_t address,
@@ -218,14 +204,8 @@ PINE::Shared::IPCStatus pine_get_error(PINE::Shared *v) {
 }
 
 void pine_free_batch_command(int cmd) {
-    if (batch_commands[cmd] != NULL) {
-        delete[] batch_commands[cmd]->ipc_message.buffer;
-        delete[] batch_commands[cmd]->ipc_return.buffer;
-        delete[] batch_commands[cmd]->return_locations;
-        delete batch_commands[cmd];
-        batch_commands[cmd] = NULL;
-        free_batch_command_indices.push_back(cmd);
-    }
+    batch_commands[cmd] = {};
+    free_batch_command_indices.push_back(cmd);
 }
 
 void pine_pcsx2_delete(PINE::PCSX2 *v) {
