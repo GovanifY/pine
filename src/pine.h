@@ -1176,22 +1176,22 @@ class Shared {
     /**
      * Disable the copy constructor.
      */
-    Shared(const Shared& rhs) = delete;
+    Shared(const Shared &rhs) = delete;
 
     /**
      * Disable the move constructor.
      */
-    Shared(Shared&& rhs) = delete;
+    Shared(Shared &&rhs) = delete;
 
     /**
      * Disable the copy assignment operator.
      */
-    Shared& operator=(const Shared& rhs) = delete;
+    Shared &operator=(const Shared &rhs) = delete;
 
     /**
      * Disable the move assignment operator.
      */
-    Shared& operator=(Shared&& rhs) = delete;
+    Shared &operator=(Shared &&rhs) = delete;
 };
 
 class PCSX2 : public Shared {
@@ -1202,7 +1202,7 @@ class PCSX2 : public Shared {
      * @see slot
      */
     PCSX2(const unsigned int slot = 0)
-        : Shared((slot == 0) ? 28011 : slot, "pcsx2", (slot == 0)){};
+        : Shared((slot == 0) ? 28011 : slot, "pcsx2", (slot == 0)) {}
 };
 
 class RPCS3 : public Shared {
@@ -1213,7 +1213,7 @@ class RPCS3 : public Shared {
      * @see slot
      */
     RPCS3(const unsigned int slot = 0)
-        : Shared((slot == 0) ? 28012 : slot, "rpcs3", (slot == 0)){};
+        : Shared((slot == 0) ? 28012 : slot, "rpcs3", (slot == 0)) {}
 };
 
 class DuckStation : public Shared {
@@ -1224,7 +1224,7 @@ class DuckStation : public Shared {
      * @see slot
      */
     DuckStation(const unsigned int slot = 0)
-        : Shared((slot == 0) ? 28011 : slot, "duckstation", (slot == 0)){};
+        : Shared((slot == 0) ? 28011 : slot, "duckstation", (slot == 0)) {}
 
     auto GetGameVersion() {
         SetError(Unimplemented);
