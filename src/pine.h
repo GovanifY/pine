@@ -12,6 +12,15 @@
 #define write_portable(a, b, c) (send(a, b, c, 0))
 #define close_portable(a) (closesocket(a))
 #include <windows.h>
+#elif defined(__linux__) || defined(__FreeBSD__)
+#define read_portable(a, b, c) (read(a, b, c))
+#define write_portable(a, b, c) (send(a, b, c, MSG_NOSIGNAL))
+#define close_portable(a) (close(a))
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
 #else
 #define read_portable(a, b, c) (read(a, b, c))
 #define write_portable(a, b, c) (write(a, b, c))
@@ -301,6 +310,12 @@ class Shared {
         }
 #endif
         sock_state = true;
+
+#ifdef __APPLE__
+        int nosigpipe = 1;
+        setsockopt(sock, SOL_SOCKET, SO_NOSIGPIPE, &nosigpipe,
+                   sizeof(nosigpipe));
+#endif
     }
 
   public:
